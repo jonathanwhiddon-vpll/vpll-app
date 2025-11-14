@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Villa Park Little League</title>
+
+  <!-- Link to CSS and JS -->
+  <link rel="stylesheet" href="style.css" />
+  <script src="app.js" defer></script>
+
+  <!-- PWA / icon -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="60thlogo.jpg" />
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <img src="60thlogo.jpg" alt="Villa Park Vibe Logo" />
+    Villa Park Little League
+  </header>
+
+  <!-- Main Content -->
+  <main id="page-root"></main>
+
+  <!-- Bottom Navigation -->
+  <nav class="navbar">
+  <button class="nav-btn active" data-page="home">🏠 Home</button>
+  <button class="nav-btn" data-page="teams">👥 Teams</button>
+  <button class="nav-btn" data-page="schedule">📅 Schedule</button>
+  <button class="nav-btn" data-page="standings">🏆 Standings</button>
+  <button class="nav-btn" data-page="messages">💬 Messages</button>
+
+  <!-- IMPORTANT: Admin tab (starts hidden) -->
+  <button 
+    class="nav-btn" 
+    data-page="admin" 
+    id="adminTab" 
+    style="display:none;"
+  >
+    🔐 Admin
+  </button>
+</nav>
+
+
+  <!-- Optional: Service Worker -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("service-worker.js")
+        .then(() => console.log("Service Worker registered"))
+        .catch((err) => console.error("Service Worker failed", err));
+    }
+  </script>
+</body>
+</html>

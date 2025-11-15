@@ -1,11 +1,11 @@
-/* ---------------------------------------------------
+/* -----------------------------------------
    Villa Park Little League - app.js
    - Teams / Schedule / Standings / Messages / Admin
    - Coach login + Admin login
    - Google Sheet schedule (CSV)
    - Scores sync via Apps Script Web App
    - Standings auto-calculated from scores
---------------------------------------------------- */
+------------------------------------------ */
 
 // === GLOBAL STATE ===
 let games = JSON.parse(localStorage.getItem("games") || "[]");
@@ -24,9 +24,9 @@ recomputeGameIndices();
 
 // CSV links for schedule (already working before)
 const CSV_LINKS = {
-  AAA: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1857914653&single=true&output=csv",
+  AAA: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3Vy1DU4OsbG5SNn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=2131986160&single=true&output=csv",
   Majors:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1006784456&single=true&output=csv",
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3Vy1DU4OsbG5SNn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1006784456&single=true&output=csv",
 };
 
 // Apps Script Web App URL (for scores)
@@ -54,210 +54,119 @@ function saveMessages() {
   localStorage.setItem("messages", JSON.stringify(messages));
 }
 
-// === UTIL: SAVE GAMES LOCALLY ===
+// === SCORE HELPERS ===
 function saveGames() {
   localStorage.setItem("games", JSON.stringify(games));
 }
 
-// ---------------------------------------------------------
-// === LOAD SCHEDULE FROM GOOGLE SHEET CSV (per division) ===
-// ---------------------------------------------------------
+function calculateStandings() {
+  const rec = {};
+  games.forEach((g) => {
+    if (!g.home || !g.away) return;
+
+    if (!rec[g.home])
+      rec[g.home] = { team: g.home, w: 0, l: 0 };
+    if (!rec[g.away])
+      rec[g.away] = { team: g.away, w: 0, l: 0 };
+
+    if (g.homeScore != null && g.awayScore != null) {
+      if (g.homeScore > g.awayScore) {
+        rec[g.home].w++;
+        rec[g.away].l++;
+      } else if (g.awayScore > g.homeScore) {
+        rec[g.away].w++;
+        rec[g.home].l++;
+      }
+    }
+  });
+  return Object.values(rec).sort((a, b) => b.w - a.w);
+}
+
+// === LOAD SCHEDULE FROM GOOGLE SHEET CSV ===
 async function loadScheduleFromSheet(divisionName) {
   try {
     const url = CSV_LINKS[divisionName];
-    if (!url) return;
-
-    const response = await fetch(url);
-    const csv = await response.text();
-
-    const lines = csv.split(/\r?\n/).filter((l) => l.trim().length > 0);
-    if (lines.length <= 1) return;
-
-    const header = lines[0].split(",");
-    const dateIdx = header.indexOf("Date");
-    const timeIdx = header.indexOf("Time");
-    const fieldIdx = header.indexOf("Field");
-    const homeIdx = header.indexOf("Home");
-    const awayIdx = header.indexOf("Away");
-
-    const newGames = lines.slice(1).map((line) => {
-      const cols = line.split(",");
-      return {
-        division: divisionName,
-        date: cols[dateIdx] || "",
-        time: cols[timeIdx] || "",
-        field: cols[fieldIdx] || "",
-        home: cols[homeIdx] || "",
-        away: cols[awayIdx] || "",
-        homeScore: null,
-        awayScore: null,
-      };
-    });
-
-    // Filter out empty rows and replace games for this division
-    const cleaned = newGames.filter((g) => g.home && g.away);
-    games = games.filter((g) => g.division !== divisionName).concat(cleaned);
-
-    recomputeGameIndices();
-    saveGames();
-    console.log(`Loaded schedule for ${divisionName}`, cleaned);
-  } catch (err) {
-    console.error("Error loading schedule CSV for", divisionName, err);
-  }
-}
-
-// Load all divisions once (used by Admin button)
-async function reloadAllSchedules() {
-  for (const div of DIVISIONS) {
-    await loadScheduleFromSheet(div);
-  }
-  await loadScoresFromGoogleSheet(); // pull any saved scores
-  renderSchedule();
-  renderStandings();
-}
-
-// ---------------------------------------------------------
-// === LOAD SCORES FROM GOOGLE APPS SCRIPT WEB APP ===
-// ---------------------------------------------------------
-async function loadScoresFromGoogleSheet() {
-  try {
-    const response = await fetch(SHEET_API_URL);
-    const data = await response.json();
-
-    // Expecting: { games: [ { division, date, time, field, home, away, homeScore, awayScore }, ... ] }
-    if (!data || !Array.isArray(data.games)) {
-      console.warn("Unexpected data from Sheet API:", data);
+    if (!url) {
+      alert("No CSV link configured for " + divisionName);
       return;
     }
 
-    // Replace our games with what comes from the sheet
-    games = data.games.map((g) => ({
-      division: g.division,
-      date: g.date,
-      time: g.time,
-      field: g.field,
-      home: g.home,
-      away: g.away,
-      homeScore:
-        g.homeScore === "" || g.homeScore === undefined
-          ? null
-          : Number(g.homeScore),
-      awayScore:
-        g.awayScore === "" || g.awayScore === undefined
-          ? null
-          : Number(g.awayScore),
-    }));
+    const response = await fetch(url);
+    const text = await response.text();
 
+    // Very basic CSV parse: date,time,field,home,away
+    const lines = text.trim().split("\n");
+    const newGames = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const row = lines[i].split(",");
+      if (row.length < 5) continue;
+      const [date, time, field, home, away] = row.map((s) =>
+        s.replace(/^"|"$/g, "").trim()
+      );
+
+      newGames.push({
+        division: divisionName,
+        date,
+        time,
+        field,
+        home,
+        away,
+        homeScore: null,
+        awayScore: null,
+      });
+    }
+
+    // Replace any existing games for this division
+    games = games.filter((g) => g.division !== divisionName).concat(newGames);
     recomputeGameIndices();
     saveGames();
-    console.log("Loaded scores from Google Sheets:", games);
+  } catch (err) {
+    console.error("CSV load error:", err);
+    alert("Error loading schedule from Google Sheets.");
+  }
+}
+
+// === LOAD SCORES FROM GOOGLE SHEETS (Apps Script) ===
+async function loadScoresFromGoogleSheet() {
+  try {
+    const url = SHEET_API_URL;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    // Expecting { games: [...] } coming from Apps Script
+    if (data && Array.isArray(data.games)) {
+      // Merge scores by matching date/time/teams
+      const incoming = data.games;
+      games.forEach((g) => {
+        const match = incoming.find(
+          (ig) =>
+            ig.division === g.division &&
+            ig.date === g.date &&
+            ig.time === g.time &&
+            ig.home === g.home &&
+            ig.away === g.away
+        );
+        if (match) {
+          g.homeScore =
+            match.homeScore === "" || match.homeScore === null
+              ? null
+              : Number(match.homeScore);
+          g.awayScore =
+            match.awayScore === "" || match.awayScore === null
+              ? null
+              : Number(match.awayScore);
+        }
+      });
+      saveGames();
+      console.log("Loaded scores from Google Sheets:", games);
+    }
   } catch (err) {
     console.error("Google Sheets load error:", err);
   }
 }
 
-// ---------------------------------------------------------
-// === STANDINGS CALCULATION ===
-// ---------------------------------------------------------
-function calculateStandings(forDivision) {
-  const rec = {};
-  games
-    .filter((g) => g.division === forDivision)
-    .forEach((g) => {
-      if (!g.home || !g.away) return;
-
-      if (!rec[g.home]) rec[g.home] = { team: g.home, w: 0, l: 0 };
-      if (!rec[g.away]) rec[g.away] = { team: g.away, w: 0, l: 0 };
-
-      if (g.homeScore != null && g.awayScore != null) {
-        if (g.homeScore > g.awayScore) {
-          rec[g.home].w++;
-          rec[g.away].l++;
-        } else if (g.awayScore > g.homeScore) {
-          rec[g.away].w++;
-          rec[g.home].l++;
-        }
-      }
-    });
-
-  return Object.values(rec).sort((a, b) => b.w - a.w);
-}
-
-// ---------------------------------------------------------
-// === SUBMIT SCORE (COACH) -> GOOGLE APPS SCRIPT WEB APP ===
-// ---------------------------------------------------------
-async function submitScore(gameIdx) {
-  if (!loggedInCoach) {
-    alert("Please log in as a coach to submit scores.");
-    return;
-  }
-
-  const homeInput = document.getElementById(`homeScore-${gameIdx}`);
-  const awayInput = document.getElementById(`awayScore-${gameIdx}`);
-  if (!homeInput || !awayInput) return;
-
-  const homeScore = parseInt(homeInput.value, 10);
-  const awayScore = parseInt(awayInput.value, 10);
-
-  if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) {
-    alert("Please enter both scores.");
-    return;
-  }
-
-  const game = games[gameIdx];
-  if (!game) return;
-
-  const payload = {
-    action: "submitScore",
-    division: game.division,
-    date: game.date,
-    time: game.time,
-    field: game.field,
-    home: game.home,
-    away: game.away,
-    homeScore,
-    awayScore,
-  };
-
-  try {
-    const response = await fetch(SHEET_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-    console.log("Score submit response:", data);
-
-    // Update local state immediately
-    game.homeScore = homeScore;
-    game.awayScore = awayScore;
-    saveGames();
-
-    // Clear inputs
-    homeInput.value = "";
-    awayInput.value = "";
-
-    alert("Score submitted!");
-    renderSchedule();
-    renderStandings();
-  } catch (err) {
-    console.error("Error submitting score:", err);
-    alert("Could not submit score. Please try again.");
-  }
-}
-
-// ---------------------------------------------------------
-// === PAGE RENDERING ===
-// ---------------------------------------------------------
-const pageRoot = document.getElementById("page-root");
-const navButtons = document.querySelectorAll(".nav-btn");
-
-function clearActiveNav() {
-  navButtons.forEach((btn) => btn.classList.remove("active"));
-}
-
-// --- HOME ---
+// === RENDER HOME PAGE ===
 function renderHome() {
   pageRoot.innerHTML = `
     <section class="card">
@@ -269,83 +178,87 @@ function renderHome() {
   `;
 }
 
-// --- TEAMS (simple placeholder for now) ---
+// === RENDER TEAMS PAGE ===
 function renderTeams() {
-  pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header">
-        <div class="card-title">Teams</div>
-      </div>
-      <p style="padding:16px;">Team information can go here.</p>
-    </section>
-  `;
+  const divs = DIVISIONS;
+  const teamsByDiv = {};
+
+  divs.forEach((d) => {
+    teamsByDiv[d] = Array.from(
+      new Set(
+        games
+          .filter((g) => g.division === d)
+          .flatMap((g) => [g.home, g.away])
+          .filter(Boolean)
+      )
+    ).sort();
+  });
+
+  const htmlSections = divs
+    .map((d) => {
+      const teams = teamsByDiv[d];
+      const li =
+        teams.length === 0
+          ? "<li>No teams yet.</li>"
+          : teams.map((t) => `<li>${t}</li>`).join("");
+      return `
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">${d} Teams</div>
+          </div>
+          <ul class="roster-list">
+            ${li}
+          </ul>
+        </section>
+      `;
+    })
+    .join("");
+
+  pageRoot.innerHTML = htmlSections;
 }
 
-// --- SCHEDULE + SCORE ENTRY ---
-function renderSchedule() {
-  const divisions = DIVISIONS;
-  const filteredGames = games.filter((g) => g.division === selectedDivision);
+// === RENDER SCHEDULE PAGE ===
+async function renderSchedule() {
+  const divs = DIVISIONS;
 
-  const items =
-    filteredGames
-      .map(
-        (g) => `
-      <li>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-weight:600;">${g.home} vs ${g.away}</div>
-            <div style="font-size:0.85rem;color:#555;">
-              ${g.date} • ${g.time} • ${g.field}
-            </div>
-          </div>
-          <div style="text-align:right;font-weight:600;">
-            ${
-              g.homeScore != null && g.awayScore != null
-                ? `${g.homeScore} - ${g.awayScore}`
-                : "No score yet"
-            }
-          </div>
+  const filteredGames = games.filter(
+    (g) => g.division === selectedDivision
+  );
+
+  const items = filteredGames
+    .map(
+      (g) => `
+      <li class="schedule-item">
+        <div style="font-weight:600;">
+          ${g.home || "TBD"} vs ${g.away || "TBD"}
         </div>
-
-        ${
-          loggedInCoach
-            ? `
-        <div class="score-entry" style="margin-top:8px;display:flex;gap:8px;">
-          <input
-            type="number"
-            placeholder="Home"
-            id="homeScore-${g._idx}"
-            class="score-input"
-            style="flex:1;padding:6px;border-radius:6px;border:1px solid #ccc;"
-          >
-          <input
-            type="number"
-            placeholder="Away"
-            id="awayScore-${g._idx}"
-            class="score-input"
-            style="flex:1;padding:6px;border-radius:6px;border:1px solid #ccc;"
-          >
-          <button
-            class="score-btn"
-            style="flex:1;padding:6px;border-radius:6px;border:none;background:#198754;color:white;"
-            onclick="submitScore(${g._idx})"
-          >
-            Submit
-          </button>
-        </div>`
-            : ""
-        }
+        <div style="font-size:0.85rem;color:#555;">
+          ${g.date} • ${g.time} • ${g.field}
+        </div>
+        <div style="margin-top:4px;">
+          ${
+            g.homeScore != null && g.awayScore != null
+              ? `${g.homeScore} - ${g.awayScore}`
+              : "No score yet"
+          }
+        </div>
       </li>
     `
-      )
-      .join("") || "<li>No scheduled games.</li>";
+    )
+    .join("");
 
   pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header" style="justify-content:space-between;">
         <div class="card-title">${selectedDivision} Schedule</div>
-        <select id="divisionSelect" style="padding:4px 8px;border-radius:6px;">
-          ${divisions
+        <button id="refreshScheduleBtn" style="font-size:0.8rem;">Reload from Sheets</button>
+      </div>
+      <div style="padding:0 16px 8px;">
+        <label for="divisionSelect" style="font-size:0.85rem;margin-right:8px;">
+          Division:
+        </label>
+        <select id="divisionSelect">
+          ${divs
             .map(
               (d) =>
                 `<option value="${d}" ${
@@ -356,76 +269,86 @@ function renderSchedule() {
         </select>
       </div>
       <ul class="schedule-list">
-        ${items}
+        ${items || "<li>No scheduled games.</li>"}
       </ul>
     </section>
   `;
 
-  const sel = document.getElementById("divisionSelect");
-  sel.addEventListener("change", (e) => {
-    selectedDivision = e.target.value;
-    renderSchedule();
-  });
-}
-
-// --- STANDINGS ---
-function renderStandings() {
-  const standings = calculateStandings(selectedDivision);
-
-  const rows =
-    standings
-      .map(
-        (row, idx) => `
-      <tr>
-        <td>${idx + 1}</td>
-        <td>${row.team}</td>
-        <td>${row.w}</td>
-        <td>${row.l}</td>
-      </tr>
-    `
-      )
-      .join("") || `<tr><td colspan="4">No games with scores yet.</td></tr>`;
-
-  pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header" style="justify-content:space-between;">
-        <div class="card-title">${selectedDivision} Standings</div>
-        <select id="standingsDivisionSelect" style="padding:4px 8px;border-radius:6px;">
-          ${DIVISIONS.map(
-            (d) =>
-              `<option value="${d}" ${
-                d === selectedDivision ? "selected" : ""
-              }>${d}</option>`
-          ).join("")}
-        </select>
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="standings-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Team</th>
-              <th>W</th>
-              <th>L</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  `;
-
   document
-    .getElementById("standingsDivisionSelect")
+    .getElementById("divisionSelect")
     .addEventListener("change", (e) => {
       selectedDivision = e.target.value;
-      renderStandings();
+      renderSchedule();
+    });
+
+  document
+    .getElementById("refreshScheduleBtn")
+    .addEventListener("click", async () => {
+      await loadScheduleFromSheet(selectedDivision);
+      await loadScoresFromGoogleSheet();
+      renderSchedule();
     });
 }
 
-// --- MESSAGES (coach + admin tools) ---
+// === RENDER STANDINGS PAGE ===
+function renderStandings() {
+  const all = calculateStandings();
+  const byDiv = {};
+  DIVISIONS.forEach((d) => (byDiv[d] = []));
+  all.forEach((r) => {
+    const teamGames = games.filter(
+      (g) => g.home === r.team || g.away === r.team
+    );
+    const div =
+      teamGames[0]?.division || "Majors"; // fallback
+    if (!byDiv[div]) byDiv[div] = [];
+    byDiv[div].push(r);
+  });
+
+  const sections = DIVISIONS.map((d) => {
+    const rows = byDiv[d] || [];
+    const body =
+      rows.length === 0
+        ? `<tr><td colspan="3">No results yet.</td></tr>`
+        : rows
+            .map(
+              (r) => `
+          <tr>
+            <td>${r.team}</td>
+            <td>${r.w}</td>
+            <td>${r.l}</td>
+          </tr>
+        `
+            )
+            .join("");
+
+    return `
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">${d} Standings</div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>W</th>
+                <th>L</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${body}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
+  }).join("");
+
+  pageRoot.innerHTML = sections;
+}
+
+// === RENDER MESSAGES PAGE (COACH + ADMIN) ===
 function renderMessages() {
   const htmlMsgs = messages
     .map(
@@ -438,7 +361,7 @@ function renderMessages() {
     )
     .join("");
 
-  // Admin panel vs Admin login
+  // Admin panel or login
   const adminTools = isAdmin
     ? `
       <div style="margin-top:16px;padding:12px;border:2px solid red;border-radius:8px;">
@@ -447,16 +370,11 @@ function renderMessages() {
           style="width:100%;padding:8px;margin-bottom:8px;background:#c00;color:#fff;border:none;border-radius:6px;">
           Clear ALL announcements
         </button>
-        <button id="adminReloadSchedules"
-          style="width:100%;padding:8px;margin-bottom:8px;background:#0a74ff;color:#fff;border:none;border-radius:6px;">
-          Reload schedules & scores from Google Sheets
-        </button>
         <button id="adminLogout"
           style="width:100%;padding:8px;background:#555;color:#fff;border:none;border-radius:6px;">
           Log Out (Admin)
         </button>
-      </div>
-    `
+      </div>`
     : `
       <div style="margin-top:16px;">
         <input id="adminPin" type="password" placeholder="Admin PIN"
@@ -465,10 +383,9 @@ function renderMessages() {
           style="width:100%;padding:8px;background:#c00;color:#fff;border:none;border-radius:8px;">
           Log In as Admin
         </button>
-      </div>
-    `;
+      </div>`;
 
-  // Coach tools (login vs post)
+  // Coach tools (login or post)
   const coachTools = loggedInCoach
     ? `
       <div style="margin-top:16px;">
@@ -476,27 +393,51 @@ function renderMessages() {
           placeholder="Type announcement..."
           style="width:100%;padding:8px;border-radius:8px;"></textarea>
         <button id="sendMessageBtn"
-          style="margin-top:8px;width:100%;padding:8px;border:none;border-radius:8px;background:#c00;color:#fff;">
-          Post as ${loggedInCoach}
-        </button>
+          style="margin-top:8px;width:100%;">Post as ${loggedInCoach}</button>
         <button id="logoutBtn"
-          style="margin-top:8px;width:100%;padding:8px;border:none;border-radius:8px;background:#555;color:#fff;">
+          style="margin-top:8px;width:100%;background-color:#555;color:#fff;">
           Log Out (Coach)
         </button>
-      </div>
-    `
+
+        <hr style="margin:16px 0;opacity:0.3;">
+
+        <div style="font-weight:600;margin-bottom:4px;">Notifications (test)</div>
+        <button id="enableNotifBtn"
+          style="margin-bottom:8px;width:100%;background:#0a74ff;color:white;border:none;border-radius:6px;">
+          Enable notifications on this device
+        </button>
+
+        <div style="font-size:0.85rem;margin-bottom:4px;">Send test notification to:</div>
+        <select id="notifScope"
+          style="width:100%;padding:6px;border-radius:6px;margin-bottom:6px;">
+          <option value="all">Entire League</option>
+          <option value="division">Division only</option>
+          <option value="team">Single Team</option>
+        </select>
+
+        <select id="notifDivision"
+          style="width:100%;padding:6px;border-radius:6px;margin-bottom:6px;">
+          <option value="Majors">Majors</option>
+          <option value="AAA">AAA</option>
+          <option value="AA">AA</option>
+        </select>
+
+        <input id="notifTeam" placeholder="Team name (for Team scope)"
+          style="width:100%;padding:6px;border-radius:6px;margin-bottom:6px;" />
+
+        <button id="testNotifBtn"
+          style="width:100%;background:#198754;color:white;border:none;border-radius:6px;">
+          Send Test Notification
+        </button>
+      </div>`
     : `
       <div style="margin-top:16px;">
         <input id="coachName" placeholder="Coach Name"
           style="width:100%;padding:8px;border-radius:8px;margin-bottom:8px;" />
         <input id="coachPin" type="password" placeholder="PIN"
           style="width:100%;padding:8px;border-radius:8px;" />
-        <button id="loginBtn"
-          style="margin-top:8px;width:100%;padding:8px;border:none;border-radius:8px;background:#c00;color:#fff;">
-          Log In
-        </button>
-      </div>
-    `;
+        <button id="loginBtn" style="margin-top:8px;width:100%;">Coach Log In</button>
+      </div>`;
 
   pageRoot.innerHTML = `
     <section class="card">
@@ -506,13 +447,12 @@ function renderMessages() {
       <ul class="roster-list">
         ${htmlMsgs || "<li>No messages yet.</li>"}
       </ul>
-      ${coachTools}
-      <hr style="margin:16px 0;opacity:0.3;">
       ${adminTools}
+      ${coachTools}
     </section>
   `;
 
-  // --- Admin actions ---
+  // === Admin login / tools ===
   if (!isAdmin) {
     const adminLoginBtn = document.getElementById("adminLogin");
     if (adminLoginBtn) {
@@ -540,13 +480,6 @@ function renderMessages() {
         }
       });
 
-    document
-      .getElementById("adminReloadSchedules")
-      .addEventListener("click", async () => {
-        await reloadAllSchedules();
-        alert("Schedules & scores reloaded.");
-      });
-
     document.getElementById("adminLogout").addEventListener("click", () => {
       isAdmin = false;
       if (loggedInCoach === "Admin") loggedInCoach = null;
@@ -555,14 +488,13 @@ function renderMessages() {
     });
   }
 
-  // --- Coach actions ---
+  // === Coach login / logout / post ===
   if (!loggedInCoach || loggedInCoach === "Admin") {
     const loginBtn = document.getElementById("loginBtn");
     if (loginBtn) {
       loginBtn.addEventListener("click", () => {
         const name = document.getElementById("coachName").value.trim();
         const pin = document.getElementById("coachPin").value.trim();
-
         if (coachPins[name] && coachPins[name] === pin) {
           loggedInCoach = name;
           alert(`Welcome, ${name}!`);
@@ -573,78 +505,91 @@ function renderMessages() {
       });
     }
   } else {
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      loggedInCoach = null;
-      renderMessages();
-    });
-
     document
-      .getElementById("sendMessageBtn")
+      .getElementById("logoutBtn")
       .addEventListener("click", () => {
-        const input = document.getElementById("messageInput");
-        const text = input.value.trim();
-        if (!text) return;
-
-        const now = new Date().toLocaleString();
-        messages.unshift({ author: loggedInCoach, text, time: now });
-        saveMessages();
-        input.value = "";
+        loggedInCoach = null;
         renderMessages();
       });
   }
-}
 
-// --- ADMIN TAB CONTENT ---
-function renderAdminTools() {
-  if (!isAdmin) {
-    alert("Admin access only.");
-    renderHome();
-    return;
-  }
+  const sendBtn = document.getElementById("sendMessageBtn");
+  if (sendBtn) {
+    sendBtn.addEventListener("click", () => {
+      const input = document.getElementById("messageInput");
+      const text = input.value.trim();
+      if (!text) return;
 
-  pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header">
-        <div class="card-title">Admin Tools</div>
-      </div>
-      <div style="padding:16px;">
-        <button id="adminReloadBtn"
-          style="width:100%;padding:8px;margin-bottom:8px;border:none;border-radius:8px;background:#0a74ff;color:#fff;">
-          Reload schedules & scores from Google Sheets
-        </button>
-        <button id="adminBackToMessages"
-          style="width:100%;padding:8px;border:none;border-radius:8px;background:#555;color:#fff;">
-          Back to Messages
-        </button>
-      </div>
-    </section>
-  `;
-
-  document
-    .getElementById("adminReloadBtn")
-    .addEventListener("click", async () => {
-      await reloadAllSchedules();
-      alert("Schedules & scores reloaded.");
-    });
-
-  document
-    .getElementById("adminBackToMessages")
-    .addEventListener("click", () => {
-      clearActiveNav();
-      document
-        .querySelector('.nav-btn[data-page="messages"]')
-        .classList.add("active");
+      const now = new Date().toLocaleString();
+      messages.unshift({ author: loggedInCoach || "Admin", text, time: now });
+      saveMessages();
+      input.value = "";
       renderMessages();
     });
+  }
+
+  // Notifications wiring
+  const enableBtn = document.getElementById("enableNotifBtn");
+  const testBtn = document.getElementById("testNotifBtn");
+
+  if (enableBtn) {
+    enableBtn.addEventListener("click", enableBrowserNotifications);
+  }
+  if (testBtn) {
+    testBtn.addEventListener("click", () => {
+      const scope = document.getElementById("notifScope").value;
+      const division = document.getElementById("notifDivision").value;
+      const team = document.getElementById("notifTeam").value.trim();
+      sendLocalTestNotification({ scope, division, team });
+    });
+  }
 }
 
-// ---------------------------------------------------------
-// === NAVIGATION SETUP ===
-// ---------------------------------------------------------
+// === SIMPLE LOCAL NOTIFICATIONS (test only) ===
+function enableBrowserNotifications() {
+  if (!("Notification" in window)) {
+    alert("This browser does not support notifications.");
+    return;
+  }
+  Notification.requestPermission().then((perm) => {
+    if (perm === "granted") {
+      new Notification("VPLL", {
+        body: "Notifications enabled for this device.",
+      });
+    } else {
+      alert("Notifications not granted.");
+    }
+  });
+}
+
+function sendLocalTestNotification({ scope, division, team }) {
+  if (Notification.permission !== "granted") {
+    alert("Notifications not allowed yet. Please enable first.");
+    return;
+  }
+  let body = "Test notification for the entire league.";
+  if (scope === "division") body = `Test notification for ${division}`;
+  if (scope === "team") body = `Test notification for team: ${team || "?"}`;
+
+  new Notification("VPLL Test", { body });
+}
+
+// === NAVIGATION ===
+const pageRoot = document.getElementById("page-root");
+const navButtons = document.querySelectorAll(".nav-btn");
+
+function clearActiveNav() {
+  navButtons.forEach((btn) => btn.classList.remove("active"));
+}
+
 function updateNavForAdmin() {
   const adminTab = document.getElementById("adminTab");
   if (!adminTab) return;
-  adminTab.style.display = isAdmin ? "flex" : "none";
+  if (isAdmin) {
+    adminTab.style.display = "flex";
+  } else {
+    adminTab.style.display = "none";
+  }
 }
 
 navButtons.forEach((btn) => {
@@ -653,36 +598,41 @@ navButtons.forEach((btn) => {
     btn.classList.add("active");
 
     const page = btn.dataset.page;
-    if (page === "home") renderHome();
-    else if (page === "teams") renderTeams();
-    else if (page === "schedule") renderSchedule();
+
+    if (page === "schedule") renderSchedule();
     else if (page === "standings") renderStandings();
+    else if (page === "teams") renderTeams();
     else if (page === "messages") renderMessages();
-    else if (page === "admin") renderAdminTools();
+    else if (page === "admin") {
+      if (isAdmin) {
+        renderMessages(); // admin tools live on Messages page
+      } else {
+        alert("Admin access only.");
+      }
+    } else {
+      renderHome();
+    }
   });
 });
 
-// ---------------------------------------------------------
 // === INITIAL PAGE LOAD ===
-// ---------------------------------------------------------
-updateNavForAdmin(); // hide admin tab initially if not admin
-renderHome();
+updateNavForAdmin(); // hide Admin tab for non-admin
+pageRoot.innerHTML = `
+  <section class="card">
+    <div class="card-header">
+      <div class="card-title">Welcome</div>
+    </div>
+    <p style="padding:16px;">Select a tab to get started!</p>
+  </section>
+`;
 
-// Try to load scores from Sheet on first load (does not block UI)
-loadScoresFromGoogleSheet()
-  .then(() => {
-    // If there were no games, load CSV schedules (first-time setup)
-    if (games.length === 0) {
-      return reloadAllSchedules();
-    } else {
-      renderSchedule();
-      renderStandings();
-    }
-  })
-  .catch(() => {
-    // If Sheet fails but we have games in localStorage, just render
-    if (games.length > 0) {
-      renderSchedule();
-      renderStandings();
-    }
-  });
+// Optionally: preload schedule + scores on first load
+(async () => {
+  try {
+    await loadScheduleFromSheet("Majors");
+    await loadScheduleFromSheet("AAA");
+    await loadScoresFromGoogleSheet();
+  } catch (e) {
+    console.warn("Initial preload error:", e);
+  }
+})();

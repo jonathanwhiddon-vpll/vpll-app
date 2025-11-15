@@ -1,43 +1,52 @@
-// service-worker.js
-const CACHE_NAME = "vpll-cache-v1";
-const urlsToCache = [
+// === VPLL SERVICE WORKER (No aggressive caching) ===
+// Forces the app to ALWAYS use the newest files.
+// Automatically updates when new deployments happen.
+
+const CACHE_NAME = "vpll-cache-v" + Date.now();
+
+// List only essential static assets
+const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/style.css",
   "/app.js",
-  "/60thlogo.jpg",
-  "/manifest.json"
+  "/vpll-logo.png"
 ];
 
-// Install the service worker and cache files
+// Install – cache the core assets
 self.addEventListener("install", (event) => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log("Caching app files...");
-      return cache.addAll(urlsToCache);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
 });
 
-// Serve cached files when offline
-self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
-});
-
-// Update the cache when new versions are deployed
+// Activate – delete ALL old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    })
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((k) => {
+        if (k !== CACHE_NAME) return caches.delete(k);
+      }))
+    )
+  );
+  self.clients.claim();
+});
+
+// Fetch – ALWAYS get newest file from the network first.
+// Fall back to cache ONLY if offline.
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, copy);
+        });
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
+
 

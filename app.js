@@ -10,7 +10,8 @@
 // === GLOBAL STATE ===
 let games = JSON.parse(localStorage.getItem("games") || "[]");
 let selectedDivision = "Majors";
-const DIVISIONS = ["Majors", "AAA", "AA"];
+const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
+
 
 // Give every game a stable index for DOM ids
 function recomputeGameIndices() {
@@ -23,11 +24,20 @@ recomputeGameIndices();
 // === GOOGLE SHEET CONFIG ===
 
 // CSV links for schedule (already working before)
-const CSV_LINKS = {
-  AAA: "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3Vy1DU4OsbG5SNn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=2131986160&single=true&output=csv",
-  Majors:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3Vy1DU4OsbG5SNn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1006784456&single=true&output=csv",
+ const CSV_LINKS = {
+  Majors: "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=0",
+
+  AAA: "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=1857914653",
+
+  AA: "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=1006784456",
+
+  "Single A": "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=1852143804",
+
+  "Coach Pitch": "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=359750423",
+
+  "T-Ball": "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=860483387"
 };
+
 
 // Apps Script Web App URL (for scores)
 const SHEET_API_URL =

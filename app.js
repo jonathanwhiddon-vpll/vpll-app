@@ -4,6 +4,7 @@
    - Coach login + Admin login (PIN 0709)
    - Schedule from Google Sheets (per-division tabs)
    - Standings auto-calculated from scores
+   - Coaches/Admin can report scores for Majors/AAA/AA
 -------------------------------------------------- */
 
 // === GLOBAL STATE ===
@@ -33,13 +34,63 @@ let loggedInCoach = null;
 let isAdmin = false;
 const ADMIN_PIN = "0709";
 
+// Coach PINs (you can change these later if you want)
 const coachPins = {
-  "Coach Johnson": "1111",
-  "Coach Lee": "2222",
-  "Coach Brown": "3333",
-  "Coach Smith": "4444",
-  "Coach Davis": "5555",
-  "Coach Wilson": "6666",
+  "Coach Ben": "1101",
+  "Coach Brian": "1102",
+  "Coach Todd": "1103",
+  "Coach Kevin": "1104",
+  "Coach Five": "1105",
+  "Coach Six": "1106",
+
+  "Coach Jon": "2101",
+  "Coach Matt C": "2102",
+  "Coach Matt P": "2103",
+  "Coach Devin": "2104",
+  "Coach Matt B": "2105",
+  "Coach JJ": "2106",
+  "Coach George": "2107",
+  "Coach Eric": "2108",
+
+  "Coach Scott": "3101",
+  "Coach Cory": "3102",
+  "Coach Mitch": "3103",
+  "Coach Matt": "3104",
+  "Coach Dustin": "3105",
+  "Coach Brent": "3106",
+  "Coach Eight": "3107",
+};
+
+// Which team(s) each coach is responsible for
+// (used to allow score entry only for their own games)
+const coachTeams = {
+  "Coach Ben": [{ division: "Majors", team: "Team Hanna" }],
+  "Coach Brian": [{ division: "Majors", team: "Team Cole" }],
+  "Coach Todd": [{ division: "Majors", team: "Team Thergeson" }],
+  "Coach Kevin": [{ division: "Majors", team: "Team Merrett" }],
+  "Coach Five": [{ division: "Majors", team: "Team Five" }],
+  "Coach Six": [{ division: "Majors", team: "Team Six" }],
+
+  "Coach Jon": [
+    { division: "AAA", team: "Team Whiddon" },
+    { division: "AA", team: "Team Breazeal" },
+  ],
+  "Coach Matt C": [{ division: "AAA", team: "Team Cairney" }],
+  "Coach Matt P": [{ division: "AAA", team: "Team Paul" }],
+  "Coach Devin": [{ division: "AAA", team: "Team Dragg" }],
+  "Coach Matt B": [{ division: "AAA", team: "Team Baker" }],
+  "Coach JJ": [{ division: "AAA", team: "Team Norman" }],
+  "Coach George": [{ division: "AAA", team: "Team Gonzalez" }],
+  "Coach Eric": [{ division: "AAA", team: "Team Rasanen" }],
+
+  "Coach Scott": [{ division: "AA", team: "Team Belcher" }],
+  "Coach Cory": [{ division: "AA", team: "Team Anderson" }],
+  "Coach Mitch": [{ division: "AA", team: "Team Garcia" }],
+  "Coach Matt": [{ division: "AA", team: "Team Kruckeberg" }],
+  // Coach Jon's AA team already above
+  "Coach Dustin": [{ division: "AA", team: "Team Machado" }],
+  "Coach Brent": [{ division: "AA", team: "Team Lavitt" }],
+  "Coach Eight": [{ division: "AA", team: "Team Eight" }],
 };
 
 // Messages
@@ -65,6 +116,10 @@ const CSV_LINKS = {
   "T-Ball":
     "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=860483387",
 };
+
+// === GOOGLE APPS SCRIPT WEB APP (Scores API) ===
+const APP_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycby4sGBxN0sMlGT398mM3CGjQXKCIjL2C2eRxAQJohc7Gz1kah8zCnlv_dTkxYvtyddR/exec";
 
 // === CSV HELPER ===
 function parseCsv(text) {
@@ -156,8 +211,89 @@ function calculateStandings(division) {
   );
 }
 
+// === PERMISSIONS: Can this coach/admin edit this game? ===
+function coachCanEditGame(game) {
+  // Admin can edit all scoring-division games
+  if (isAdmin && SCORING_DIVISIONS.includes(game.division)) return true;
+  if (!loggedInCoach) return false;
+  if (!SCORING_DIVISIONS.includes(game.division)) return false;
+
+  const assignments = coachTeams[loggedInCoach];
+  if (!assignments || !assignments.length) return false;
+
+  return assignments.some(
+    (a) =>
+      a.division === game.division &&
+      (a.team === game.home || a.team === game.away)
+  );
+}
+
+// === SCORE ENTRY ===
+function openScorePrompt(idx) {
+  const game = games.find((g) => g._idx === idx);
+  if (!game) return;
+
+  if (!SCORING_DIVISIONS.includes(game.division)) {
+    alert("This division does not keep score.");
+    return;
+  }
+
+  if (!coachCanEditGame(game)) {
+    alert("You are not allowed to report a score for this game.");
+    return;
+  }
+
+  const hsDefault = game.homeScore != null ? game.homeScore : "";
+  const asDefault = game.awayScore != null ? game.awayScore : "";
+
+  const hs = prompt(`Enter score for ${game.home}`, hsDefault);
+  if (hs === null) return;
+
+  const as = prompt(`Enter score for ${game.away}`, asDefault);
+  if (as === null) return;
+
+  const hNum = Number(hs);
+  const aNum = Number(as);
+
+  if (Number.isNaN(hNum) || Number.isNaN(aNum)) {
+    alert("Please enter numeric scores only.");
+    return;
+  }
+
+  game.homeScore = hNum;
+  game.awayScore = aNum;
+  saveGames();
+
+  // Try to sync to Google Apps Script (no need to wait for it)
+  try {
+    fetch(APP_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        division: game.division,
+        date: game.date,
+        time: game.time,
+        field: game.field,
+        home: game.home,
+        away: game.away,
+        homeScore: hNum,
+        awayScore: aNum,
+      }),
+    });
+  } catch (e) {
+    console.warn("Score sync failed", e);
+  }
+
+  // Re-render schedule (and standings will reflect next time you open it)
+  renderSchedule();
+}
+
+// make available for inline onclick
+window.openScorePrompt = openScorePrompt;
+
 // === RENDER FUNCTIONS ===
 const pageRoot = document.getElementById("page-root");
+const navButtons = document.querySelectorAll(".nav-btn");
 
 function renderHome() {
   pageRoot.innerHTML = `
@@ -215,8 +351,23 @@ function renderSchedule() {
   const filtered = games.filter((g) => g.division === div);
 
   const items = filtered
-    .map(
-      (g) => `
+    .map((g) => {
+      const canEdit = coachCanEditGame(g);
+      const scoreLine =
+        g.homeScore != null && g.awayScore != null
+          ? `${g.homeScore} - ${g.awayScore}`
+          : "No score yet";
+
+      const scoreBtn =
+        canEdit && SCORING_DIVISIONS.includes(div)
+          ? `<button
+               style="margin-top:6px;padding:4px 10px;border:none;border-radius:6px;background:#c00;color:#fff;font-size:0.8rem;"
+               onclick="openScorePrompt(${g._idx})">
+               Report Score
+             </button>`
+          : "";
+
+      return `
       <li>
         <div style="font-weight:600;">${g.home || "TBD"} vs ${
         g.away || "TBD"
@@ -225,14 +376,11 @@ function renderSchedule() {
           ${g.date || ""} • ${g.time || ""} • ${g.field || ""}
         </div>
         <div style="font-size:0.85rem;color:#555;margin-top:4px;">
-          ${
-            g.homeScore != null && g.awayScore != null
-              ? `${g.homeScore} - ${g.awayScore}`
-              : "No score yet"
-          }
+          ${scoreLine}
         </div>
-      </li>`
-    )
+        ${scoreBtn}
+      </li>`;
+    })
     .join("");
 
   pageRoot.innerHTML = `
@@ -394,9 +542,9 @@ function renderMessages() {
       </div>`
       : `
       <div style="margin-top:16px;">
-        <input id="coachName" placeholder="Coach Name"
+        <input id="coachName" placeholder='Coach Name (e.g. "Coach Ben")'
           style="width:100%;padding:8px;border-radius:8px;margin-bottom:8px;" />
-        <input id="coachPin" type="password" placeholder="PIN"
+        <input id="coachPin" type="password" placeholder="Coach PIN"
           style="width:100%;padding:8px;border-radius:8px;margin-bottom:8px;" />
         <button id="loginBtn"
           style="margin-top:8px;width:100%;background:#c00;color:#fff;border:none;border-radius:6px;padding:8px;">
@@ -511,15 +659,13 @@ function renderAdmin() {
         <div class="card-title">Admin Tools</div>
       </div>
       <p style="padding:16px;">
-        (Future spot for score entry tools, exports, etc.)
+        Use the Schedule tab to report scores (as Admin) for Majors / AAA / AA.
       </p>
     </section>
   `;
 }
 
 // === NAVIGATION ===
-const navButtons = document.querySelectorAll(".nav-btn");
-
 function clearActiveNav() {
   navButtons.forEach((btn) => btn.classList.remove("active"));
 }

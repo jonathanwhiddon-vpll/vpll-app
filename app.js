@@ -6,6 +6,44 @@
    - Standings auto-calculated from scores
    - Coaches/Admin can report scores for Majors/AAA/AA
 -------------------------------------------------- */
+// === PUSH NOTIFICATION CONFIG ===
+const VAPID_PUBLIC_KEY =
+  "BF0dpO0TLhz4vAoOOJvTLmnZ5s93F5KI1bmam8jytsnDW1wnLVVS53gHOS47fL6VcNBuynPx53zEkJVwWTIlHcw";
+
+// Ask browser permission & subscribe user
+async function enableNotifications() {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      alert("Notifications blocked. Enable them in your browser settings.");
+      return;
+    }
+
+    // Register service worker (already exists for PWA)
+    const reg = await navigator.serviceWorker.ready;
+
+    // Subscribe user
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+
+    console.log("Push subscription:", sub);
+
+    // TODO: Send subscription to Google Apps Script backend
+    alert("Notifications enabled!");
+  } catch (err) {
+    console.error("Push subscribe error:", err);
+  }
+}
+
+// Helper to convert key
+function urlBase64ToUint8Array(base64) {
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+  const base64Safe = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64Safe);
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
 
 // === GLOBAL STATE ===
 let games = JSON.parse(localStorage.getItem("games") || "[]");

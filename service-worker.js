@@ -48,5 +48,46 @@ self.addEventListener("fetch", (event) => {
       .catch(() => caches.match(event.request))
   );
 });
+// ==== PUSH NOTIFICATIONS (Add This At The Bottom) ====
+
+// Receive push from server
+self.addEventListener("push", function (event) {
+  console.log("Push received:", event.data ? event.data.text() : "");
+
+  let payload = {};
+
+  try {
+    payload = event.data.json();
+  } catch (err) {
+    payload = { title: "VPLL", body: event.data.text() };
+  }
+
+  const title = payload.title || "Villa Park Little League";
+  const options = {
+    body: payload.body || "",
+    icon: "/60thlogo.jpg",
+    badge: "/60thlogo.jpg",
+    vibrate: [100, 50, 100],
+    data: payload, // for click handling
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Handle notification clicks
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+
+  const urlToOpen = event.notification.data.url || "/";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === urlToOpen && "focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(urlToOpen);
+    })
+  );
+});
 
 

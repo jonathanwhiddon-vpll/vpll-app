@@ -44,13 +44,38 @@
 
 
   <!-- Optional: Service Worker -->
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
+<script>
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
         .register("service-worker.js")
-        .then(() => console.log("Service Worker registered"))
+        .then(() => {
+            console.log("Service Worker registered");
+
+            // ===== Push Notification Subscription (Step 2) =====
+            if ("PushManager" in window) {
+                navigator.serviceWorker.ready.then(reg => {
+                    reg.pushManager.getSubscription().then(async sub => {
+                        if (sub) {
+                            console.log("Already subscribed:", sub);
+                            return;
+                        }
+
+                        // Subscribe user with your VAPID KEY (already in app.js)
+                        const newSub = await reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                        });
+
+                        console.log("New push subscription:", newSub);
+
+                        // TODO: Send new subscription to your server if needed
+                    });
+                });
+            }
+        })
         .catch((err) => console.error("Service Worker failed", err));
-    }
-  </script>
+}
+</script>
+
 </body>
 </html>

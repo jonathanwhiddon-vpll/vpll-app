@@ -797,6 +797,39 @@ function renderAdmin() {
     `;
     return;
   }
+function renderMore() {
+  const isCoach = loggedInCoach && loggedInCoach !== "Admin";
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">More Options</div>
+      </div>
+
+      <ul class="roster-list">
+
+        <li>
+          <button class="more-btn" onclick="renderTeams()">Teams</button>
+        </li>
+
+        <li>
+          <button class="more-btn" onclick="renderMessages()">Messages</button>
+        </li>
+
+        <li>
+          <button class="more-btn" onclick="renderResources()">Resources</button>
+        </li>
+
+        ${
+          isAdmin
+            ? `<li><button class="more-btn" onclick="renderAdmin()">Admin</button></li>`
+            : ``
+        }
+
+      </ul>
+    </section>
+  `;
+}
 
   pageRoot.innerHTML = `
     <section class="card">
@@ -828,17 +861,16 @@ navButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     clearActiveNav();
     btn.classList.add("active");
+
     const page = btn.dataset.page;
 
     if (page === "home") renderHome();
-    else if (page === "teams") renderTeams();
     else if (page === "schedule") renderSchedule();
     else if (page === "standings") renderStandings();
-    else if (page === "messages") renderMessages();
-    else if (page === "resources") renderResources();
-    else if (page === "admin") renderAdmin();
+    else if (page === "more") renderMore();
   });
 });
+
 
 // === INITIAL LOAD ===
 updateNavForAdmin();

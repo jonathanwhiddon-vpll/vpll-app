@@ -558,6 +558,7 @@ function renderResources() {
       </p>
 
       <ul class="resource-list" style="padding:0 16px 16px 16px;">
+        
         <li style="margin-bottom:10px;">
           <a href="https://docs.google.com/document/d/1QVtREnvJb_VN_ZkGh5guW5PJI_5uck6K7VjVaKEBSaY/edit?tab=t.0"
              target="_blank">
@@ -573,15 +574,46 @@ function renderResources() {
         </li>
 
         <li style="margin-bottom:10px;">
-          <a href="https://www.littleleague.org/downloads/"
+          <a href="https://docs.google.com/document/d/1xh7XvoNy2jounkVr0zCBJ3OnsJv-nUvwGG_cBv9PYkc/edit?tab=t.0"
              target="_blank">
-            ⚾ Official Little League Rulebook (LL App)
+            🙋 Weekly Volunteers
           </a>
         </li>
+
+        <li style="margin-bottom:10px;">
+          <a href="https://apps.apple.com/us/app/little-league-rulebook/id871715667"
+             target="_blank">
+            ⚾ Official LL Rulebook (iOS App)
+          </a>
+        </li>
+
+        <li style="margin-bottom:10px;">
+          <a href="https://play.google.com/store/apps/details?id=com.dubuque.littleleague&hl=en_US"
+             target="_blank">
+            ⚾ Official LL Rulebook (Android App)
+          </a>
+        </li>
+
+        <li style="margin-bottom:10px;">
+          <a href="https://apps.apple.com/us/app/gamechanger/id1121762454"
+             target="_blank">
+            📱 GameChanger App (iOS)
+          </a>
+        </li>
+
+        <li style="margin-bottom:10px;">
+          <a href="https://play.google.com/store/apps/details?id=com.gc.android&hl=en_US"
+             target="_blank">
+            📱 GameChanger App (Android)
+          </a>
+        </li>
+
       </ul>
     </section>
   `;
 }
+
+
 
 // --- MESSAGES (Admin + Coaches) ---
 function renderMessages() {

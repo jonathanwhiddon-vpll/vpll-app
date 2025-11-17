@@ -581,7 +581,8 @@ function renderResources() {
         </li>
 
         <li style="margin-bottom:10px;">
-          <a href="https://apps.apple.com/app/little-league-rulebook/id871715667"
+          <a href="https://apps.apple.com/app/little-league-rulebook/id871715667">
+
              target="_blank">
             ⚾ Official LL Rulebook (iOS App)
           </a>
@@ -595,7 +596,8 @@ function renderResources() {
         </li>
 
         <li style="margin-bottom:10px;">
-          <a href="https://apps.apple.com/app/gamechanger/id1121762454"
+          <a href="https://apps.apple.com/app/gamechanger/id1121762454">
+
              target="_blank">
             📱 GameChanger App (iOS)
           </a>

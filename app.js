@@ -3,41 +3,47 @@
    - Teams / Schedule / Standings / Messages / Admin
    - Coach login + Admin login (PIN 0709)
    - Schedule from Google Sheets (per-division tabs)
+   - Scores sync via Apps Script Web App
    - Standings auto-calculated from scores
-   - Coaches/Admin can report scores for Majors/AAA/AA
+   - Resources tab (Local Rules, LL app, Home Run List)
 -------------------------------------------------- */
-// === PUSH NOTIFICATION CONFIG ===
+
+// === PUSH NOTIFICATION CONFIG (already set up earlier) ===
 const VAPID_PUBLIC_KEY =
   "BF0dpO0TLhz4vAoOOJvTLmnZ5s93F5KI1bmam8jytsnDW1wnLVVS53gHOS47fL6VcNBuynPx53zEkJVwWTIlHcw";
 
-// Ask browser permission & subscribe user
+// Ask browser permission & subscribe user (for future use)
 async function enableNotifications() {
   try {
+    if (!("Notification" in window)) {
+      alert("This browser does not support notifications.");
+      return;
+    }
+
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       alert("Notifications blocked. Enable them in your browser settings.");
       return;
     }
 
-    // Register service worker (already exists for PWA)
+    // Service worker from service-worker.js
     const reg = await navigator.serviceWorker.ready;
 
-    // Subscribe user
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     });
 
     console.log("Push subscription:", sub);
-
-    // TODO: Send subscription to Google Apps Script backend
-    alert("Notifications enabled!");
+    // In the future: send `sub` to your Apps Script backend
+    alert("Notifications enabled on this device!");
   } catch (err) {
     console.error("Push subscribe error:", err);
+    alert("Could not enable notifications.");
   }
 }
 
-// Helper to convert key
+// Helper for VAPID key
 function urlBase64ToUint8Array(base64) {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const base64Safe = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -72,7 +78,7 @@ let loggedInCoach = null;
 let isAdmin = false;
 const ADMIN_PIN = "0709";
 
-// Coach PINs (you can change these later if you want)
+// Coach PINs
 const coachPins = {
   "Coach Ben": "1101",
   "Coach Brian": "1102",
@@ -125,15 +131,14 @@ const coachTeams = {
   "Coach Cory": [{ division: "AA", team: "Team Anderson" }],
   "Coach Mitch": [{ division: "AA", team: "Team Garcia" }],
   "Coach Matt": [{ division: "AA", team: "Team Kruckeberg" }],
-  // Coach Jon's AA team already above
+  // Coach Jon’s AA team already above
   "Coach Dustin": [{ division: "AA", team: "Team Machado" }],
   "Coach Brent": [{ division: "AA", team: "Team Lavitt" }],
   "Coach Eight": [{ division: "AA", team: "Team Eight" }],
 };
 
-// Messages
+// Messages (stored locally on device)
 let messages = JSON.parse(localStorage.getItem("messages") || "[]");
-
 function saveMessages() {
   localStorage.setItem("messages", JSON.stringify(messages));
 }
@@ -155,184 +160,212 @@ const CSV_LINKS = {
     "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=860483387",
 };
 
-// === GOOGLE APPS SCRIPT WEB APP (Scores API) ===
-const APP_SCRIPT_URL =
+// Apps Script Web App URL (for scores)
+const SHEET_API_URL =
   "https://script.google.com/macros/s/AKfycby4sGBxN0sMlGT398mM3CGjQXKCIjL2C2eRxAQJohc7Gz1kah8zCnlv_dTkxYvtyddR/exec";
 
-// === CSV HELPER ===
-function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/);
-  if (!lines.length) return [];
-
-  const headers = lines
-    .shift()
-    .split(",")
-    .map((h) => h.trim().toLowerCase());
-
-  return lines.map((line) => {
-    const cols = line.split(",");
-    const row = {};
-    headers.forEach((h, i) => {
-      row[h] = (cols[i] || "").trim();
-    });
-    return row;
-  });
-}
-
-// === LOAD SCHEDULE FROM GOOGLE SHEETS ===
-async function loadDivisionCSV(division) {
-  const url = CSV_LINKS[division];
-  if (!url) return;
-
+// ---------------------------------------------------------
+// === LOAD SCHEDULE FROM GOOGLE SHEET CSV (per division) ===
+// ---------------------------------------------------------
+async function loadScheduleFromSheet(divisionName) {
   try {
-    const response = await fetch(url + "&_=" + Date.now());
-    if (!response.ok) throw new Error("HTTP " + response.status);
-    const text = await response.text();
-    const rows = parseCsv(text);
+    const url = CSV_LINKS[divisionName];
+    if (!url) return;
 
-    const newGames = rows.map((r) => ({
-      division,
-      date: r.date || "",
-      time: r.time || "",
-      field: r.field || "",
-      home: r.home || "",
-      away: r.away || "",
-      homeScore: r["home score"] ? Number(r["home score"]) : null,
-      awayScore: r["away score"] ? Number(r["away score"]) : null,
-    }));
+    const response = await fetch(url);
+    const csv = await response.text();
 
-    // Replace old games for this division
-    games = games.filter((g) => g.division !== division).concat(newGames);
+    const lines = csv.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    if (lines.length <= 1) return;
+
+    const header = lines[0].split(",");
+    const dateIdx = header.indexOf("Date");
+    const timeIdx = header.indexOf("Time");
+    const fieldIdx = header.indexOf("Field");
+    const homeIdx = header.indexOf("Home");
+    const awayIdx = header.indexOf("Away");
+    const homeScoreIdx = header.indexOf("Home Score");
+    const awayScoreIdx = header.indexOf("Away Score");
+
+    const newGames = lines.slice(1).map((line) => {
+      const cols = line.split(",");
+      return {
+        division: divisionName,
+        date: cols[dateIdx] || "",
+        time: cols[timeIdx] || "",
+        field: cols[fieldIdx] || "",
+        home: cols[homeIdx] || "",
+        away: cols[awayIdx] || "",
+        homeScore:
+          homeScoreIdx >= 0 && cols[homeScoreIdx] !== ""
+            ? Number(cols[homeScoreIdx])
+            : null,
+        awayScore:
+          awayScoreIdx >= 0 && cols[awayScoreIdx] !== ""
+            ? Number(cols[awayScoreIdx])
+            : null,
+      };
+    });
+
+    // Filter out empty rows and replace games for this division
+    const cleaned = newGames.filter((g) => g.home && g.away);
+    games = games.filter((g) => g.division !== divisionName).concat(cleaned);
+
     recomputeGameIndices();
     saveGames();
-
-    console.log("Loaded division from CSV:", division, newGames.length);
+    console.log(`Loaded schedule for ${divisionName}`, cleaned);
   } catch (err) {
-    console.error("Error loading CSV for", division, err);
-    alert("Problem loading schedule for " + division);
+    console.error("Error loading schedule CSV for", divisionName, err);
   }
 }
 
-async function loadAllDivisions() {
+// Load all divisions once (Admin tool)
+async function reloadAllSchedules() {
   for (const div of DIVISIONS) {
-    await loadDivisionCSV(div);
+    await loadScheduleFromSheet(div);
   }
+  await loadScoresFromGoogleSheet(); // pull any saved scores from Apps Script
   renderSchedule();
   renderStandings();
 }
 
-// === STANDINGS CALCULATION ===
-function calculateStandings(division) {
-  const rec = {};
+// ---------------------------------------------------------
+// === LOAD SCORES FROM GOOGLE APPS SCRIPT WEB APP ===
+// ---------------------------------------------------------
+async function loadScoresFromGoogleSheet() {
+  try {
+    const response = await fetch(SHEET_API_URL);
+    const data = await response.json();
 
-  games.forEach((g) => {
-    if (g.division !== division) return;
-    if (!g.home || !g.away) return;
-
-    if (!rec[g.home]) rec[g.home] = { team: g.home, w: 0, l: 0 };
-    if (!rec[g.away]) rec[g.away] = { team: g.away, w: 0, l: 0 };
-
-    if (g.homeScore != null && g.awayScore != null) {
-      if (g.homeScore > g.awayScore) {
-        rec[g.home].w++;
-        rec[g.away].l++;
-      } else if (g.awayScore > g.homeScore) {
-        rec[g.away].w++;
-        rec[g.home].l++;
-      }
+    // Expecting: { games: [ { division, date, time, field, home, away, homeScore, awayScore }, ... ] }
+    if (!data || !Array.isArray(data.games)) {
+      console.warn("Unexpected data from Sheet API:", data);
+      return;
     }
-  });
 
-  return Object.values(rec).sort(
-    (a, b) =>
-      b.w - a.w || a.l - b.l || a.team.localeCompare(b.team)
-  );
+    games = data.games.map((g) => ({
+      division: g.division,
+      date: g.date,
+      time: g.time,
+      field: g.field,
+      home: g.home,
+      away: g.away,
+      homeScore:
+        g.homeScore === "" || g.homeScore === undefined
+          ? null
+          : Number(g.homeScore),
+      awayScore:
+        g.awayScore === "" || g.awayScore === undefined
+          ? null
+          : Number(g.awayScore),
+    }));
+
+    recomputeGameIndices();
+    saveGames();
+    console.log("Loaded scores from Google Sheets:", games);
+  } catch (err) {
+    console.error("Google Sheets load error:", err);
+  }
 }
 
-// === PERMISSIONS: Can this coach/admin edit this game? ===
-function coachCanEditGame(game) {
-  // Admin can edit all scoring-division games
-  if (isAdmin && SCORING_DIVISIONS.includes(game.division)) return true;
-  if (!loggedInCoach) return false;
-  if (!SCORING_DIVISIONS.includes(game.division)) return false;
+// ---------------------------------------------------------
+// === STANDINGS CALCULATION ===
+// ---------------------------------------------------------
+function calculateStandings(forDivision) {
+  const rec = {};
+  games
+    .filter((g) => g.division === forDivision)
+    .forEach((g) => {
+      if (!g.home || !g.away) return;
 
-  const assignments = coachTeams[loggedInCoach];
-  if (!assignments || !assignments.length) return false;
+      if (!rec[g.home]) rec[g.home] = { team: g.home, w: 0, l: 0 };
+      if (!rec[g.away]) rec[g.away] = { team: g.away, w: 0, l: 0 };
 
-  return assignments.some(
-    (a) =>
-      a.division === game.division &&
-      (a.team === game.home || a.team === game.away)
-  );
+      if (g.homeScore != null && g.awayScore != null) {
+        if (g.homeScore > g.awayScore) {
+          rec[g.home].w++;
+          rec[g.away].l++;
+        } else if (g.awayScore > g.homeScore) {
+          rec[g.away].w++;
+          rec[g.home].l++;
+        }
+      }
+    });
+
+  return Object.values(rec).sort((a, b) => b.w - a.w);
 }
 
-// === SCORE ENTRY ===
-function openScorePrompt(idx) {
-  const game = games.find((g) => g._idx === idx);
+// ---------------------------------------------------------
+// === SUBMIT SCORE (COACH) -> GOOGLE APPS SCRIPT WEB APP ===
+// ---------------------------------------------------------
+async function submitScore(gameIdx) {
+  if (!loggedInCoach) {
+    alert("Please log in as a coach to submit scores.");
+    return;
+  }
+
+  const homeInput = document.getElementById(`homeScore-${gameIdx}`);
+  const awayInput = document.getElementById(`awayScore-${gameIdx}`);
+  if (!homeInput || !awayInput) return;
+
+  const homeScore = parseInt(homeInput.value, 10);
+  const awayScore = parseInt(awayInput.value, 10);
+
+  if (Number.isNaN(homeScore) || Number.isNaN(awayScore)) {
+    alert("Please enter both scores.");
+    return;
+  }
+
+  const game = games[gameIdx];
   if (!game) return;
 
-  if (!SCORING_DIVISIONS.includes(game.division)) {
-    alert("This division does not keep score.");
-    return;
-  }
+  const payload = {
+    action: "submitScore",
+    division: game.division,
+    date: game.date,
+    time: game.time,
+    field: game.field,
+    home: game.home,
+    away: game.away,
+    homeScore,
+    awayScore,
+  };
 
-  if (!coachCanEditGame(game)) {
-    alert("You are not allowed to report a score for this game.");
-    return;
-  }
-
-  const hsDefault = game.homeScore != null ? game.homeScore : "";
-  const asDefault = game.awayScore != null ? game.awayScore : "";
-
-  const hs = prompt(`Enter score for ${game.home}`, hsDefault);
-  if (hs === null) return;
-
-  const as = prompt(`Enter score for ${game.away}`, asDefault);
-  if (as === null) return;
-
-  const hNum = Number(hs);
-  const aNum = Number(as);
-
-  if (Number.isNaN(hNum) || Number.isNaN(aNum)) {
-    alert("Please enter numeric scores only.");
-    return;
-  }
-
-  game.homeScore = hNum;
-  game.awayScore = aNum;
-  saveGames();
-
-  // Try to sync to Google Apps Script (no need to wait for it)
   try {
-    fetch(APP_SCRIPT_URL, {
+    const response = await fetch(SHEET_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        division: game.division,
-        date: game.date,
-        time: game.time,
-        field: game.field,
-        home: game.home,
-        away: game.away,
-        homeScore: hNum,
-        awayScore: aNum,
-      }),
+      body: JSON.stringify(payload),
     });
-  } catch (e) {
-    console.warn("Score sync failed", e);
-  }
 
-  // Re-render schedule (and standings will reflect next time you open it)
-  renderSchedule();
+    const data = await response.json();
+    console.log("Score submit response:", data);
+
+    // Update local state immediately
+    game.homeScore = homeScore;
+    game.awayScore = awayScore;
+    saveGames();
+
+    // Clear inputs
+    homeInput.value = "";
+    awayInput.value = "";
+
+    alert("Score submitted!");
+    renderSchedule();
+    renderStandings();
+  } catch (err) {
+    console.error("Error submitting score:", err);
+    alert("Could not submit score. Please try again.");
+  }
 }
 
-// make available for inline onclick
-window.openScorePrompt = openScorePrompt;
-
-// === RENDER FUNCTIONS ===
+// ---------------------------------------------------------
+// === PAGE RENDERING ===
+// ---------------------------------------------------------
 const pageRoot = document.getElementById("page-root");
 const navButtons = document.querySelectorAll(".nav-btn");
 
+// --- HOME ---
 function renderHome() {
   pageRoot.innerHTML = `
     <section class="card">
@@ -340,225 +373,319 @@ function renderHome() {
         <div class="card-title">Welcome</div>
       </div>
       <p style="padding:16px;">
-        Select a tab at the bottom to see Teams, Schedule, Standings, or Messages.
+        Select a tab below to view teams, schedules, standings, messages, or resources.
       </p>
     </section>
   `;
 }
 
-// ---- Teams ----
+// --- TEAMS (with your Majors / AAA / AA teams) ---
 function renderTeams() {
-  const byDivision = {};
+  // Simple structured data for display only
+  const divisionTeams = {
+    Majors: [
+      { name: "Team Hanna", coach: "Coach Ben" },
+      { name: "Team Cole", coach: "Coach Brian" },
+      { name: "Team Thergeson", coach: "Coach Todd" },
+      { name: "Team Merrett", coach: "Coach Kevin" },
+      { name: "Team Five", coach: "Coach Five" },
+      { name: "Team Six", coach: "Coach Six" },
+    ],
+    AAA: [
+      { name: "Team Whiddon", coach: "Coach Jon" },
+      { name: "Team Cairney", coach: "Coach Matt C" },
+      { name: "Team Paul", coach: "Coach Matt P" },
+      { name: "Team Dragg", coach: "Coach Devin" },
+      { name: "Team Baker", coach: "Coach Matt B" },
+      { name: "Team Norman", coach: "Coach JJ" },
+      { name: "Team Gonzalez", coach: "Coach George" },
+      { name: "Team Rasanen", coach: "Coach Eric" },
+    ],
+    AA: [
+      { name: "Team Belcher", coach: "Coach Scott" },
+      { name: "Team Anderson", coach: "Coach Cory" },
+      { name: "Team Garcia", coach: "Coach Mitch" },
+      { name: "Team Kruckeberg", coach: "Coach Matt" },
+      { name: "Team Breazeal", coach: "Coach Jon" },
+      { name: "Team Machado", coach: "Coach Dustin" },
+      { name: "Team Lavitt", coach: "Coach Brent" },
+      { name: "Team Eight", coach: "Coach Eight" },
+    ],
+    "Single A": [],
+    "Coach Pitch": [],
+    "T-Ball": [],
+  };
 
-  games.forEach((g) => {
-    if (!g.division) return;
-    if (!byDivision[g.division]) byDivision[g.division] = new Set();
-    if (g.home) byDivision[g.division].add(g.home);
-    if (g.away) byDivision[g.division].add(g.away);
-  });
+  const teams = divisionTeams[selectedDivision] || [];
 
-  const sections =
-    DIVISIONS.map((div) => {
-      const set = byDivision[div];
-      if (!set || set.size === 0) return "";
-      const items = Array.from(set)
-        .sort()
-        .map((t) => `<li>${t}</li>`)
-        .join("");
-      return `
-        <div style="padding:16px;">
-          <h3 style="margin-bottom:8px;">${div}</h3>
-          <ul class="roster-list">${items}</ul>
-        </div>`;
-    }).join("") || `<p style="padding:16px;">No teams yet.</p>`;
+  const options = DIVISIONS.map(
+    (d) =>
+      `<option value="${d}" ${d === selectedDivision ? "selected" : ""}>${d}</option>`
+  ).join("");
 
-  pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header">
-        <div class="card-title">Teams</div>
-      </div>
-      ${sections}
-    </section>
-  `;
-}
-
-// ---- Schedule ----
-function renderSchedule() {
-  const div = selectedDivision;
-
-  const filtered = games.filter((g) => g.division === div);
-
-  const items = filtered
-    .map((g) => {
-      const canEdit = coachCanEditGame(g);
-      const scoreLine =
-        g.homeScore != null && g.awayScore != null
-          ? `${g.homeScore} - ${g.awayScore}`
-          : "No score yet";
-
-      const scoreBtn =
-        canEdit && SCORING_DIVISIONS.includes(div)
-          ? `<button
-               style="margin-top:6px;padding:4px 10px;border:none;border-radius:6px;background:#c00;color:#fff;font-size:0.8rem;"
-               onclick="openScorePrompt(${g._idx})">
-               Report Score
-             </button>`
-          : "";
-
-      return `
-      <li>
-        <div style="font-weight:600;">${g.home || "TBD"} vs ${
-        g.away || "TBD"
-      }</div>
-        <div style="font-size:0.85rem;color:#555;">
-          ${g.date || ""} • ${g.time || ""} • ${g.field || ""}
-        </div>
-        <div style="font-size:0.85rem;color:#555;margin-top:4px;">
-          ${scoreLine}
-        </div>
-        ${scoreBtn}
-      </li>`;
-    })
-    .join("");
+  const listHtml =
+    teams.length === 0
+      ? `<p style="padding:16px;">Teams for ${selectedDivision} coming soon.</p>`
+      : `<ul class="roster-list">
+          ${teams
+            .map(
+              (t) => `
+            <li>
+              <span>${t.name}</span>
+              <span class="roster-role">${t.coach}</span>
+            </li>`
+            )
+            .join("")}
+        </ul>`;
 
   pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header" style="justify-content:space-between;">
-        <div class="card-title">${div} Schedule</div>
-        <button id="reloadScheduleBtn" class="btn btn-danger">Reload</button>
+        <div class="card-title">${selectedDivision} Teams</div>
+        <select id="teamsDivisionSelect">${options}</select>
       </div>
-      <div style="padding:0 16px 8px 16px;">
-        <label for="divisionSelect" style="margin-right:8px;">Division:</label>
-        <select id="divisionSelect">
-          ${DIVISIONS.map(
-            (d) =>
-              `<option value="${d}" ${
-                d === div ? "selected" : ""
-              }>${d}</option>`
-          ).join("")}
-        </select>
+      ${listHtml}
+    </section>
+  `;
+
+  document
+    .getElementById("teamsDivisionSelect")
+    .addEventListener("change", (e) => {
+      selectedDivision = e.target.value;
+      renderTeams();
+    });
+}
+
+// --- SCHEDULE + SCORE ENTRY ---
+function renderSchedule() {
+  const divisions = DIVISIONS;
+  const filteredGames = games.filter((g) => g.division === selectedDivision);
+
+  const options = divisions
+    .map(
+      (d) =>
+        `<option value="${d}" ${d === selectedDivision ? "selected" : ""}>${d}</option>`
+    )
+    .join("");
+
+  const items =
+    filteredGames.length === 0
+      ? "<li>No scheduled games.</li>"
+      : filteredGames
+          .map((g) => {
+            let canEdit = false;
+
+            if (isAdmin) {
+              canEdit = true;
+            } else if (loggedInCoach && coachTeams[loggedInCoach]) {
+              const assignments = coachTeams[loggedInCoach];
+              canEdit = assignments.some(
+                (a) =>
+                  a.division === g.division &&
+                  (a.team === g.home || a.team === g.away)
+              );
+            }
+
+            return `
+          <li>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-weight:600;">${g.home} vs ${g.away}</div>
+                <div style="font-size:0.85rem;color:#555;">
+                  ${g.date} • ${g.time} • ${g.field}
+                </div>
+              </div>
+              <div style="text-align:right;font-weight:600;">
+                ${
+                  g.homeScore != null && g.awayScore != null
+                    ? `${g.homeScore} - ${g.awayScore}`
+                    : "No score yet"
+                }
+              </div>
+            </div>
+
+            ${
+              canEdit
+                ? `
+            <div class="score-entry" style="margin-top:8px;display:flex;gap:8px;">
+              <input
+                type="number"
+                placeholder="Home"
+                id="homeScore-${g._idx}"
+                class="score-input"
+                style="flex:1;padding:6px;border-radius:6px;border:1px solid #ccc;"
+              >
+              <input
+                type="number"
+                placeholder="Away"
+                id="awayScore-${g._idx}"
+                class="score-input"
+                style="flex:1;padding:6px;border-radius:6px;border:1px solid #ccc;"
+              >
+              <button
+                class="score-btn"
+                style="flex:1;padding:6px;border-radius:6px;border:none;background:#198754;color:white;"
+                onclick="submitScore(${g._idx})"
+              >
+                Submit
+              </button>
+            </div>`
+                : ""
+            }
+          </li>
+        `;
+          })
+          .join("");
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header" style="justify-content:space-between;">
+        <div>
+          <div class="card-title">${selectedDivision} Schedule</div>
+          <div class="card-subtitle">
+            Coaches for this division can enter scores for their own games.
+          </div>
+        </div>
+        <select id="scheduleDivisionSelect">${options}</select>
       </div>
       <ul class="schedule-list">
-        ${
-          items ||
-          `<li>No scheduled games.</li>`
-        }
+        ${items}
       </ul>
     </section>
   `;
 
-  const select = document.getElementById("divisionSelect");
-  select.addEventListener("change", (e) => {
-    selectedDivision = e.target.value;
-    renderSchedule();
-  });
-
-  const reloadBtn = document.getElementById("reloadScheduleBtn");
-  reloadBtn.addEventListener("click", () => {
-    loadAllDivisions();
-  });
+  document
+    .getElementById("scheduleDivisionSelect")
+    .addEventListener("change", (e) => {
+      selectedDivision = e.target.value;
+      renderSchedule();
+    });
 }
 
-// ---- Standings ----
+// --- STANDINGS ---
 function renderStandings() {
-  let div = selectedDivision;
-  if (!SCORING_DIVISIONS.includes(div)) {
-    div = SCORING_DIVISIONS[0];
-    selectedDivision = div;
+  // Only Majors / AAA / AA
+  if (!SCORING_DIVISIONS.includes(selectedDivision)) {
+    selectedDivision = "Majors";
   }
 
-  const standings = calculateStandings(div);
+  const options = SCORING_DIVISIONS.map(
+    (d) =>
+      `<option value="${d}" ${d === selectedDivision ? "selected" : ""}>${d}</option>`
+  ).join("");
 
-  const rows = standings
-    .map(
-      (t, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${t.team}</td>
-        <td>${t.w}</td>
-        <td>${t.l}</td>
-      </tr>`
-    )
-    .join("");
+  const rows = calculateStandings(selectedDivision);
+  const list =
+    rows.length === 0
+      ? "<li>No standings yet.</li>"
+      : rows
+          .map(
+            (r, i) => `
+        <li>
+          <span>${i + 1}. ${r.team}</span>
+          <span class="record">${r.w}-${r.l}</span>
+        </li>`
+          )
+          .join("");
 
   pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header" style="justify-content:space-between;">
-        <div class="card-title">${div} Standings</div>
+        <div>
+          <div class="card-title">${selectedDivision} Standings</div>
+          <div class="card-subtitle">Auto-calculated from reported scores</div>
+        </div>
+        <select id="standingsDivisionSelect">${options}</select>
       </div>
-      <div style="padding:0 16px 8px 16px;">
-        <label for="standingsDivisionSelect" style="margin-right:8px;">Division:</label>
-        <select id="standingsDivisionSelect">
-          ${SCORING_DIVISIONS.map(
-            (d) =>
-              `<option value="${d}" ${
-                d === div ? "selected" : ""
-              }>${d}</option>`
-          ).join("")}
-        </select>
-      </div>
-      <div style="padding:0 16px 16px 16px;">
-        ${
-          standings.length === 0
-            ? "<p>No results yet.</p>"
-            : `
-          <table class="standings-table">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Team</th>
-                <th>W</th>
-                <th>L</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>`
-        }
-      </div>
+      <ul class="standings-list">
+        ${list}
+      </ul>
     </section>
   `;
 
-  const select = document.getElementById("standingsDivisionSelect");
-  select.addEventListener("change", (e) => {
-    selectedDivision = e.target.value;
-    renderStandings();
-  });
+  document
+    .getElementById("standingsDivisionSelect")
+    .addEventListener("change", (e) => {
+      selectedDivision = e.target.value;
+      renderStandings();
+    });
 }
 
-// ---- Messages + Coach/Admin login ----
+// --- RESOURCES (NEW TAB) ---
+function renderResources() {
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">League Resources</div>
+      </div>
+
+      <p style="padding:12px 16px;font-size:0.9rem;color:#555;">
+        Tap a resource below to open it in a new tab.
+      </p>
+
+      <ul class="resource-list" style="padding:0 16px 16px 16px;">
+        <li style="margin-bottom:10px;">
+          <a href="https://docs.google.com/document/d/1QVtREnvJb_VN_ZkGh5guW5PJI_5uck6K7VjVaKEBSaY/edit?tab=t.0"
+             target="_blank">
+            📘 Villa Park Local Rules
+          </a>
+        </li>
+
+        <li style="margin-bottom:10px;">
+          <a href="https://docs.google.com/document/d/11CShzXZavE77uNQQou8dqn4bUINXCe4vOtgeT8RBq6E/edit?tab=t.0"
+             target="_blank">
+            💥 Home Run List
+          </a>
+        </li>
+
+        <li style="margin-bottom:10px;">
+          <a href="https://www.littleleague.org/downloads/"
+             target="_blank">
+            ⚾ Official Little League Rulebook (LL App)
+          </a>
+        </li>
+      </ul>
+    </section>
+  `;
+}
+
+// --- MESSAGES (Admin + Coaches) ---
 function renderMessages() {
   const htmlMsgs = messages
     .map(
       (m) => `
-      <li style="margin-bottom:10px;">
-        <div style="font-weight:600;">${m.author}</div>
-        <div style="font-size:0.9rem;color:#333;">${m.text}</div>
-        <div style="font-size:0.75rem;color:#888;">${m.time}</div>
-      </li>`
+    <li style="margin-bottom:10px;">
+      <div style="font-weight:600;">${m.author}</div>
+      <div style="font-size:0.9rem;color:#333;">${m.text}</div>
+      <div style="font-size:0.75rem;color:#888;">${m.time}</div>
+    </li>`
     )
     .join("");
 
   const adminTools = isAdmin
     ? `
-      <div style="margin-top:16px;padding:12px;border:2px solid red;border-radius:8px;">
-        <div style="font-weight:700;color:red;margin-bottom:4px;">Admin Panel</div>
+      <div style="margin-top:16px;border-top:1px solid #ddd;padding-top:12px;">
+        <div style="font-weight:600;margin-bottom:6px;">Admin Tools</div>
+        <button id="adminReloadBtn"
+          style="width:100%;margin-bottom:6px;padding:8px;border:none;border-radius:6px;background:#0a74ff;color:white;">
+          🔄 Reload schedules & scores from Google
+        </button>
         <button id="adminClearMessages"
-          style="width:100%;padding:8px;margin-bottom:8px;background:#c00;color:#fff;border:none;border-radius:6px;">
-          Clear ALL announcements
+          style="width:100%;margin-bottom:6px;padding:8px;border:none;border-radius:6px;background:#c00;color:white;">
+          🗑️ Clear ALL announcements
         </button>
         <button id="adminLogout"
-          style="width:100%;padding:8px;background:#555;color:#fff;border:none;border-radius:6px;">
-          Log Out (Admin)
+          style="width:100%;padding:8px;border:none;border-radius:6px;background:#555;color:white;">
+          Log out as Admin
         </button>
       </div>`
     : `
-      <div style="margin-top:16px;">
+      <div style="margin-top:16px;border-top:1px solid #ddd;padding-top:12px;">
+        <div style="font-weight:600;margin-bottom:6px;">Admin Login</div>
         <input id="adminPin" type="password" placeholder="Admin PIN"
           style="width:100%;padding:8px;border-radius:8px;margin-bottom:8px;" />
         <button id="adminLoginBtn"
-          style="width:100%;padding:8px;background:#c00;color:#fff;border:none;border-radius:8px;">
+          style="margin-top:4px;width:100%;background:#333;color:#fff;border:none;border-radius:6px;padding:8px;">
           Log In as Admin
         </button>
       </div>`;
@@ -567,26 +694,41 @@ function renderMessages() {
     loggedInCoach && loggedInCoach !== "Admin"
       ? `
       <div style="margin-top:16px;">
-        <textarea id="messageInput" rows="3" placeholder="Type announcement..."
+        <div style="font-weight:600;margin-bottom:4px;">Post Announcement as ${loggedInCoach}</div>
+        <textarea id="messageInput" rows="3"
+          placeholder="Type announcement..."
           style="width:100%;padding:8px;border-radius:8px;"></textarea>
         <button id="sendMessageBtn"
-          style="margin-top:8px;width:100%;background:#c00;color:#fff;border:none;border-radius:6px;padding:8px;">
-          Post as ${loggedInCoach}
+          style="margin-top:8px;width:100%;background:#0a74ff;color:#fff;border:none;border-radius:6px;padding:8px;">
+          Post Announcement
         </button>
         <button id="coachLogoutBtn"
           style="margin-top:8px;width:100%;background:#555;color:#fff;border:none;border-radius:6px;padding:8px;">
-          Log Out (Coach)
+          Log Out (${loggedInCoach})
         </button>
       </div>`
       : `
       <div style="margin-top:16px;">
-        <input id="coachName" placeholder='Coach Name (e.g. "Coach Ben")'
+        <div style="font-weight:600;margin-bottom:4px;">Coach Login</div>
+        <input id="coachName" placeholder="Coach Name"
           style="width:100%;padding:8px;border-radius:8px;margin-bottom:8px;" />
         <input id="coachPin" type="password" placeholder="Coach PIN"
           style="width:100%;padding:8px;border-radius:8px;margin-bottom:8px;" />
         <button id="loginBtn"
-          style="margin-top:8px;width:100%;background:#c00;color:#fff;border:none;border-radius:6px;padding:8px;">
+          style="margin-top:8px;width:100%;background:#0a74ff;color:#fff;border:none;border-radius:6px;padding:8px;">
           Coach Log In
+        </button>
+      </div>`;
+
+  const notificationsBlock = `
+      <div style="margin-top:16px;border-top:1px solid #ddd;padding-top:12px;">
+        <div style="font-weight:600;margin-bottom:6px;">Notifications</div>
+        <p style="font-size:0.85rem;color:#555;margin-bottom:8px;">
+          Turn on notifications on this device to get important league alerts.
+        </p>
+        <button id="enableNotifBtn"
+          style="width:100%;background:#198754;color:#fff;border:none;border-radius:6px;padding:8px;">
+          Enable Notifications on this device
         </button>
       </div>`;
 
@@ -596,18 +738,20 @@ function renderMessages() {
         <div class="card-title">League Messages</div>
       </div>
       <ul class="roster-list">
-        ${htmlMsgs || "<li>No messages yet.</li>"}
+        ${htmlMsgs || "<li>No announcements yet.</li>"}
       </ul>
       ${adminTools}
       ${coachTools}
+      ${notificationsBlock}
     </section>
   `;
 
-
-
-  // Admin listeners
+  // --- Admin listeners ---
   if (isAdmin) {
     const clearBtn = document.getElementById("adminClearMessages");
+    const logoutBtn = document.getElementById("adminLogout");
+    const reloadBtn = document.getElementById("adminReloadBtn");
+
     clearBtn.addEventListener("click", () => {
       if (confirm("Delete ALL announcements?")) {
         messages = [];
@@ -616,12 +760,16 @@ function renderMessages() {
       }
     });
 
-    const logoutBtn = document.getElementById("adminLogout");
     logoutBtn.addEventListener("click", () => {
       isAdmin = false;
       if (loggedInCoach === "Admin") loggedInCoach = null;
       updateNavForAdmin();
       renderMessages();
+    });
+
+    reloadBtn.addEventListener("click", async () => {
+      await reloadAllSchedules();
+      alert("Schedules and scores reloaded from Google.");
     });
   } else {
     const adminLoginBtn = document.getElementById("adminLoginBtn");
@@ -639,7 +787,7 @@ function renderMessages() {
     });
   }
 
-  // Coach listeners
+  // --- Coach listeners ---
   if (loggedInCoach && loggedInCoach !== "Admin") {
     const sendBtn = document.getElementById("sendMessageBtn");
     const logoutBtn = document.getElementById("coachLogoutBtn");
@@ -675,6 +823,12 @@ function renderMessages() {
       }
     });
   }
+
+  // --- Notifications button ---
+  const enableBtn = document.getElementById("enableNotifBtn");
+  if (enableBtn) {
+    enableBtn.addEventListener("click", enableNotifications);
+  }
 }
 
 // ---- Admin page ----
@@ -692,49 +846,6 @@ function renderAdmin() {
     `;
     return;
   }
-function renderResources() {
-  console.log("renderResources() fired");
-
-  pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header">
-        <div class="card-title">League Resources</div>
-      </div>
-
-      <ul class="resource-list">
-        <li>
-          <a href="YOUR_LOCAL_RULES_PDF_URL" target="_blank">
-            📘 Villa Park Local Rules
-          </a>
-        </li>
-
-        <li>
-          <a href="https://www.littleleague.org/downloads/" target="_blank">
-            ⚾ Official Little League Rulebook (LL App)
-          </a>
-        </li>
-
-        <li>
-          <a href="https://www.littleleague.org/league-finder/" target="_blank">
-            🏆 Little League Official Resources
-          </a>
-        </li>
-
-        <li>
-          <a href="https://www.littleleague.org/world-series/" target="_blank">
-            🌎 World Series & Tournament Central
-          </a>
-        </li>
-
-        <li>
-          <a href="YOUR_HOMERUN_LIST_URL" target="_blank">
-            💥 Home Run Tracker
-          </a>
-        </li>
-      </ul>
-    </section>
-  `;
-}
 
   pageRoot.innerHTML = `
     <section class="card">
@@ -742,7 +853,9 @@ function renderResources() {
         <div class="card-title">Admin Tools</div>
       </div>
       <p style="padding:16px;">
-        Use the Schedule tab to report scores (as Admin) for Majors / AAA / AA.
+        Use the Schedule tab to report scores for Majors / AAA / AA.<br/><br/>
+        You can also use the Messages tab to manage announcements and reload
+        schedules/scores from Google.
       </p>
     </section>
   `;
@@ -756,29 +869,31 @@ function clearActiveNav() {
 function updateNavForAdmin() {
   const adminTab = document.getElementById("adminTab");
   if (!adminTab) return;
-  adminTab.style.display = isAdmin ? "inline-block" : "none";
+  adminTab.style.display = isAdmin ? "inline-flex" : "none";
 }
 
+// Attach click handlers
 navButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     clearActiveNav();
     btn.classList.add("active");
     const page = btn.dataset.page;
 
-   if (page === "teams") renderTeams();
-else if (page === "schedule") renderSchedule();
-else if (page === "standings") renderStandings();
-else if (page === "messages") renderMessages();
-else if (page === "admin") renderAdmin();
-else if (page === "resources") renderResources();
-else renderHome();
-
+    if (page === "home") renderHome();
+    else if (page === "teams") renderTeams();
+    else if (page === "schedule") renderSchedule();
+    else if (page === "standings") renderStandings();
+    else if (page === "messages") renderMessages();
+    else if (page === "resources") renderResources();
+    else if (page === "admin") renderAdmin();
   });
 });
 
 // === INITIAL LOAD ===
 updateNavForAdmin();
 renderHome();
-loadAllDivisions().catch((e) =>
-  console.error("Initial loadAllDivisions error:", e)
-);
+
+// Optionally: initial load from Sheets (non-blocking)
+loadScoresFromGoogleSheet().catch(() => {
+  console.warn("Initial score load failed; will rely on local data until admin reloads.");
+});

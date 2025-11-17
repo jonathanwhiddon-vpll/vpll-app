@@ -605,31 +605,45 @@ function renderMessages() {
 function renderResources() {
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header">📚 League Resources</div>
-      <ul class="list">
+      <div class="card-header">
+        <div class="card-title">League Resources</div>
+      </div>
 
+      <ul class="resource-list">
         <li>
-          <a href="YOUR_LOCAL_RULES_URL" target="_blank">
-            📘 Local Rules (PDF)
+          <a href="YOUR_LOCAL_RULES_PDF_URL" target="_blank">
+            📘 Villa Park Local Rules
           </a>
         </li>
 
         <li>
-          <a href="https://www.littleleague.org/downloads/little-league-app/" target="_blank">
-            ⚾ Little League Mobile App
+          <a href="https://www.littleleague.org/downloads/" target="_blank">
+            ⚾ Official Little League Rulebook (LL App)
+          </a>
+        </li>
+
+        <li>
+          <a href="https://www.littleleague.org/league-finder/" target="_blank">
+            🏆 Little League Official Resources
+          </a>
+        </li>
+
+        <li>
+          <a href="https://www.littleleague.org/world-series/" target="_blank">
+            🌎 World Series & Tournament Central
           </a>
         </li>
 
         <li>
           <a href="YOUR_HOMERUN_LIST_URL" target="_blank">
-            🧨 2025 Home Run Tracker
+            💥 Home Run Tracker
           </a>
         </li>
-
       </ul>
     </section>
   `;
 }
+
 
   // Admin listeners
   if (isAdmin) {

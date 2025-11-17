@@ -1,3 +1,4 @@
+// force redeploy 1
 /* --------------------------------------------------
    Villa Park Little League - app.js
    - Teams / Schedule / Standings / Messages / Admin
@@ -902,3 +903,4 @@ loadScoresFromGoogleSheet().catch(() => {
     "Initial score load failed; will rely on local data until admin reloads."
   );
 });
+

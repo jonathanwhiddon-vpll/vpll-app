@@ -583,35 +583,11 @@ function renderResources() {
           </a>
         </li>
 
-        <!-- LL Rulebook (iOS Universal Link) -->
+        <!-- Little League Website (Rulebook & More) -->
         <li style="margin-bottom:10px;">
-          <a href="https://apps.apple.com/app/little-league-rulebook/id871715667"
+          <a href="https://www.littleleague.org/downloads/"
              target="_blank">
-            ⚾ Official LL Rulebook (iOS App)
-          </a>
-        </li>
-
-        <!-- LL Rulebook (Android) -->
-        <li style="margin-bottom:10px;">
-          <a href="https://play.google.com/store/apps/details?id=com.dubuque.littleleague&hl=en_US"
-             target="_blank">
-            ⚾ Official LL Rulebook (Android App)
-          </a>
-        </li>
-
-        <!-- GameChanger iOS (Standard Safe Link) -->
-        <li style="margin-bottom:10px;">
-          <a href="https://apps.apple.com/app/gamechanger/id1121762454"
-             target="_blank">
-            📱 GameChanger App (iOS)
-          </a>
-        </li>
-
-        <!-- GameChanger Android -->
-        <li style="margin-bottom:10px;">
-          <a href="https://play.google.com/store/apps/details?id=com.gc.android&hl=en_US"
-             target="_blank">
-            📱 GameChanger App (Android)
+            ⚾ Official Little League Resources & Rulebook
           </a>
         </li>
 
@@ -619,8 +595,6 @@ function renderResources() {
     </section>
   `;
 }
-
-
 
 // --- MESSAGES (Admin + Coaches) ---
 function renderMessages() {

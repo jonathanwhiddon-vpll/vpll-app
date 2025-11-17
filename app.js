@@ -35,7 +35,6 @@ async function enableNotifications() {
     });
 
     console.log("Push subscription:", sub);
-    // In the future: send `sub` to your Apps Script backend
     alert("Notifications enabled on this device!");
   } catch (err) {
     console.error("Push subscribe error:", err);
@@ -58,7 +57,7 @@ let selectedDivision = "Majors";
 // Divisions that appear in Schedule / Teams
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 
-// Divisions that actually keep score / have standings
+// Divisions that keep score / have standings
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 
 function saveGames() {
@@ -106,7 +105,6 @@ const coachPins = {
 };
 
 // Which team(s) each coach is responsible for
-// (used to allow score entry only for their own games)
 const coachTeams = {
   "Coach Ben": [{ division: "Majors", team: "Team Hanna" }],
   "Coach Brian": [{ division: "Majors", team: "Team Cole" }],
@@ -131,20 +129,18 @@ const coachTeams = {
   "Coach Cory": [{ division: "AA", team: "Team Anderson" }],
   "Coach Mitch": [{ division: "AA", team: "Team Garcia" }],
   "Coach Matt": [{ division: "AA", team: "Team Kruckeberg" }],
-  // Coach Jon’s AA team already above
   "Coach Dustin": [{ division: "AA", team: "Team Machado" }],
   "Coach Brent": [{ division: "AA", team: "Team Lavitt" }],
   "Coach Eight": [{ division: "AA", team: "Team Eight" }],
 };
 
-// Messages (stored locally on device)
+// Messages (stored locally)
 let messages = JSON.parse(localStorage.getItem("messages") || "[]");
 function saveMessages() {
   localStorage.setItem("messages", JSON.stringify(messages));
 }
 
 // === GOOGLE SHEET CSV LINKS ===
-// One spreadsheet with tabs per division; same ID, different gid.
 const CSV_LINKS = {
   Majors:
     "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=0",
@@ -160,7 +156,7 @@ const CSV_LINKS = {
     "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=860483387",
 };
 
-// Apps Script Web App URL (for scores)
+// Apps Script Web App URL
 const SHEET_API_URL =
   "https://script.google.com/macros/s/AKfycby4sGBxN0sMlGT398mM3CGjQXKCIjL2C2eRxAQJohc7Gz1kah8zCnlv_dTkxYvtyddR/exec";
 
@@ -169,10 +165,14 @@ const SHEET_API_URL =
 // ---------------------------------------------------------
 async function loadScheduleFromSheet(divisionName) {
   try {
-    const url = CSV_LINKS[divisionName];
-    if (!url) return;
+    const baseUrl = CSV_LINKS[divisionName];
+    if (!baseUrl) return;
 
-    const response = await fetch(url);
+    // Chromebook-safe fetch (no caching)
+    const response = await fetch(baseUrl + "&v=" + Date.now(), {
+      cache: "no-store",
+    });
+
     const csv = await response.text();
 
     const lines = csv.split(/\r?\n/).filter((l) => l.trim().length > 0);
@@ -218,7 +218,6 @@ async function loadScheduleFromSheet(divisionName) {
     console.error("Error loading schedule CSV for", divisionName, err);
   }
 }
-
 // Load all divisions once (Admin tool)
 async function reloadAllSchedules() {
   for (const div of DIVISIONS) {
@@ -234,10 +233,14 @@ async function reloadAllSchedules() {
 // ---------------------------------------------------------
 async function loadScoresFromGoogleSheet() {
   try {
-    const response = await fetch(SHEET_API_URL);
+    // Chromebook-safe — force fresh fetch
+    const response = await fetch(SHEET_API_URL + "?v=" + Date.now(), {
+      cache: "no-store",
+    });
+
     const data = await response.json();
 
-    // Expecting: { games: [ { division, date, time, field, home, away, homeScore, awayScore }, ... ] }
+    // Expecting: { games: [...] }
     if (!data || !Array.isArray(data.games)) {
       console.warn("Unexpected data from Sheet API:", data);
       return;
@@ -379,9 +382,8 @@ function renderHome() {
   `;
 }
 
-// --- TEAMS (with your Majors / AAA / AA teams) ---
+// --- TEAMS ---
 function renderTeams() {
-  // Simple structured data for display only
   const divisionTeams = {
     Majors: [
       { name: "Team Hanna", coach: "Coach Ben" },
@@ -564,7 +566,6 @@ function renderSchedule() {
 
 // --- STANDINGS ---
 function renderStandings() {
-  // Only Majors / AAA / AA
   if (!SCORING_DIVISIONS.includes(selectedDivision)) {
     selectedDivision = "Majors";
   }
@@ -610,7 +611,6 @@ function renderStandings() {
       renderStandings();
     });
 }
-
 // --- RESOURCES (NEW TAB) ---
 function renderResources() {
   pageRoot.innerHTML = `
@@ -662,6 +662,7 @@ function renderMessages() {
     )
     .join("");
 
+  // --- Admin Tools ---
   const adminTools = isAdmin
     ? `
       <div style="margin-top:16px;border-top:1px solid #ddd;padding-top:12px;">
@@ -690,6 +691,7 @@ function renderMessages() {
         </button>
       </div>`;
 
+  // --- Coach Tools ---
   const coachTools =
     loggedInCoach && loggedInCoach !== "Admin"
       ? `
@@ -720,6 +722,7 @@ function renderMessages() {
         </button>
       </div>`;
 
+  // --- Notifications Block ---
   const notificationsBlock = `
       <div style="margin-top:16px;border-top:1px solid #ddd;padding-top:12px;">
         <div style="font-weight:600;margin-bottom:6px;">Notifications</div>
@@ -732,6 +735,7 @@ function renderMessages() {
         </button>
       </div>`;
 
+  // --- Final Render for Messages Page ---
   pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header">
@@ -746,7 +750,7 @@ function renderMessages() {
     </section>
   `;
 
-  // --- Admin listeners ---
+  // ========== Admin Listeners ==========
   if (isAdmin) {
     const clearBtn = document.getElementById("adminClearMessages");
     const logoutBtn = document.getElementById("adminLogout");
@@ -787,7 +791,7 @@ function renderMessages() {
     });
   }
 
-  // --- Coach listeners ---
+  // ========== Coach Listeners ==========
   if (loggedInCoach && loggedInCoach !== "Admin") {
     const sendBtn = document.getElementById("sendMessageBtn");
     const logoutBtn = document.getElementById("coachLogoutBtn");
@@ -824,13 +828,12 @@ function renderMessages() {
     });
   }
 
-  // --- Notifications button ---
+  // ========== Notifications Listener ==========
   const enableBtn = document.getElementById("enableNotifBtn");
   if (enableBtn) {
     enableBtn.addEventListener("click", enableNotifications);
   }
 }
-
 // ---- Admin page ----
 function renderAdmin() {
   if (!isAdmin) {
@@ -872,7 +875,7 @@ function updateNavForAdmin() {
   adminTab.style.display = isAdmin ? "inline-flex" : "none";
 }
 
-// Attach click handlers
+// Attach click handlers for nav buttons
 navButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     clearActiveNav();
@@ -893,7 +896,9 @@ navButtons.forEach((btn) => {
 updateNavForAdmin();
 renderHome();
 
-// Optionally: initial load from Sheets (non-blocking)
+// Initial load from Sheets (non-blocking)
 loadScoresFromGoogleSheet().catch(() => {
-  console.warn("Initial score load failed; will rely on local data until admin reloads.");
+  console.warn(
+    "Initial score load failed; will rely on local data until admin reloads."
+  );
 });

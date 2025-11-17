@@ -602,47 +602,7 @@ function renderMessages() {
       ${coachTools}
     </section>
   `;
-function renderResources() {
-  pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header">
-        <div class="card-title">League Resources</div>
-      </div>
 
-      <ul class="resource-list">
-        <li>
-          <a href="YOUR_LOCAL_RULES_PDF_URL" target="_blank">
-            📘 Villa Park Local Rules
-          </a>
-        </li>
-
-        <li>
-          <a href="https://www.littleleague.org/downloads/" target="_blank">
-            ⚾ Official Little League Rulebook (LL App)
-          </a>
-        </li>
-
-        <li>
-          <a href="https://www.littleleague.org/league-finder/" target="_blank">
-            🏆 Little League Official Resources
-          </a>
-        </li>
-
-        <li>
-          <a href="https://www.littleleague.org/world-series/" target="_blank">
-            🌎 World Series & Tournament Central
-          </a>
-        </li>
-
-        <li>
-          <a href="YOUR_HOMERUN_LIST_URL" target="_blank">
-            💥 Home Run Tracker
-          </a>
-        </li>
-      </ul>
-    </section>
-  `;
-}
 
 
   // Admin listeners
@@ -732,6 +692,47 @@ function renderAdmin() {
     `;
     return;
   }
+function renderResources() {
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">League Resources</div>
+      </div>
+
+      <ul class="resource-list">
+        <li>
+          <a href="YOUR_LOCAL_RULES_PDF_URL" target="_blank">
+            📘 Villa Park Local Rules
+          </a>
+        </li>
+
+        <li>
+          <a href="https://www.littleleague.org/downloads/" target="_blank">
+            ⚾ Official Little League Rulebook (LL App)
+          </a>
+        </li>
+
+        <li>
+          <a href="https://www.littleleague.org/league-finder/" target="_blank">
+            🏆 Little League Official Resources
+          </a>
+        </li>
+
+        <li>
+          <a href="https://www.littleleague.org/world-series/" target="_blank">
+            🌎 World Series & Tournament Central
+          </a>
+        </li>
+
+        <li>
+          <a href="YOUR_HOMERUN_LIST_URL" target="_blank">
+            💥 Home Run Tracker
+          </a>
+        </li>
+      </ul>
+    </section>
+  `;
+}
 
   pageRoot.innerHTML = `
     <section class="card">

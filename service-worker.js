@@ -1,93 +1,95 @@
-// === VPLL SERVICE WORKER (No aggressive caching) ===
-// Forces the app to ALWAYS use the newest files.
-// Automatically updates when new deployments happen.
+// --------------------------------------------------------------
+//  NEW SERVICE WORKER — Chromebook-Safe, Minimal Caching
+// --------------------------------------------------------------
 
-const CACHE_NAME = "vpll-cache-v" + Date.now();
+// Version bump anytime you deploy (forces refresh everywhere)
+const CACHE_VERSION = "vpll-cache-v4";
+const STATIC_CACHE = `${CACHE_VERSION}-static`;
 
-// List only essential static assets
+// Only cache STATIC assets — NEVER cache Google Sheets or app.js
 const STATIC_ASSETS = [
-  "/",
+  "/",               // root
   "/index.html",
   "/style.css",
-  "/app.js",
-  "/vpll-logo.png"
+  "/favicon.ico",
+  "/logo192.png",
+  "/logo512.png",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png"
 ];
 
-// Install – cache the core assets
+// --------------------------------------------------------------
+//  INSTALL — Precache static files only
+// --------------------------------------------------------------
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
-});
-
-// Activate – delete ALL old caches
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => {
-        if (k !== CACHE_NAME) return caches.delete(k);
-      }))
-    )
-  );
-  self.clients.claim();
-});
-
-// Fetch – ALWAYS get newest file from the network first.
-// Fall back to cache ONLY if offline.
-self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, copy);
-        });
-        return response;
-      })
-      .catch(() => caches.match(event.request))
-  );
-});
-// ==== PUSH NOTIFICATIONS (Add This At The Bottom) ====
-
-// Receive push from server
-self.addEventListener("push", function (event) {
-  console.log("Push received:", event.data ? event.data.text() : "");
-
-  let payload = {};
-
-  try {
-    payload = event.data.json();
-  } catch (err) {
-    payload = { title: "VPLL", body: event.data.text() };
-  }
-
-  const title = payload.title || "Villa Park Little League";
-  const options = {
-    body: payload.body || "",
-    icon: "/60thlogo.jpg",
-    badge: "/60thlogo.jpg",
-    vibrate: [100, 50, 100],
-    data: payload, // for click handling
-  };
-
-  event.waitUntil(self.registration.showNotification(title, options));
-});
-
-// Handle notification clicks
-self.addEventListener("notificationclick", function (event) {
-  event.notification.close();
-
-  const urlToOpen = event.notification.data.url || "/";
+  self.skipWaiting(); // take control immediately
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === urlToOpen && "focus" in client) return client.focus();
-      }
-      if (clients.openWindow) return clients.openWindow(urlToOpen);
+    caches.open(STATIC_CACHE).then((cache) => {
+      return cache.addAll(STATIC_ASSETS).catch((err) => {
+        console.warn("Static cache failed:", err);
+      });
     })
   );
 });
 
+// --------------------------------------------------------------
+//  ACTIVATE — Delete old caches
+// --------------------------------------------------------------
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys
+          .filter((key) => key !== STATIC_CACHE)
+          .map((key) => caches.delete(key))
+      );
+    })
+  );
 
+  self.clients.claim();
+});
+
+// --------------------------------------------------------------
+//  FETCH — Network-first for EVERYTHING except static assets
+// --------------------------------------------------------------
+//
+//  IMPORTANT:
+//  - Google Sheets CSVs bypass service worker entirely
+//  - app.js bypasses service worker entirely
+//  - Only static assets fall back to cache
+//
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+
+  // Never intercept Google Sheets CSVs or Apps Script API
+  if (url.hostname.includes("googleusercontent") ||
+      url.hostname.includes("googleapis") ||
+      url.hostname.includes("google.com")) {
+    return;
+  }
+
+  // Never intercept your JS files (app.js, service-worker.js, etc.)
+  if (url.pathname.endsWith(".js")) {
+    return;
+  }
+
+  // Cache static assets — Network first, fallback to cache
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+
+        if (STATIC_ASSETS.some((asset) => url.pathname === asset)) {
+          caches.open(STATIC_CACHE).then((cache) => {
+            cache.put(event.request, copy);
+          });
+        }
+
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
+  );
+});

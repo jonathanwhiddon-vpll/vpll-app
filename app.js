@@ -2,8 +2,7 @@
    Villa Park Little League - app.js
    - Teams / Schedule / Standings / Messages / Admin
    - Coach login + Admin login (PIN 0709)
-   - Schedule from Google Sheets (per-division tabs)
-   - Scores sync via Apps Script Web App
+   - Schedule & scores from Google Apps Script Web App
    - Standings auto-calculated from scores
    - Resources tab (Local Rules, LL app, Home Run List)
 -------------------------------------------------- */
@@ -140,28 +139,12 @@ function saveMessages() {
   localStorage.setItem("messages", JSON.stringify(messages));
 }
 
-// === GOOGLE SHEET CSV LINKS ===
-const CSV_LINKS = {
-  Majors:
-    "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=0",
-  AAA:
-    "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=1857914653",
-  AA:
-    "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=1006784456",
-  "Single A":
-    "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=1852143804",
-  "Coach Pitch":
-    "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=359750423",
-  "T-Ball":
-    "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/export?format=csv&gid=860483387",
-};
-
-// Apps Script Web App URL
+// === GOOGLE APPS SCRIPT WEB APP (Schedule + Scores) ===
 const SHEET_API_URL =
   "https://script.google.com/macros/s/AKfycby4sGBxN0sMlGT398mM3CGjQXKCIjL2C2eRxAQJohc7Gz1kah8zCnlv_dTkxYvtyddR/exec";
 
 // ---------------------------------------------------------
-// === LOAD SCHEDULE FROM GOOGLE SHEET CSV (per division) ===
+// === LOAD ALL GAMES (SCHEDULE + SCORES) FROM GOOGLE SHEET ===
 // ---------------------------------------------------------
 async function loadScoresFromGoogleSheet() {
   try {
@@ -208,75 +191,17 @@ async function loadScoresFromGoogleSheet() {
 
     recomputeGameIndices();
     saveGames();
-    console.log("Loaded flexible standings data:", games);
+    console.log("Loaded flexible schedule + scores data:", games);
   } catch (err) {
     console.error("Google Sheets load error:", err);
   }
 }
 
-
-    // Filter out empty rows and replace games for this division
-    const cleaned = newGames.filter((g) => g.home && g.away);
-    games = games.filter((g) => g.division !== divisionName).concat(cleaned);
-
-    recomputeGameIndices();
-    saveGames();
-    console.log(`Loaded schedule for ${divisionName}`, cleaned);
-  } catch (err) {
-    console.error("Error loading schedule CSV for", divisionName, err);
-  }
-}
 // Load all divisions once (Admin tool)
 async function reloadAllSchedules() {
-  for (const div of DIVISIONS) {
-    await loadScheduleFromSheet(div);
-  }
-  await loadScoresFromGoogleSheet(); // pull any saved scores from Apps Script
+  await loadScoresFromGoogleSheet(); // pull latest from Apps Script
   renderSchedule();
   renderStandings();
-}
-
-// ---------------------------------------------------------
-// === LOAD SCORES FROM GOOGLE APPS SCRIPT WEB APP ===
-// ---------------------------------------------------------
-async function loadScoresFromGoogleSheet() {
-  try {
-    // Chromebook-safe — force fresh fetch
-    const response = await fetch(SHEET_API_URL + "?v=" + Date.now(), {
-      cache: "no-store",
-    });
-
-    const data = await response.json();
-
-    // Expecting: { games: [...] }
-    if (!data || !Array.isArray(data.games)) {
-      console.warn("Unexpected data from Sheet API:", data);
-      return;
-    }
-
-    games = data.games.map((g) => ({
-      division: g.division,
-      date: g.date,
-      time: g.time,
-      field: g.field,
-      home: g.home,
-      away: g.away,
-      homeScore:
-        g.homeScore === "" || g.homeScore === undefined
-          ? null
-          : Number(g.homeScore),
-      awayScore:
-        g.awayScore === "" || g.awayScore === undefined
-          ? null
-          : Number(g.awayScore),
-    }));
-
-    recomputeGameIndices();
-    saveGames();
-    console.log("Loaded scores from Google Sheets:", games);
-  } catch (err) {
-    console.error("Google Sheets load error:", err);
-  }
 }
 
 // ---------------------------------------------------------
@@ -619,6 +544,7 @@ function renderStandings() {
       renderStandings();
     });
 }
+
 // --- RESOURCES (NEW TAB) ---
 function renderResources() {
   pageRoot.innerHTML = `
@@ -842,6 +768,7 @@ function renderMessages() {
     enableBtn.addEventListener("click", enableNotifications);
   }
 }
+
 // ---- Admin page ----
 function renderAdmin() {
   if (!isAdmin) {

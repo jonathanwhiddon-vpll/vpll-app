@@ -599,13 +599,13 @@ function renderResources() {
           </a>
         </li>
 
-        <!-- GameChanger iOS (Deep-Link + Fallback) -->
+        <!-- GameChanger iOS (Updated Deep-Link + Fallback) -->
         <li style="margin-bottom:10px;">
           <a href="#" onclick="
-            // Try to open the GameChanger app directly
-            window.location = 'gamechanger://';
+            // Attempt to open the GameChanger app directly
+            window.location = 'gc://';
 
-            // Fallback to App Store if app isn't installed
+            // If app isn't installed, fallback to App Store
             setTimeout(function() {
               window.open('https://apps.apple.com/app/gamechanger/id1121762454', '_blank');
             }, 750);
@@ -626,9 +626,6 @@ function renderResources() {
     </section>
   `;
 }
-
-
-
 
 
 // --- MESSAGES (Admin + Coaches) ---

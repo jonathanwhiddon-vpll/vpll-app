@@ -559,6 +559,7 @@ function renderResources() {
 
       <ul class="resource-list" style="padding:0 16px 16px 16px;">
         
+        <!-- Local Rules -->
         <li style="margin-bottom:10px;">
           <a href="https://docs.google.com/document/d/1QVtREnvJb_VN_ZkGh5guW5PJI_5uck6K7VjVaKEBSaY/edit?tab=t.0"
              target="_blank">
@@ -566,6 +567,7 @@ function renderResources() {
           </a>
         </li>
 
+        <!-- Home Run List -->
         <li style="margin-bottom:10px;">
           <a href="https://docs.google.com/document/d/11CShzXZavE77uNQQou8dqn4bUINXCe4vOtgeT8RBq6E/edit?tab=t.0"
              target="_blank">
@@ -573,6 +575,7 @@ function renderResources() {
           </a>
         </li>
 
+        <!-- Weekly Volunteers -->
         <li style="margin-bottom:10px;">
           <a href="https://docs.google.com/document/d/1xh7XvoNy2jounkVr0zCBJ3OnsJv-nUvwGG_cBv9PYkc/edit?tab=t.0"
              target="_blank">
@@ -580,6 +583,7 @@ function renderResources() {
           </a>
         </li>
 
+        <!-- LL Rulebook (iOS Universal Link) -->
         <li style="margin-bottom:10px;">
           <a href="https://apps.apple.com/app/little-league-rulebook/id871715667"
              target="_blank">
@@ -587,6 +591,7 @@ function renderResources() {
           </a>
         </li>
 
+        <!-- LL Rulebook (Android) -->
         <li style="margin-bottom:10px;">
           <a href="https://play.google.com/store/apps/details?id=com.dubuque.littleleague&hl=en_US"
              target="_blank">
@@ -594,13 +599,22 @@ function renderResources() {
           </a>
         </li>
 
+        <!-- GameChanger iOS (Deep-Link + Fallback) -->
         <li style="margin-bottom:10px;">
-          <a href="https://apps.apple.com/app/gamechanger/id1121762454"
-             target="_blank">
-            📱 GameChanger App (iOS)
+          <a href="#" onclick="
+            // Try to open the GameChanger app directly
+            window.location = 'gamechanger://';
+
+            // Fallback to App Store if app isn't installed
+            setTimeout(function() {
+              window.open('https://apps.apple.com/app/gamechanger/id1121762454', '_blank');
+            }, 750);
+          ">
+            📱 GameChanger App (iOS – Tap to Open)
           </a>
         </li>
 
+        <!-- GameChanger Android -->
         <li style="margin-bottom:10px;">
           <a href="https://play.google.com/store/apps/details?id=com.gc.android&hl=en_US"
              target="_blank">
@@ -612,6 +626,7 @@ function renderResources() {
     </section>
   `;
 }
+
 
 
 

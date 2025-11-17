@@ -1,4 +1,3 @@
-// force redeploy 1
 /* --------------------------------------------------
    Villa Park Little League - app.js
    - Teams / Schedule / Standings / Messages / Admin
@@ -164,49 +163,57 @@ const SHEET_API_URL =
 // ---------------------------------------------------------
 // === LOAD SCHEDULE FROM GOOGLE SHEET CSV (per division) ===
 // ---------------------------------------------------------
-async function loadScheduleFromSheet(divisionName) {
+async function loadScoresFromGoogleSheet() {
   try {
-    const baseUrl = CSV_LINKS[divisionName];
-    if (!baseUrl) return;
-
-    // Chromebook-safe fetch (no caching)
-    const response = await fetch(baseUrl + "&v=" + Date.now(), {
+    // Chromebook-safe — force fresh fetch
+    const response = await fetch(SHEET_API_URL + "?v=" + Date.now(), {
       cache: "no-store",
     });
 
-    const csv = await response.text();
+    const data = await response.json();
 
-    const lines = csv.split(/\r?\n/).filter((l) => l.trim().length > 0);
-    if (lines.length <= 1) return;
+    if (!data || !Array.isArray(data.games)) {
+      console.warn("Unexpected data from Sheet API:", data);
+      return;
+    }
 
-    const header = lines[0].split(",");
-    const dateIdx = header.indexOf("Date");
-    const timeIdx = header.indexOf("Time");
-    const fieldIdx = header.indexOf("Field");
-    const homeIdx = header.indexOf("Home");
-    const awayIdx = header.indexOf("Away");
-    const homeScoreIdx = header.indexOf("Home Score");
-    const awayScoreIdx = header.indexOf("Away Score");
+    // Normalize all incoming keys to lowercase for flexible parsing
+    games = data.games.map((g) => {
+      const normalized = {};
 
-    const newGames = lines.slice(1).map((line) => {
-      const cols = line.split(",");
+      // Convert all keys to lowercase
+      Object.keys(g).forEach((key) => {
+        normalized[key.toLowerCase()] = g[key];
+      });
+
       return {
-        division: divisionName,
-        date: cols[dateIdx] || "",
-        time: cols[timeIdx] || "",
-        field: cols[fieldIdx] || "",
-        home: cols[homeIdx] || "",
-        away: cols[awayIdx] || "",
+        division: normalized["division"] || "",
+        date: normalized["date"] || "",
+        time: normalized["time"] || "",
+        field: normalized["field"] || "",
+        home: normalized["home"] || "",
+        away: normalized["away"] || "",
         homeScore:
-          homeScoreIdx >= 0 && cols[homeScoreIdx] !== ""
-            ? Number(cols[homeScoreIdx])
-            : null,
+          normalized["home score"] === "" ||
+          normalized["home score"] === undefined
+            ? null
+            : Number(normalized["home score"]),
         awayScore:
-          awayScoreIdx >= 0 && cols[awayScoreIdx] !== ""
-            ? Number(cols[awayScoreIdx])
-            : null,
+          normalized["away score"] === "" ||
+          normalized["away score"] === undefined
+            ? null
+            : Number(normalized["away score"]),
       };
     });
+
+    recomputeGameIndices();
+    saveGames();
+    console.log("Loaded flexible standings data:", games);
+  } catch (err) {
+    console.error("Google Sheets load error:", err);
+  }
+}
+
 
     // Filter out empty rows and replace games for this division
     const cleaned = newGames.filter((g) => g.home && g.away);
@@ -903,4 +910,3 @@ loadScoresFromGoogleSheet().catch(() => {
     "Initial score load failed; will rely on local data until admin reloads."
   );
 });
-

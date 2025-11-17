@@ -693,6 +693,8 @@ function renderAdmin() {
     return;
   }
 function renderResources() {
+  console.log("renderResources() fired");
+
   pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header">

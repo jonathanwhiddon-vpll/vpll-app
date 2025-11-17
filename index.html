@@ -22,6 +22,18 @@
 
   <!-- Main Content -->
   <main id="page-root"></main>
+<!-- Notification Preferences -->
+<section id="notificationsSection" style="display:none; padding:20px;">
+  <h3>Push Notification Preferences</h3>
+  <p>Select updates you want to receive:</p>
+
+  <label>
+    <input type="checkbox" class="notif-topic" value="A1 Fireston">
+    A1 Fireston
+  </label>
+
+  <button id="saveNotifPrefsBtn">Save Preferences</button>
+</section>
 
   <!-- Bottom Navigation -->
   <nav class="navbar">
@@ -30,6 +42,7 @@
   <button class="nav-btn" data-page="schedule">📅 Schedule</button>
   <button class="nav-btn" data-page="standings">🏆 Standings</button>
   <button class="nav-btn" data-page="messages">💬 Messages</button>
+  <button class="nav-btn" data-page="resources">📚 Resources</button>
 
   <!-- IMPORTANT: Admin tab (starts hidden) -->
   <button 

@@ -602,6 +602,34 @@ function renderMessages() {
       ${coachTools}
     </section>
   `;
+function renderResources() {
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">📚 League Resources</div>
+      <ul class="list">
+
+        <li>
+          <a href="YOUR_LOCAL_RULES_URL" target="_blank">
+            📘 Local Rules (PDF)
+          </a>
+        </li>
+
+        <li>
+          <a href="https://www.littleleague.org/downloads/little-league-app/" target="_blank">
+            ⚾ Little League Mobile App
+          </a>
+        </li>
+
+        <li>
+          <a href="YOUR_HOMERUN_LIST_URL" target="_blank">
+            🧨 2025 Home Run Tracker
+          </a>
+        </li>
+
+      </ul>
+    </section>
+  `;
+}
 
   // Admin listeners
   if (isAdmin) {
@@ -720,12 +748,14 @@ navButtons.forEach((btn) => {
     btn.classList.add("active");
     const page = btn.dataset.page;
 
-    if (page === "teams") renderTeams();
-    else if (page === "schedule") renderSchedule();
-    else if (page === "standings") renderStandings();
-    else if (page === "messages") renderMessages();
-    else if (page === "admin") renderAdmin();
-    else renderHome();
+   if (page === "teams") renderTeams();
+else if (page === "schedule") renderSchedule();
+else if (page === "standings") renderStandings();
+else if (page === "messages") renderMessages();
+else if (page === "admin") renderAdmin();
+else if (page === "resources") renderResources();
+else renderHome();
+
   });
 });
 

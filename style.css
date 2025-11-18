@@ -128,3 +128,58 @@ button:hover { background-color: #b71c1c; }
   .card{margin:12px;}
   .nav-btn{font-size:0.9rem;}
 }
+
+/* --- Updated Bottom Navigation (Icons + Labels) --- */
+
+#bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 65px;
+  background: #ffffff;
+  border-top: 1px solid #ddd;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
+}
+
+#bottomNav .nav-btn {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: #444;
+}
+
+#bottomNav .nav-btn .icon {
+  font-size: 1.4rem;
+  line-height: 1.4rem;
+  margin-bottom: 2px;
+}
+
+#bottomNav .nav-btn {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+#bottomNav .nav-btn.active {
+  color: #d32f2f;
+  transform: scale(1.1);
+}
+
+#bottomNav .nav-btn.active .icon {
+  color: #d32f2f;
+  transform: scale(1.25);
+}
+
+#bottomNav .icon {
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+

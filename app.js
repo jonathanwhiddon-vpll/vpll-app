@@ -5,6 +5,11 @@
    - Resources Page
    - Clean More Tab
 -------------------------------------------------- */
+/* -------------------------------------------------- ... */
+localStorage.removeItem("games");
+
+// === PUSH NOTIFICATION CONFIG ===
+const VAPID_PUBLIC_KEY = ...
 
 // === PUSH NOTIFICATION CONFIG ===
 const VAPID_PUBLIC_KEY =
@@ -138,23 +143,36 @@ async function loadScoresFromGoogleSheet() {
       return new Date(Math.round((serial - 25569) * 86400 * 1000));
     }
 
-    function formatDate(value) {
-      if (!value) return "";
-      if (typeof value === "number") {
-        const d = fromSerialDate(value);
-        return d.toLocaleDateString();
-      }
-      return value; // already text
-    }
+  function formatDate(value) {
+  if (!value) return "";
 
-    function formatTime(value) {
-      if (!value) return "";
-      if (typeof value === "number") {
-        const d = fromSerialDate(value);
-        return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-      }
-      return value; // already text
-    }
+  // If it looks like an ISO string like 2026-02-28T08:00:00.000Z
+  if (typeof value === "string" && value.includes("T")) {
+    const d = new Date(value);
+    return d.toLocaleDateString();
+  }
+
+  return value;
+}
+
+function formatTime(value) {
+  if (!value) return "";
+
+  // If it looks like an ISO string AND represents a time-only value
+  if (typeof value === "string" && value.includes("1899-12-30")) {
+    const d = new Date(value);
+    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+
+  // If it's a normal ISO date-time (full date)
+  if (typeof value === "string" && value.includes("T")) {
+    const d = new Date(value);
+    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+
+  return value;
+}
+
 
     games = data.games.map((g) => {
       const n = {};
@@ -184,7 +202,6 @@ async function loadScoresFromGoogleSheet() {
     console.error("Google Sheets load error:", err);
   }
 }
-
 
 async function reloadAllSchedules() {
   await loadScoresFromGoogleSheet();
@@ -559,4 +576,9 @@ navButtons.forEach((btn) => {
 
 // === INITIAL LOAD ===
 renderHome();
-loadScoresFromGoogleSheet();
+
+loadScoresFromGoogleSheet().then(() => {
+  // After sheet loads, refresh schedule + standings
+  renderSchedule();
+  renderStandings();
+});

@@ -134,14 +134,36 @@ async function loadScoresFromGoogleSheet() {
     const data = await response.json();
     if (!data || !Array.isArray(data.games)) return;
 
+    function fromSerialDate(serial) {
+      return new Date(Math.round((serial - 25569) * 86400 * 1000));
+    }
+
+    function formatDate(value) {
+      if (!value) return "";
+      if (typeof value === "number") {
+        const d = fromSerialDate(value);
+        return d.toLocaleDateString();
+      }
+      return value; // already text
+    }
+
+    function formatTime(value) {
+      if (!value) return "";
+      if (typeof value === "number") {
+        const d = fromSerialDate(value);
+        return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      }
+      return value; // already text
+    }
+
     games = data.games.map((g) => {
       const n = {};
       Object.keys(g).forEach((k) => (n[k.toLowerCase()] = g[k]));
 
       return {
         division: n["division"] || "",
-        date: n["date"] || "",
-        time: n["time"] || "",
+        date: formatDate(n["date"]),
+        time: formatTime(n["time"]),
         field: n["field"] || "",
         home: n["home"] || "",
         away: n["away"] || "",
@@ -162,6 +184,7 @@ async function loadScoresFromGoogleSheet() {
     console.error("Google Sheets load error:", err);
   }
 }
+
 
 async function reloadAllSchedules() {
   await loadScoresFromGoogleSheet();

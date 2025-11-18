@@ -505,22 +505,45 @@ function postMessage() {
 }
 
 // --- RESOURCES PAGE ---
+// --- RESOURCES PAGE ---
 function renderResources() {
   pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header">
         <div class="card-title">Resources</div>
       </div>
+
       <ul class="roster-list">
+
         <li>
-          <a href="https://www.littleleague.org/" target="_blank">
-            <span>Little League Website</span>
+          <a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">
+            <span>Little League Rulebook</span>
           </a>
         </li>
+
+        <li>
+          <a href="https://docs.google.com/document/d/1xh7XvoNy2jounkVr0zCBJ3OnsJv-nUvwGG_cBv9PYkc/edit?tab=t.0" target="_blank">
+            <span>Volunteer List</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="https://docs.google.com/document/d/11CShzXZavE77uNQQou8dqn4bUINXCe4vOtgeT8RBq6E/edit?tab=t.0" target="_blank">
+            <span>Home Run List</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="https://docs.google.com/document/d/1rq50ps-dPw4Bz2QV6DgVM1bSuSJu1tuf/edit" target="_blank">
+            <span>AA Division Rules</span>
+          </a>
+        </li>
+
       </ul>
     </section>
   `;
 }
+
 
 // --- ADMIN PAGE ---
 function renderAdmin() {

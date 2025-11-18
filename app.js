@@ -325,20 +325,24 @@ function renderSchedule() {
       <ul class="schedule-list">
   `;
 
-  games
-    .filter((g) => g.division === selectedDivision)
-    .forEach((g) => {
-      html += `
-        <li>
-          <span>${g.date}</span>
-          <span>${g.time}</span>
-          <span>${g.home} vs ${g.away}</span>
-          <span>${
-            g.homeScore === null ? "-" : g.homeScore
-          } - ${g.awayScore === null ? "-" : g.awayScore}</span>
-        </li>
-      `;
-    });
+games
+  .filter((g) => g.division === selectedDivision)
+  .forEach((g) => {
+    html += `
+      <li>
+        <span><strong>${g.date}</strong></span>
+        <span>${g.time}</span>
+        <span><em>Field: ${g.field || "-"}</em></span>
+        <span>${g.home} vs ${g.away}</span>
+        <span><strong>
+          ${g.homeScore === null ? "-" : g.homeScore}
+          -
+          ${g.awayScore === null ? "-" : g.awayScore}
+        </strong></span>
+      </li>
+    `;
+  });
+
 
   html += `</ul></section>`;
   pageRoot.innerHTML = html;

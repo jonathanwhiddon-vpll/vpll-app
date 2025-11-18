@@ -338,10 +338,16 @@ function renderSchedule() {
           <span>${g.home} vs ${g.away}</span>
           <span>
             ${
-              (g.homeScore === null || g.homeScore === "") &&
-              (g.awayScore === null || g.awayScore === "")
-                ? "No score yet"
-                : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
+              // Divisions that do NOT track scores
+              ["Single A", "Coach Pitch", "T-Ball"].includes(g.division)
+                ? "No score required"
+                : (
+                    // Divisions that DO track scores
+                    (g.homeScore === null || g.homeScore === "") &&
+                    (g.awayScore === null || g.awayScore === "")
+                      ? "No score yet"
+                      : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
+                  )
             }
           </span>
         </li>
@@ -355,7 +361,6 @@ function renderSchedule() {
 
   pageRoot.innerHTML = html;
 }
-
 
 // --- STANDINGS PAGE ---
 function renderStandings() {

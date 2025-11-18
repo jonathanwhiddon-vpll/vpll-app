@@ -514,27 +514,38 @@ function renderResources() {
 
       <ul class="roster-list">
 
+        <!-- Local League Rules -->
         <li>
-          <a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">
-            <span>🧾 Little League Rulebook</span>
+          <a href="https://docs.google.com/document/d/1QVtREnvJb_VN_ZkGh5guW5PJI_5uck6K7VjVaKEBSaY/edit?tab=t.0" target="_blank">
+            <span>⚙️ Local League Rules</span>
           </a>
         </li>
 
+        <!-- Home Run Club -->
+        <li>
+          <a href="https://docs.google.com/document/d/11CShzXZavE77uNQQou8dqn4bUINXCe4vOtgeT8RBq6E/edit?tab=t.0" target="_blank">
+            <span>💥⚾️ Home Run Club</span>
+          </a>
+        </li>
+
+        <!-- Volunteer List -->
         <li>
           <a href="https://docs.google.com/document/d/1xh7XvoNy2jounkVr0zCBJ3OnsJv-nUvwGG_cBv9PYkc/edit?tab=t.0" target="_blank">
             <span>🙋‍♂️ Volunteer List</span>
           </a>
         </li>
 
+        <!-- Little League Rule Book -->
         <li>
-          <a href="https://docs.google.com/document/d/11CShzXZavE77uNQQou8dqn4bUINXCe4vOtgeT8RBq6E/edit?tab=t.0" target="_blank">
-            <span>💥⚾️ Home Run List</span>
+          <a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">
+            <span>🧾 Little League Rulebook</span>
           </a>
         </li>
 
+        <!-- AA Special Rules -->
         <li>
           <a href="https://docs.google.com/document/d/1rq50ps-dPw4Bz2QV6DgVM1bSuSJu1tuf/edit" target="_blank">
-            <span>🧢 AA Division Rules</span>
+            <span>🧢 AA Special Rules</span>
           </a>
         </li>
 
@@ -542,8 +553,6 @@ function renderResources() {
     </section>
   `;
 }
-
-
 
 // --- ADMIN PAGE ---
 function renderAdmin() {

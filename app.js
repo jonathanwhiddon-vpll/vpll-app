@@ -1,17 +1,16 @@
 /* --------------------------------------------------
-   Villa Park Little League - App.js (Corrected)
-   - Teams / Schedule / Standings / Messages / Admin
+   Villa Park Little League - App.js (Clean Reset)
+   - Home / Schedule / Standings / Teams / Messages
    - Coach login + Admin login (PIN 0709)
    - Resources Page
-   - Clean More Tab
+   - More tab
+   - Fixed date/time formatting from Google Sheets
 -------------------------------------------------- */
-/* -------------------------------------------------- ... */
+
+// Clear any old/bad cached games so we always start fresh
 localStorage.removeItem("games");
 
-// === PUSH NOTIFICATION CONFIG ===
-const VAPID_PUBLIC_KEY = ...
-
-// === PUSH NOTIFICATION CONFIG ===
+// === PUSH NOTIFICATION CONFIG (optional, safe to leave) ===
 const VAPID_PUBLIC_KEY =
   "BF0dpO0TLhz4vAoOOJvTLmnZ5s93F5KI1bmam8jytsnDW1wnLVVS53gHOS47fL6VcNBuynPx53zEkJVwWTIlHcw";
 
@@ -130,6 +129,29 @@ function saveMessages() {
 const SHEET_API_URL =
   "https://script.google.com/macros/s/AKfycby4sGBxN0sMlGT398mM3CGjQXKCIjL2C2eRxAQJohc7Gz1kah8zCnlv_dTkxYvtyddR/exec";
 
+// Helper to turn ISO-like strings into readable date/time
+function formatDateFromSheet(value) {
+  if (!value) return "";
+  if (typeof value === "string" && value.includes("T")) {
+    const d = new Date(value);
+    if (!isNaN(d)) {
+      return d.toLocaleDateString();
+    }
+  }
+  return value;
+}
+
+function formatTimeFromSheet(value) {
+  if (!value) return "";
+  if (typeof value === "string" && value.includes("T")) {
+    const d = new Date(value);
+    if (!isNaN(d)) {
+      return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    }
+  }
+  return value;
+}
+
 async function loadScoresFromGoogleSheet() {
   try {
     const response = await fetch(SHEET_API_URL + "?v=" + Date.now(), {
@@ -139,58 +161,24 @@ async function loadScoresFromGoogleSheet() {
     const data = await response.json();
     if (!data || !Array.isArray(data.games)) return;
 
-    function fromSerialDate(serial) {
-      return new Date(Math.round((serial - 25569) * 86400 * 1000));
-    }
-
-  function formatDate(value) {
-  if (!value) return "";
-
-  // If it looks like an ISO string like 2026-02-28T08:00:00.000Z
-  if (typeof value === "string" && value.includes("T")) {
-    const d = new Date(value);
-    return d.toLocaleDateString();
-  }
-
-  return value;
-}
-
-function formatTime(value) {
-  if (!value) return "";
-
-  // If it looks like an ISO string AND represents a time-only value
-  if (typeof value === "string" && value.includes("1899-12-30")) {
-    const d = new Date(value);
-    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  }
-
-  // If it's a normal ISO date-time (full date)
-  if (typeof value === "string" && value.includes("T")) {
-    const d = new Date(value);
-    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  }
-
-  return value;
-}
-
-
     games = data.games.map((g) => {
+      // normalize keys to lowercase
       const n = {};
       Object.keys(g).forEach((k) => (n[k.toLowerCase()] = g[k]));
 
       return {
         division: n["division"] || "",
-        date: formatDate(n["date"]),
-        time: formatTime(n["time"]),
+        date: formatDateFromSheet(n["date"]),
+        time: formatTimeFromSheet(n["time"]),
         field: n["field"] || "",
         home: n["home"] || "",
         away: n["away"] || "",
         homeScore:
-          n["home score"] === "" || n["home score"] === undefined
+          n["home score"] === "" || n["home score"] == null
             ? null
             : Number(n["home score"]),
         awayScore:
-          n["away score"] === "" || n["away score"] === undefined
+          n["away score"] === "" || n["away score"] == null
             ? null
             : Number(n["away score"]),
       };
@@ -198,6 +186,7 @@ function formatTime(value) {
 
     recomputeGameIndices();
     saveGames();
+    console.log("Games loaded from Google Sheet:", games.length);
   } catch (err) {
     console.error("Google Sheets load error:", err);
   }
@@ -209,7 +198,7 @@ async function reloadAllSchedules() {
   renderStandings();
 }
 
-// === PAGE RENDERING ===
+// === PAGE RENDERING ROOT & NAV ===
 const pageRoot = document.getElementById("page-root");
 const navButtons = document.querySelectorAll(".nav-btn");
 
@@ -226,6 +215,7 @@ function renderHome() {
     </section>
   `;
 }
+
 // --- TEAMS PAGE ---
 function renderTeams() {
   let html = `
@@ -523,7 +513,7 @@ function renderAdmin() {
           <div class="card-title">Admin</div>
         </div>
         <p style="padding:16px;">
-          Admin access only.
+          Admin access only. Log in on the Messages tab with the admin PIN.
         </p>
       </section>
     `;
@@ -536,13 +526,15 @@ function renderAdmin() {
         <div class="card-title">Admin Tools</div>
       </div>
       <p style="padding:16px;">
-        Use the Messages tab to reload scores and update league data.
+        Use the Schedule tab to report scores for Majors / AAA / AA.<br/><br/>
+        You can also use the Messages tab to manage announcements and reload
+        schedules/scores from Google.
       </p>
     </section>
   `;
 }
 
-// --- MORE PAGE (FIXED POSITION) ---
+// --- MORE PAGE ---
 function renderMore() {
   const isCoach = loggedInCoach && loggedInCoach !== "Admin";
 
@@ -556,7 +548,11 @@ function renderMore() {
         <li><button class="more-btn" onclick="renderTeams()">Teams</button></li>
         <li><button class="more-btn" onclick="renderMessages()">Messages</button></li>
         <li><button class="more-btn" onclick="renderResources()">Resources</button></li>
-        ${isAdmin ? `<li><button class="more-btn" onclick="renderAdmin()">Admin</button></li>` : ""}
+        ${
+          isAdmin
+            ? `<li><button class="more-btn" onclick="renderAdmin()">Admin</button></li>`
+            : ""
+        }
       </ul>
     </section>
   `;
@@ -571,14 +567,10 @@ navButtons.forEach((btn) => {
     if (page === "schedule") renderSchedule();
     if (page === "standings") renderStandings();
     if (page === "more") renderMore();
+    if (page === "admin") renderAdmin();
   });
 });
 
 // === INITIAL LOAD ===
 renderHome();
-
-loadScoresFromGoogleSheet().then(() => {
-  // After sheet loads, refresh schedule + standings
-  renderSchedule();
-  renderStandings();
-});
+loadScoresFromGoogleSheet();

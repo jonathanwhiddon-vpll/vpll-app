@@ -312,12 +312,14 @@ function renderSchedule() {
         <label>
           <strong>Division:</strong>
           <select onchange="selectedDivision=this.value;renderSchedule()">
-            ${DIVISIONS.map(
-              (d) =>
-                `<option value="${d}" ${
-                  d === selectedDivision ? "selected" : ""
-                }>${d}</option>`
-            ).join("")}
+            ${
+              DIVISIONS.map(
+                (d) =>
+                  `<option value="${d}" ${
+                    d === selectedDivision ? "selected" : ""
+                  }>${d}</option>`
+              ).join("")
+            }
           </select>
         </label>
       </div>
@@ -325,28 +327,35 @@ function renderSchedule() {
       <ul class="schedule-list">
   `;
 
-games
-  .filter((g) => g.division === selectedDivision)
-  .forEach((g) => {
-    html += `
-      <li>
-        <span><strong>${g.date}</strong></span>
-        <span>${g.time}</span>
-        <span><em>Field: ${g.field || "-"}</em></span>
-        <span>${g.home} vs ${g.away}</span>
-        <span><strong>
-          ${g.homeScore === null ? "-" : g.homeScore}
-          -
-          ${g.awayScore === null ? "-" : g.awayScore}
-        </strong></span>
-      </li>
-    `;
-  });
+  games
+    .filter((g) => g.division === selectedDivision)
+    .forEach((g) => {
+      html += `
+        <li>
+          <span><strong>${g.date}</strong></span>
+          <span>${g.time}</span>
+          <span><em>Field: ${g.field || "-"}</em></span>
+          <span>${g.home} vs ${g.away}</span>
+          <span>
+            ${
+              (g.homeScore === null || g.homeScore === "") &&
+              (g.awayScore === null || g.awayScore === "")
+                ? "No score yet"
+                : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
+            }
+          </span>
+        </li>
+      `;
+    });
 
+  html += `
+      </ul>
+    </section>
+  `;
 
-  html += `</ul></section>`;
   pageRoot.innerHTML = html;
 }
+
 
 // --- STANDINGS PAGE ---
 function renderStandings() {

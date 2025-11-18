@@ -338,11 +338,10 @@ function renderSchedule() {
           <span>${g.home} vs ${g.away}</span>
           <span>
             ${
-              // Divisions that do NOT track scores
+              // Divisions that do NOT show scores at all
               ["Single A", "Coach Pitch", "T-Ball"].includes(g.division)
-                ? "No score required"
+                ? ""
                 : (
-                    // Divisions that DO track scores
                     (g.homeScore === null || g.homeScore === "") &&
                     (g.awayScore === null || g.awayScore === "")
                       ? "No score yet"
@@ -361,6 +360,7 @@ function renderSchedule() {
 
   pageRoot.innerHTML = html;
 }
+
 
 // --- STANDINGS PAGE ---
 function renderStandings() {

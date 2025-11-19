@@ -213,21 +213,20 @@ function applyPageTransition() {
 const navButtons = document.querySelectorAll(".nav-btn");
 
 // --- HOME PAGE ---
-function renderHome() {
-  // Build ticker text from games
-  let tickerText = "⚾ Latest Scores: ";
+// Build ticker text from games
+let tickerText = "⚾ Latest Scores: ";
 
-  const recentGames = games
-    .filter(g => g.homeScore != null && g.awayScore != null)
-    .slice(-5); // last 5 games
+const recentGames = games
+  .filter(g => g.homeScore != null && g.awayScore != null)
+  .slice(-5); // last 5 games
 
-  if (recentGames.length === 0) {
-    tickerText += "No games reported yet.";
-  } else {
-    tickerText += recentGames
-      .map(g => `${g.division}: ${g.home} ${g.homeScore} - ${g.awayScore} ${g.away}`)
-      .join("   |   ");
-  }
+if (recentGames.length === 0) {
+  tickerText += "No games reported yet.";
+} else {
+  tickerText += recentGames
+    .map(g => `${g.division}: ${g.home} ${g.homeScore} - ${g.awayScore} ${g.away}`)
+    .join("   |   ");
+}
 
   pageRoot.innerHTML = `
     <section class="card home-card">

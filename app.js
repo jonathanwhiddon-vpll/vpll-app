@@ -731,6 +731,35 @@ navButtons.forEach((btn) => {
     if (page === "admin") renderAdmin();
   });
 });
+// --- Pull to Refresh ---
+let startY = 0;
+let isRefreshing = false;
+
+document.addEventListener("touchstart", (e) => {
+  if (window.scrollY === 0) {
+    startY = e.touches[0].clientY;
+  }
+});
+
+document.addEventListener("touchmove", async (e) => {
+  const currentY = e.touches[0].clientY;
+
+  if (currentY - startY > 60 && window.scrollY === 0 && !isRefreshing) {
+    isRefreshing = true;
+    document.getElementById("ptr").style.display = "block";
+
+    // Refresh schedules, ticker, standings, etc
+    await loadScoresFromGoogleSheet();
+    renderHome();       // refresh ticker + announcements
+    renderSchedule();   // refresh schedule tab
+    renderStandings();  // refresh standings
+
+    setTimeout(() => {
+      document.getElementById("ptr").style.display = "none";
+      isRefreshing = false;
+    }, 600);
+  }
+});
 
 // === INITIAL LOAD ===
 renderHome();

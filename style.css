@@ -276,4 +276,12 @@ button:hover { background-color: #b71c1c; }
   from { transform: translateX(0); }
   to   { transform: translateX(-100%); }
 }
+/* --- Pull to Refresh Spinner --- */
+.ptr-spinner {
+  text-align: center;
+  padding: 10px;
+  display: none;
+  font-size: 0.9rem;
+  color: #666;
+}
 

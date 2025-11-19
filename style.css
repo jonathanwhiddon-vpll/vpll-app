@@ -220,7 +220,7 @@ button:hover { background-color: #b71c1c; }
   width: 100%;
   height: 100%;
   object-fit: cover;      
-  object-position:bottom;
+  object-position: center;
   display: block;
 }
 

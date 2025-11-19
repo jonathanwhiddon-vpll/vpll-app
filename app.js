@@ -215,18 +215,29 @@ const navButtons = document.querySelectorAll(".nav-btn");
 // --- HOME PAGE ---
 function renderHome() {
   pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header">
-        <div class="card-title">Welcome</div>
+    <section class="card home-card">
+
+      <!-- Featured Banner -->
+      <div class="home-banner">
+        <img src="home_banner.jpg" alt="League Banner">
       </div>
-      <p style="padding:16px;">
-        Welcome to Villa Park Little League. Use the tabs below to view schedules, standings,
-        teams, messages, and resources.
-      </p>
+
+      <!-- Announcements -->
+      <div class="announcements">
+        <h3>📣 Announcements</h3>
+        <ul>
+          <li>• Tryouts — January 10</li>
+          <li>• Opening Day — February 28</li>
+          <li>• Angels Day — April 11</li>
+        </ul>
+      </div>
+
     </section>
   `;
-  applyPageTransition();
+
+  applyPageTransition();  // <-- keep this!
 }
+
 
 // --- TEAMS PAGE ---
 function renderTeams() {

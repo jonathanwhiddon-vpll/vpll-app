@@ -198,4 +198,54 @@ button:hover { background-color: #b71c1c; }
     transform: translateY(0);
   }
 }
+/* --- HOME PAGE (Banner + Announcements) --- */
+
+.home-card {
+  padding: 0;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  margin: 16px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+}
+
+/* Banner image styling */
+.home-banner {
+  width: 100%;
+  height: 180px; 
+  overflow: hidden;
+}
+
+.home-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;      
+  object-position: center;
+  display: block;
+}
+
+/* Announcements section */
+.announcements {
+  padding: 16px;
+  background: white;
+}
+
+.announcements h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.2rem;
+  color: #0a192f;
+  font-weight: 700;
+}
+
+.announcements ul {
+  padding-left: 0;
+  list-style: none;
+  margin: 0;
+}
+
+.announcements li {
+  font-size: 1rem;
+  margin-bottom: 6px;
+  color: #333;
+}
 

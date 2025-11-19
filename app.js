@@ -214,12 +214,32 @@ const navButtons = document.querySelectorAll(".nav-btn");
 
 // --- HOME PAGE ---
 function renderHome() {
+  // Build ticker text from games
+  let tickerText = "⚾ Latest Scores: ";
+
+  const recentGames = games
+    .filter(g => g.homeScore != null && g.awayScore != null)
+    .slice(-5); // last 5 games
+
+  if (recentGames.length === 0) {
+    tickerText += "No games reported yet.";
+  } else {
+    tickerText += recentGames
+      .map(g => `${g.division}: ${g.home} ${g.homeScore} - ${g.awayScore} ${g.away}`)
+      .join("   |   ");
+  }
+
   pageRoot.innerHTML = `
     <section class="card home-card">
 
-      <!-- Featured Banner -->
+      <!-- Banner -->
       <div class="home-banner">
         <img src="home_banner.jpg" alt="League Banner">
+      </div>
+
+      <!-- Live Ticker -->
+      <div class="live-ticker">
+        <div class="live-ticker-content">${tickerText}</div>
       </div>
 
       <!-- Announcements -->
@@ -228,15 +248,16 @@ function renderHome() {
         <ul>
           <li>• Tryouts — January 10</li>
           <li>• Opening Day — February 28</li>
-          <li>• Angels Day — April 18 vs Padres!</li>
+          <li>• Angels Day — April 11</li>
         </ul>
       </div>
 
     </section>
   `;
 
-  applyPageTransition();  // <-- keep this!
+  applyPageTransition();
 }
+
 
 
 // --- TEAMS PAGE ---

@@ -228,7 +228,7 @@ function renderHome() {
         <ul>
           <li>• Tryouts — January 10</li>
           <li>• Opening Day — February 28</li>
-          <li>• Angels Day — April 11</li>
+          <li>• Angels Day — April 18 vs Padres!</li>
         </ul>
       </div>
 

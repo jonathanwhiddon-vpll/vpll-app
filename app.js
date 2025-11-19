@@ -213,20 +213,52 @@ function applyPageTransition() {
 const navButtons = document.querySelectorAll(".nav-btn");
 
 // --- HOME PAGE ---
-// Build ticker text from games
-let tickerText = "⚾ Latest Scores: ";
+// --- BUILD ROTATING TICKER MESSAGES ---
 
-const recentGames = games
+// Today's date formatted like your sheet (MM/DD/YYYY)
+const todayStr = new Date().toLocaleDateString();
+
+// 1) Today's scheduled games (no score yet)
+const todaysGames = games.filter(g => g.date === todayStr);
+
+// 2) Most recent 5 games with scores
+const recentFinals = games
   .filter(g => g.homeScore != null && g.awayScore != null)
-  .slice(-5); // last 5 games
+  .slice(-5);
 
-if (recentGames.length === 0) {
-  tickerText += "No games reported yet.";
-} else {
-  tickerText += recentGames
-    .map(g => `${g.division}: ${g.home} ${g.homeScore} - ${g.awayScore} ${g.away}`)
-    .join("   |   ");
+// 3) Build ticker messages
+let tickerMessages = [];
+
+// Add today's games (if any)
+todaysGames.forEach(g => {
+  tickerMessages.push(
+    `📅 Today: ${g.division} — ${g.home} vs ${g.away} at ${g.time} (Field ${g.field})`
+  );
+});
+
+// Add recent finals
+recentFinals.forEach(g => {
+  tickerMessages.push(
+    `🏁 Final: ${g.division} — ${g.home} ${g.homeScore} - ${g.awayScore} ${g.away}`
+  );
+});
+
+// If nothing to show
+if (tickerMessages.length === 0) {
+  tickerMessages = ["⚾ No game updates yet — check back soon!"];
 }
+
+// Join into one scrolling string (updated later by rotation)
+let tickerText = tickerMessages[0];
+
+// Start rotating every 4 seconds
+let tickerIndex = 0;
+setInterval(() => {
+  tickerIndex = (tickerIndex + 1) % tickerMessages.length;
+  const el = document.querySelector(".live-ticker-content");
+  if (el) el.textContent = tickerMessages[tickerIndex];
+}, 4000);
+
 
   pageRoot.innerHTML = `
     <section class="card home-card">

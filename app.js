@@ -44,6 +44,8 @@ function urlBase64ToUint8Array(base64) {
 // === GLOBAL STATE ===
 let games = JSON.parse(localStorage.getItem("games") || "[]");
 let selectedDivision = "Majors";
+let currentPage = "home";
+
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
@@ -276,6 +278,7 @@ function renderHome() {
       <div class="announcements">
         <h3>📣 Announcements</h3>
         <ul>
+          <li>• Coaches Meeting for AA, AAA and Majors — December 20, 9:00am</li>
           <li>• Tryouts — January 10</li>
           <li>• Opening Day — February 28</li>
           <li>• Angels Day — April 11</li>
@@ -722,15 +725,16 @@ function renderMore() {
 // --- NAVIGATION LOGIC ---
 navButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
-    const page = btn.dataset.page;
+    currentPage = btn.dataset.page;
 
-    if (page === "home") renderHome();
-    if (page === "schedule") renderSchedule();
-    if (page === "standings") renderStandings();
-    if (page === "more") renderMore();
-    if (page === "admin") renderAdmin();
+    if (currentPage === "home") renderHome();
+    if (currentPage === "schedule") renderSchedule();
+    if (currentPage === "standings") renderStandings();
+    if (currentPage === "more") renderMore();
+    if (currentPage === "admin") renderAdmin();
   });
 });
+
 // --- Pull to Refresh ---
 let startY = 0;
 let isRefreshing = false;
@@ -749,10 +753,14 @@ document.addEventListener("touchmove", async (e) => {
     document.getElementById("ptr").style.display = "block";
 
     // Refresh schedules, ticker, standings, etc
-    await loadScoresFromGoogleSheet();
-    renderHome();       // refresh ticker + announcements
-    renderSchedule();   // refresh schedule tab
-    renderStandings();  // refresh standings
+   await loadScoresFromGoogleSheet();
+
+if (currentPage === "home") renderHome();
+if (currentPage === "schedule") renderSchedule();
+if (currentPage === "standings") renderStandings();
+if (currentPage === "more") renderMore();
+if (currentPage === "admin") renderAdmin();
+
 
     setTimeout(() => {
       document.getElementById("ptr").style.display = "none";

@@ -211,6 +211,33 @@ function applyPageTransition() {
   void pageRoot.offsetWidth; // re-trigger animation
   pageRoot.classList.add("page-transition");
 }
+// === League-wide Alert Bar ===
+let currentAlertTimeout = null;
+
+function showLeagueAlert(message) {
+  const bar = document.getElementById("league-alert");
+  const textEl = document.getElementById("league-alert-text");
+  if (!bar || !textEl) return;
+
+  textEl.textContent = message;
+  bar.classList.add("show");
+
+  // Auto-hide after 6 seconds
+  if (currentAlertTimeout) clearTimeout(currentAlertTimeout);
+  currentAlertTimeout = setTimeout(() => {
+    bar.classList.remove("show");
+  }, 6000);
+}
+
+// Close button for alert bar
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "league-alert-close") {
+    const bar = document.getElementById("league-alert");
+    if (bar) bar.classList.remove("show");
+  }
+});
+
+
 // === NAV BUTTONS ===
 const navButtons = document.querySelectorAll(".nav-btn");
 
@@ -558,10 +585,14 @@ function renderMessages() {
         <button onclick="loginCoach()">Login</button>
       </div>
 
-      <div style="padding:16px;">
+           <div style="padding:16px;">
         <textarea id="msg-input" placeholder="Enter a message"></textarea>
         <button onclick="postMessage()">Post Message</button>
+        <button style="margin-left:8px;" onclick="postLeagueAlert()">
+          Post as League Alert
+        </button>
       </div>
+
     </section>
   `;
 
@@ -610,6 +641,30 @@ function postMessage() {
   saveMessages();
   renderMessages();
 }
+function postLeagueAlert() {
+  if (!loggedInCoach) {
+    alert("You must log in first.");
+    return;
+  }
+
+  const textEl = document.getElementById("msg-input");
+  const text = textEl.value;
+  if (!text.trim()) return;
+
+  // Save it like a normal message, but mark as alert (for future if needed)
+  messages.push({ coach: loggedInCoach, text, isAlert: true });
+  saveMessages();
+
+  // Show the alert bar to everyone currently in the app
+  showLeagueAlert(text);
+
+  // Re-render messages list
+  renderMessages();
+
+  // Optional: clear input
+  textEl.value = "";
+}
+
 
 // --- RESOURCES PAGE (updated order + icons) ---
 function renderResources() {

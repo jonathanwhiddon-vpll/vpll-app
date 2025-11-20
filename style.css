@@ -253,6 +253,54 @@ button:hover { background-color: #b71c1c; }
   margin-bottom: 6px;
   color: #333;
 }
+/* --- League-wide Alert Bar --- */
+.league-alert {
+  position: fixed;
+  top: 56px; /* just below header */
+  left: 10px;
+  right: 10px;
+  background: #d32f2f;
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  z-index: 1500;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  animation: alert-slide-down 0.25s ease-out;
+}
+
+.league-alert.show {
+  display: flex;
+}
+
+#league-alert-text {
+  flex: 1;
+  margin-right: 8px;
+}
+
+#league-alert-close {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* slide-down animation */
+@keyframes alert-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* --- LIVE SCORE TICKER --- */
 .live-ticker {
   width: 100%;

@@ -30,6 +30,11 @@ async function enableNotifications() {
     });
     console.log("Push subscription:", sub);
     alert("Notifications enabled!");
+
+// Hide button for this device
+localStorage.setItem("vpll_notifs_enabled", "1");
+document.getElementById("pushSetup").style.display = "none";
+
     // === SEND TOKEN + TIMESTAMP TO GOOGLE SCRIPT BACKEND ===
 const body = {
   token: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey("p256dh")))),
@@ -884,6 +889,12 @@ if (currentPage === "admin") renderAdmin();
 // === INITIAL LOAD ===
 renderHome();
 loadScoresFromGoogleSheet();
+// Hide notification button if already enabled on this device
+if (localStorage.getItem("vpll_notifs_enabled") === "1") {
+    const pushDiv = document.getElementById("pushSetup");
+    if (pushDiv) pushDiv.style.display = "none";
+}
+
 /* --------------------------------------------------
    END OF FILE
    - All render functions updated

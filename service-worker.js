@@ -3,7 +3,7 @@
 // --------------------------------------------------------------
 
 // Version bump anytime you deploy (forces refresh everywhere)
-const CACHE_VERSION = "vpll-cache-v4";
+const CACHE_VERSION = "vpll-cache-v5";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 
 // Only cache STATIC assets — NEVER cache Google Sheets or app.js
@@ -23,6 +23,10 @@ const STATIC_ASSETS = [
 // --------------------------------------------------------------
 self.addEventListener("install", (event) => {
   self.skipWaiting(); // take control immediately
+// iOS fix: always re-download main index file
+event.waitUntil(
+    caches.delete(STATIC_CACHE)
+);
 
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {

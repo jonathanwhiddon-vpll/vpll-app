@@ -64,73 +64,9 @@ let games = JSON.parse(localStorage.getItem("games") || "[]");
 let selectedDivision = "Majors";
 let currentPage = "home";
 
-// === PUSH NOTIFICATION CONFIG ===
-const VAPID_PUBLIC_KEY =
-  "BF0dp0OTLhz4vA0o0JvTLmnZ5s93F5K1lbmam8jytsnDW1wnLV5S53gHOS47fL6VcNBuynPx53zEkJVwWTlHcw";
-
-const NOTIFY_URL =
-  "https://script.google.com/macros/s/AKfycbw9uARdTwzWUptCPgtukhx_p3I5923L1R4xM8wryD8iREMomfURCYPgbPEc5E3070WKJg/exec";
-// === WEB PUSH: Subscribe user and send token to Google Script ===
-async function subscribeForPush() {
-    try {
-        // Ask for browser notification permission
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-            alert("Notifications are blocked.");
-            return;
-        }
-
-        // Register Service Worker
-        const reg = await navigator.serviceWorker.ready;
-
-        // Subscribe with VAPID key
-        const sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-        });
-
-        console.log("Push subscription:", sub);
-
-        // Send subscription endpoint + timestamp to Apps Script
-        const body = {
-            token: sub.endpoint,
-            createdAt: new Date().toISOString()
-        };
-
-        fetch(NOTIFY_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-        }).then(() => {
-            console.log("Token sent to Google Script");
-        }).catch(err => {
-            console.error("Error sending token:", err);
-        });
-
-        alert("Notifications enabled!");
-
-    } catch (err) {
-        console.error("Push subscribe error:", err);
-    }
-}
-
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 
-// Save device token to Firestore
-async function saveDeviceTokenToFirestore(token) {
-  try {
-    const db = firebase.firestore();
-    await db.collection("fcmTokens").add({
-      token: token,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    console.log("Token saved to Firestore");
-  } catch (err) {
-    console.error("Error saving token:", err);
-  }
-}
 async function sendPushNotification() {
   const message = document.getElementById("msg-input").value.trim();
 
@@ -159,9 +95,6 @@ async function sendPushNotification() {
     alert("Error sending push notification.");
   }
 }
-
-// Call immediately on app load
-registerForPushNotifications();
 
 // Save games
 function saveGames() {
@@ -946,55 +879,6 @@ if (currentPage === "admin") renderAdmin();
       isRefreshing = false;
     }, 600);
   }
-});
-// ===============================
-// ENABLE NOTIFICATIONS BUTTON HOOK
-// ===============================
-document.addEventListener("DOMContentLoaded", () => {
-    const btn = document.getElementById("enableNotifsBtn");
-
-    if (!btn) {
-        console.warn("Enable Notifications button not found.");
-        return;
-    }
-
-    btn.addEventListener("click", async () => {
-        try {
-            // Ask permission
-            const permission = await Notification.requestPermission();
-            if (permission !== "granted") {
-                alert("Permission denied — cannot enable notifications.");
-                return;
-            }
-
-            // Get service worker
-            const reg = await navigator.serviceWorker.ready;
-
-            // Subscribe using your VAPID key
-            const sub = await reg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-            });
-
-            console.log("Push subscription:", sub);
-
-            // Send subscription to Google Script backend
-            await fetch(NOTIFY_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    token: btoa(JSON.stringify(sub)),
-                    createdAt: new Date().toISOString()
-                })
-            });
-
-            alert("Notifications enabled!");
-        } catch (err) {
-            console.error("Notification setup failed:", err);
-            alert("Could not enable notifications.");
-        }
-    });
 });
 
 // === INITIAL LOAD ===

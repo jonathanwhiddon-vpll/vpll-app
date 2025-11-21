@@ -64,35 +64,15 @@ let games = JSON.parse(localStorage.getItem("games") || "[]");
 let selectedDivision = "Majors";
 let currentPage = "home";
 
+// === PUSH NOTIFICATION CONFIG ===
+const VAPID_PUBLIC_KEY =
+  "BF0dp0OTLhz4vA0o0JvTLmnZ5s93F5K1lbmam8jytsnDW1wnLV5S53gHOS47fL6VcNBuynPx53zEkJVwWTlHcw";
+
+const NOTIFY_URL =
+  "https://script.google.com/macros/s/AKfycbw9uARdTwzWUptCPgtukhx_p3I5923L1R4xM8wryD8iREMomfURCYPgbPEc5E3070WKJg/exec";
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
-// === FIREBASE PUSH NOTIFICATIONS ===
-async function registerForPushNotifications() {
-  try {
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      console.log("Notification permission denied");
-      return null;
-    }
-
-    const messaging = firebase.messaging();
-    const token = await messaging.getToken({
-      vapidKey: "BF0dpO0TLhz4vAoOOJvTLmnZ5s93F5KI1bmam8jytsnDW1wnLVVS53gHOS47fL6VcNBuynPx53zEkJVwWTIlHcw"
-    });
-
-    console.log("FCM Device Token:", token);
-    
-    // SAVE THE TOKEN HERE
-    saveDeviceTokenToFirestore(token);
-
-    return token;
-
-  } catch (error) {
-    console.error("Error getting push token:", error);
-    return null;
-  }
-}
 
 // Save device token to Firestore
 async function saveDeviceTokenToFirestore(token) {
@@ -326,7 +306,6 @@ document.addEventListener("click", (e) => {
     if (bar) bar.classList.remove("show");
   }
 });
-
 
 // === NAV BUTTONS ===
 const navButtons = document.querySelectorAll(".nav-btn");
@@ -919,6 +898,55 @@ if (currentPage === "admin") renderAdmin();
       isRefreshing = false;
     }, 600);
   }
+});
+// ===============================
+// ENABLE NOTIFICATIONS BUTTON HOOK
+// ===============================
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("enableNotifsBtn");
+
+    if (!btn) {
+        console.warn("Enable Notifications button not found.");
+        return;
+    }
+
+    btn.addEventListener("click", async () => {
+        try {
+            // Ask permission
+            const permission = await Notification.requestPermission();
+            if (permission !== "granted") {
+                alert("Permission denied — cannot enable notifications.");
+                return;
+            }
+
+            // Get service worker
+            const reg = await navigator.serviceWorker.ready;
+
+            // Subscribe using your VAPID key
+            const sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+
+            console.log("Push subscription:", sub);
+
+            // Send subscription to Google Script backend
+            await fetch(NOTIFY_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    token: btoa(JSON.stringify(sub)),
+                    createdAt: new Date().toISOString()
+                })
+            });
+
+            alert("Notifications enabled!");
+        } catch (err) {
+            console.error("Notification setup failed:", err);
+            alert("Could not enable notifications.");
+        }
+    });
 });
 
 // === INITIAL LOAD ===

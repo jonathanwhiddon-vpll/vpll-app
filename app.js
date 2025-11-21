@@ -10,6 +10,7 @@
 // === PUSH NOTIFICATIONS (unchanged) ===
 const VAPID_PUBLIC_KEY =
   "BF0dpO0TLhz4vAoOOJvTLmnZ5s93F5KI1bmam8jytsnDW1wnLVVS53gHOS47fL6VcNBuynPx53zEkJVwWTIlHcw";
+const NOTIFY_URL = "https://script.google.com/macros/s/AKfycbw9uARdTwzWUpCtPgtukhxy_p3I5923L1R4xM8wryD8iREMomfURCYPgbPEc5E3070WKJg/exec";
 
 async function enableNotifications() {
   try {
@@ -29,6 +30,23 @@ async function enableNotifications() {
     });
     console.log("Push subscription:", sub);
     alert("Notifications enabled!");
+    // === SEND TOKEN + TIMESTAMP TO GOOGLE SCRIPT BACKEND ===
+const body = {
+  token: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey("p256dh")))),
+  createdAt: new Date().toISOString()
+};
+
+fetch(NOTIFY_URL, {
+  method: "POST",
+  mode: "no-cors",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body)
+}).then(() => {
+  console.log("Token sent to Google Script");
+}).catch(err => {
+  console.error("Error sending token:", err);
+});
+
   } catch (err) {
     console.error("Push subscribe error:", err);
   }

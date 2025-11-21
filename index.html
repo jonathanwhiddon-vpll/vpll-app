@@ -117,6 +117,53 @@ if ("serviceWorker" in navigator) {
         .catch((err) => console.error("Service Worker failed", err));
 }
 </script>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+
+<script>
+  // Your Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDPmOcHBpu4Xnkta0Dxk5G1PVcMj0-8ypc",
+    authDomain: "vpll-notices.firebaseapp.com",
+    projectId: "vpll-notices",
+    storageBucket: "vpll-notices.firebasestorage.app",
+    messagingSenderId: "648218993728",
+    appId: "1:648218993728:web:1caf35cc1c0eb9fa552ba5",
+    measurementId: "G-WB85CMFX3L"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+
+  // Initialize Messaging
+  const messaging = firebase.messaging();
+</script>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+
+<script>
+  // Your Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDPmOcHBpu4Xnkta0Dxk5G1PVcMj0-8ypc",
+    authDomain: "vpll-notices.firebaseapp.com",
+    projectId: "vpll-notices",
+    storageBucket: "vpll-notices.firebasestorage.app",
+    messagingSenderId: "648218993728",
+    appId: "1:648218993728:web:1caf35cc1c0eb9fa552ba5",
+    measurementId: "G-WB85CMFX3L"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+
+  // Messaging instance
+  const messaging = firebase.messaging();
+
+  // Register the Firebase messaging service worker
+  navigator.serviceWorker.register("firebase-messaging-sw.js");
+</script>
 
 </body>
 </html>

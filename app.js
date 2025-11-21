@@ -49,6 +49,77 @@ let currentPage = "home";
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
+// === FIREBASE PUSH NOTIFICATIONS ===
+async function registerForPushNotifications() {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      console.log("Notification permission denied");
+      return null;
+    }
+
+    const messaging = firebase.messaging();
+    const token = await messaging.getToken({
+      vapidKey: "BF0dpO0TLhz4vAoOOJvTLmnZ5s93F5KI1bmam8jytsnDW1wnLVVS53gHOS47fL6VcNBuynPx53zEkJVwWTIlHcw"
+    });
+
+    console.log("FCM Device Token:", token);
+    
+    // SAVE THE TOKEN HERE
+    saveDeviceTokenToFirestore(token);
+
+    return token;
+
+  } catch (error) {
+    console.error("Error getting push token:", error);
+    return null;
+  }
+}
+
+// Save device token to Firestore
+async function saveDeviceTokenToFirestore(token) {
+  try {
+    const db = firebase.firestore();
+    await db.collection("fcmTokens").add({
+      token: token,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    console.log("Token saved to Firestore");
+  } catch (err) {
+    console.error("Error saving token:", err);
+  }
+}
+async function sendPushNotification() {
+  const message = document.getElementById("msg-input").value.trim();
+
+  if (!message) {
+    alert("Please enter a message before sending a push notification.");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "https://us-central1-vpll-notices.cloudfunctions.net/sendLeaguePush",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ message })
+      }
+    );
+
+    const result = await response.json();
+    console.log("Push notification result:", result);
+    alert("Push notification sent!");
+  } catch (err) {
+    console.error("Error sending push notification:", err);
+    alert("Error sending push notification.");
+  }
+}
+
+// Call immediately on app load
+registerForPushNotifications();
 
 // Save games
 function saveGames() {
@@ -129,7 +200,8 @@ function saveMessages() {
 
 // === GOOGLE SHEET API ===
 const SHEET_API_URL =
-  "https://script.google.com/macros/s/AKfycby4sGBxN0sMlGT398mM3CGjQXKCIjL2C2eRxAQJohc7Gz1kah8zCnlv_dTkxYvtyddR/exec";
+  "https://script.google.com/macros/s/AKfycbw9uARdTwzWUpCtPgtukhx_p3I5923L1R4xM8wryD8IREMomfURCYPgBPcE5307OWKJg/exec";
+
 
 // Format date
 function formatDateFromSheet(value) {
@@ -584,14 +656,21 @@ function renderMessages() {
         <input id="coach-pin" placeholder="PIN" type="password">
         <button onclick="loginCoach()">Login</button>
       </div>
+<div style="padding:16px;">
+  <textarea id="msg-input" placeholder="Enter a message"></textarea>
 
-           <div style="padding:16px;">
-        <textarea id="msg-input" placeholder="Enter a message"></textarea>
-        <button onclick="postMessage()">Post Message</button>
-        <button style="margin-left:8px;" onclick="postLeagueAlert()">
-          Post as League Alert
-        </button>
-      </div>
+  <button onclick="postMessage()">Post Message</button>
+
+  <button style="margin-left:8px;" onclick="postLeagueAlert()">
+    Post as League Alert
+  </button>
+
+  <!-- NEW PUSH NOTIFICATION BUTTON -->
+  <button style="margin-left:8px; background:#2196F3; color:white;"
+          onclick="sendPushNotification()">
+    Send Push Notification
+  </button>
+</div>
 
     </section>
   `;

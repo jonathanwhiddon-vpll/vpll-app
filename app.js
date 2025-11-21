@@ -70,6 +70,50 @@ const VAPID_PUBLIC_KEY =
 
 const NOTIFY_URL =
   "https://script.google.com/macros/s/AKfycbw9uARdTwzWUptCPgtukhx_p3I5923L1R4xM8wryD8iREMomfURCYPgbPEc5E3070WKJg/exec";
+// === WEB PUSH: Subscribe user and send token to Google Script ===
+async function subscribeForPush() {
+    try {
+        // Ask for browser notification permission
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+            alert("Notifications are blocked.");
+            return;
+        }
+
+        // Register Service Worker
+        const reg = await navigator.serviceWorker.ready;
+
+        // Subscribe with VAPID key
+        const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+
+        console.log("Push subscription:", sub);
+
+        // Send subscription endpoint + timestamp to Apps Script
+        const body = {
+            token: sub.endpoint,
+            createdAt: new Date().toISOString()
+        };
+
+        fetch(NOTIFY_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        }).then(() => {
+            console.log("Token sent to Google Script");
+        }).catch(err => {
+            console.error("Error sending token:", err);
+        });
+
+        alert("Notifications enabled!");
+
+    } catch (err) {
+        console.error("Push subscribe error:", err);
+    }
+}
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
@@ -307,6 +351,10 @@ document.addEventListener("click", (e) => {
   }
 });
 
+// === PUSH NOTIFICATION SETUP BUTTON ===
+document.getElementById("enableNotifsBtn").addEventListener("click", () => {
+    enableNotifications();
+});
 // === NAV BUTTONS ===
 const navButtons = document.querySelectorAll(".nav-btn");
 

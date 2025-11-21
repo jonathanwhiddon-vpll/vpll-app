@@ -1,40 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Villa Park Little League</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Villa Park Little League</title>
 
-  <!-- Link to CSS and JS -->
-  <link rel="stylesheet" href="style.css" />
-  <script src="app.js?v=2" defer></script>
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css" />
 
+    <!-- JS -->
+    <script src="app.js?v=2" defer></script>
 
-  <!-- PWA / icon -->
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/png" href="60thlogo.jpg" />
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" href="60thlogo.jpg" />
 </head>
+
 <body>
-  <!-- Header -->
-  <header>
+
+<!-- Header -->
+<header>
     <img src="60thlogo.jpg" alt="Villa Park Vibe Logo" />
     Villa Park Little League
-  </header>
-   <!-- League-wide alert bar -->
-  <div id="league-alert" class="league-alert">
+</header>
+
+<!-- League-wide alert bar -->
+<div id="league-alert" class="league-alert">
     <span id="league-alert-text"></span>
     <button id="league-alert-close" type="button">✕</button>
-  </div>
-  <!-- Push Notification Button -->
+</div>
+
+<!-- Push Notification Button (ONLY ONE) -->
 <div id="pushSetup" style="text-align:center; margin:20px 0;">
-    <button id="enableNotifsBtn" style="
-        padding:12px 20px;
-        border-radius:8px;
-        background:#007bff;
-        color:white;
-        border:none;
-        font-size:16px;
-    ">
+    <button id="enableNotifsBtn" class="primary-btn">
         🔔 Enable League Notifications
     </button>
 </div>
@@ -42,148 +40,61 @@
 <!-- Pull-to-Refresh Spinner -->
 <div id="ptr" class="ptr-spinner">
     <img src="vpll-spinner.svg" class="baseball-spinner" alt="Loading" />
-    <div class="spinner-text">Refreshing…</div>
+    <div class="spinner-text">Refreshing...</div>
 </div>
 
 <!-- Main Content -->
-<main id="page-root">
-    <div id="pushSetup" style="text-align:center; margin:20px 0;">
-        <button id="enableNotifsBtn" class="primary-btn">
-            🔔 Enable League Notifications
-        </button>
-    </div>
-</main>
+<main id="page-root"></main>
 
-<!-- Notification Preferences -->
+<!-- Notification Preferences Section -->
 <section id="notificationsSection" style="display:none; padding:20px;">
-  <h3>Push Notification Preferences</h3>
-  <p>Select updates you want to receive:</p>
+    <h3>Push Notification Preferences</h3>
+    <p>Select updates you want to receive:</p>
 
-  <label>
-    <input type="checkbox" class="notif-topic" value="A1 Fireston">
-    A1 Fireston
-  </label>
+    <label>
+        <input type="checkbox" class="notif-topic" value="A1 Fireston">
+        A1 Fireston
+    </label>
 
-  <button id="saveNotifPrefsBtn">Save Preferences</button>
+    <button id="saveNotifPrefsBtn">Save Preferences</button>
 </section>
 
 <!-- Bottom Navigation -->
 <nav id="bottomNav">
-  <button class="nav-btn" data-page="home">
-    <span class="icon">🏠</span>
-    <span class="label">Home</span>
-  </button>
+    <button class="nav-btn" data-page="home">
+        <span class="icon">🏠</span>
+        <span class="label">Home</span>
+    </button>
 
-  <button class="nav-btn" data-page="schedule">
-    <span class="icon">📅</span>
-    <span class="label">Schedule</span>
-  </button>
+    <button class="nav-btn" data-page="schedule">
+        <span class="icon">📅</span>
+        <span class="label">Schedule</span>
+    </button>
 
-  <button class="nav-btn" data-page="standings">
-    <span class="icon">🏆</span>
-    <span class="label">Standings</span>
-  </button>
+    <button class="nav-btn" data-page="standings">
+        <span class="icon">🏆</span>
+        <span class="label">Standings</span>
+    </button>
 
-  <button class="nav-btn" data-page="more">
-    <span class="icon">⋯</span>
-    <span class="label">More</span>
-  </button>
+    <button class="nav-btn" data-page="more">
+        <span class="icon">⋯</span>
+        <span class="label">More</span>
+    </button>
 </nav>
 
-
-
-  <!-- IMPORTANT: Admin tab (starts hidden) -->
-  <button 
-    class="nav-btn" 
-    data-page="admin" 
-    id="adminTab" 
-    style="display:none;"
-  >
+<!-- Hidden Admin Tab -->
+<button class="nav-btn" data-page="admin" id="adminTab" style="display:none;">
     🔐 Admin
-  </button>
-</nav>
+</button>
 
-
-  <!-- Optional: Service Worker -->
+<!-- Service Worker for PWA + Web Push -->
 <script>
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker
-        .register("service-worker.js")
-        .then(() => {
-            console.log("Service Worker registered");
-
-            // ===== Push Notification Subscription (Step 2) =====
-            if ("PushManager" in window) {
-                navigator.serviceWorker.ready.then(reg => {
-                    reg.pushManager.getSubscription().then(async sub => {
-                        if (sub) {
-                            console.log("Already subscribed:", sub);
-                            return;
-                        }
-
-                        // Subscribe user with your VAPID KEY (already in app.js)
-                        const newSub = await reg.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-                        });
-
-                        console.log("New push subscription:", newSub);
-
-                        // TODO: Send new subscription to your server if needed
-                    });
-                });
-            }
-        })
-        .catch((err) => console.error("Service Worker failed", err));
+    navigator.serviceWorker.register("service-worker.js")
+        .then(() => console.log("Service Worker registered"));
 }
-</script>
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
-
-<script>
-  // Your Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyDPmOcHBpu4Xnkta0Dxk5G1PVcMj0-8ypc",
-    authDomain: "vpll-notices.firebaseapp.com",
-    projectId: "vpll-notices",
-    storageBucket: "vpll-notices.firebasestorage.app",
-    messagingSenderId: "648218993728",
-    appId: "1:648218993728:web:1caf35cc1c0eb9fa552ba5",
-    measurementId: "G-WB85CMFX3L"
-  };
-
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-
-  // Initialize Messaging
-  const messaging = firebase.messaging();
-</script>
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
-
-<script>
-  // Your Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyDPmOcHBpu4Xnkta0Dxk5G1PVcMj0-8ypc",
-    authDomain: "vpll-notices.firebaseapp.com",
-    projectId: "vpll-notices",
-    storageBucket: "vpll-notices.firebasestorage.app",
-    messagingSenderId: "648218993728",
-    appId: "1:648218993728:web:1caf35cc1c0eb9fa552ba5",
-    measurementId: "G-WB85CMFX3L"
-  };
-
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-
-  // Messaging instance
-  const messaging = firebase.messaging();
-
-  // Register the Firebase messaging service worker
-  navigator.serviceWorker.register("firebase-messaging-sw.js");
 </script>
 
 </body>
 </html>
+

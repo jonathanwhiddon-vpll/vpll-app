@@ -180,7 +180,7 @@ function saveMessages() {
 
 // === GOOGLE SHEET API ===
 const SHEET_API_URL =
-  "https://script.google.com/macros/s/AKfycbsEOTsiducAZ5c5nUFbB_ESE-1t6p2zpkIRKX9Quo4ov8SiipreG3AMxW4IINX9p/exec";
+  https://script.google.com/macros/s/AKfycbyxJN-SiCssqV9fo7ZP2UX0NNzNarYgP6WOHFVATtkajEk7P6T6OaHmGO3t6OnBk5bh/exec
 
 // Format date
 function formatDateFromSheet(value) {

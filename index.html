@@ -6,10 +6,10 @@
     <title>Villa Park Little League</title>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="style.css?v=4" />
+    <link rel="stylesheet" href="style.css?v=5" />
 
     <!-- JS -->
-    <script src="app-v2.js?v=1" defer></script>
+    <script src="app-v2.js?v=5" defer></script>
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json" />
@@ -20,44 +20,12 @@
 
 <!-- Header -->
 <header>
-    <img src="60thlogo.jpg" alt="Villa Park Vibe Logo" />
+    <img src="60thlogo.jpg" alt="Villa Park Logo" />
     Villa Park Little League
 </header>
 
-<!-- League-wide alert bar -->
-<div id="league-alert" class="league-alert">
-    <span id="league-alert-text"></span>
-    <button id="league-alert-close" type="button">✕</button>
-</div>
-
-<!-- Push Notification Button (ONLY ONE) -->
-<div id="pushSetup" style="text-align:center; margin:20px 0;">
-    <button id="enableNotifsBtn" class="primary-btn">
-        🔔 Enable League Notifications
-    </button>
-</div>
-
-<!-- Pull-to-Refresh Spinner -->
-<div id="ptr" class="ptr-spinner">
-    <img src="vpll-spinner.svg" class="baseball-spinner" alt="Loading" />
-    <div class="spinner-text">Refreshing...</div>
-</div>
-
-<!-- Main Content -->
+<!-- Main App Root (all pages rendered by app-v2.js) -->
 <main id="page-root"></main>
-
-<!-- Notification Preferences Section -->
-<section id="notificationsSection" style="display:none; padding:20px;">
-    <h3>Push Notification Preferences</h3>
-    <p>Select updates you want to receive:</p>
-
-    <label>
-        <input type="checkbox" class="notif-topic" value="A1 Fireston">
-        A1 Fireston
-    </label>
-
-    <button id="saveNotifPrefsBtn">Save Preferences</button>
-</section>
 
 <!-- Bottom Navigation -->
 <nav id="bottomNav">
@@ -82,19 +50,7 @@
     </button>
 </nav>
 
-<!-- Hidden Admin Tab -->
-<button class="nav-btn" data-page="admin" id="adminTab" style="display:none;">
-    🔐 Admin
-</button>
-
-<!-- Service Worker for PWA + Web Push -->
-<!--
-<script>
-// temporarily disabled for debugging
-</script>
-
--->
-
 </body>
 </html>
+
 

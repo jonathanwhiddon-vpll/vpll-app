@@ -1,122 +1,38 @@
 /* --------------------------------------------------
-   Villa Park Little League - App.js (Updated Version)
-   - Smooth slide-up animation
-   - Updated Resources ordering + icons
-   - Updated Schedule: no scores for Single A, Coach Pitch, T-Ball
-   - "No score yet" for Majors/AAA/AA
-   - Clean template strings fixing earlier errors
+   Villa Park Little League - app-v2.js (Clean B Mode)
+   - Uses Google Apps Script ?type=schedule
+   - Coach & Admin login
+   - Score entry for Majors / AAA / AA
+   - Standings computed from scores
+   - Messages + Admin pages
+   - No push notifications, no alert bar, no pull-to-refresh
 -------------------------------------------------- */
 
-// === PUSH NOTIFICATIONS (unchanged) ===
-const VAPID_PUBLIC_KEY =
-  "BF0dpO0TLhz4vAoOOJvTLmnZ5s93F5KI1bmam8jytsnDW1wnLVVS53gHOS47fL6VcNBuynPx53zEkJVwWTIlHcw";
-const NOTIFY_URL = "https://script.google.com/macros/s/AKfycbw9uARdTwzWUpCtPgtukhxy_p3I5923L1R4xM8wryD8iREMomfURCYPgbPEc5E3070WKJg/exec";
+// ========================
+// CONFIG
+// ========================
 
-async function enableNotifications() {
-  try {
-    if (!("Notification" in window)) {
-      alert("This browser does not support notifications.");
-      return;
-    }
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      alert("Notifications blocked.");
-      return;
-    }
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    });
-    console.log("Push subscription:", sub);
-    alert("Notifications enabled!");
-
-// Hide button for this device
-localStorage.setItem("vpll_notifs_enabled", "1");
-document.getElementById("pushSetup").style.display = "none";
-
-    // === SEND TOKEN + TIMESTAMP TO GOOGLE SCRIPT BACKEND ===
-const body = {
-  token: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey("p256dh")))),
-  createdAt: new Date().toISOString()
-};
-
-fetch(NOTIFY_URL, {
-  method: "POST",
-  mode: "no-cors",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(body)
-}).then(() => {
-  console.log("Token sent to Google Script");
-}).catch(err => {
-  console.error("Error sending token:", err);
-});
-
-  } catch (err) {
-    console.error("Push subscribe error:", err);
-  }
-}
-
-function urlBase64ToUint8Array(base64) {
-  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
-  const base64Safe = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(base64Safe);
-  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
-}
-
-// === GLOBAL STATE ===
-let games = JSON.parse(localStorage.getItem("games") || "[]");
-let selectedDivision = "Majors";
-let currentPage = "home";
+// TODO: Replace this with YOUR Web App URL
+// Example: "https://script.google.com/macros/s/XXXXX/exec"
+const API_BASE_URL =
+  "https://script.google.com/macros/s/PUT_YOUR_WEB_APP_ID_HERE/exec";
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 
-async function sendPushNotification() {
-  const message = document.getElementById("msg-input").value.trim();
+// ========================
+// GLOBAL STATE
+// ========================
+let games = []; // All games from schedule API
+let currentPage = "home";
+let selectedScheduleDivision = "Majors";
+let selectedStandingsDivision = "Majors";
 
-  if (!message) {
-    alert("Please enter a message before sending a push notification.");
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      "https://us-central1-vpll-notices.cloudfunctions.net/sendLeaguePush",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ message })
-      }
-    );
-
-    const result = await response.json();
-    console.log("Push notification result:", result);
-    alert("Push notification sent!");
-  } catch (err) {
-    console.error("Error sending push notification:", err);
-    alert("Error sending push notification.");
-  }
-}
-
-// Save games
-function saveGames() {
-  localStorage.setItem("games", JSON.stringify(games));
-}
-
-// Re-index games
-function recomputeGameIndices() {
-  games.forEach((g, i) => (g._idx = i));
-}
-recomputeGameIndices();
-
-// === COACH / ADMIN ===
 let loggedInCoach = null;
 let isAdmin = false;
 const ADMIN_PIN = "0709";
 
+// Same mapping you used before
 const coachPins = {
   "Coach Ben": "1101",
   "Coach Brian": "1102",
@@ -140,269 +56,265 @@ const coachPins = {
   "Coach Matt": "3104",
   "Coach Dustin": "3105",
   "Coach Brent": "3106",
-  "Coach Eight": "3107",
+  "Coach Eight": "3107"
 };
 
-const coachTeams = {
-  "Coach Ben": [{ division: "Majors", team: "Team Hanna" }],
-  "Coach Brian": [{ division: "Majors", team: "Team Cole" }],
-  "Coach Todd": [{ division: "Majors", team: "Team Thergeson" }],
-  "Coach Kevin": [{ division: "Majors", team: "Team Merrett" }],
-  "Coach Five": [{ division: "Majors", team: "Team Five" }],
-  "Coach Six": [{ division: "Majors", team: "Team Six" }],
+// Messages stored locally on this device
+let messages = JSON.parse(localStorage.getItem("vpll_messages") || "[]");
 
-  "Coach Jon": [
-    { division: "AAA", team: "Team Whiddon" },
-    { division: "AA", team: "Team Breazeal" },
-  ],
-  "Coach Matt C": [{ division: "AAA", team: "Team Cairney" }],
-  "Coach Matt P": [{ division: "AAA", team: "Team Paul" }],
-  "Coach Devin": [{ division: "AAA", team: "Team Dragg" }],
-  "Coach Matt B": [{ division: "AAA", team: "Team Baker" }],
-  "Coach JJ": [{ division: "AAA", team: "Team Norman" }],
-  "Coach George": [{ division: "AAA", team: "Team Gonzalez" }],
-  "Coach Eric": [{ division: "AAA", team: "Team Rasanen" }],
-
-  "Coach Scott": [{ division: "AA", team: "Team Belcher" }],
-  "Coach Cory": [{ division: "AA", team: "Team Anderson" }],
-  "Coach Mitch": [{ division: "AA", team: "Team Garcia" }],
-  "Coach Matt": [{ division: "AA", team: "Team Kruckeberg" }],
-  "Coach Dustin": [{ division: "AA", team: "Team Machado" }],
-  "Coach Brent": [{ division: "AA", team: "Team Lavitt" }],
-  "Coach Eight": [{ division: "AA", team: "Team Eight" }],
-};
-
-// Messages
-let messages = JSON.parse(localStorage.getItem("messages") || "[]");
-function saveMessages() {
-  localStorage.setItem("messages", JSON.stringify(messages));
-}
-
-// === GOOGLE SHEET API ENDPOINT ===
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyfhX6MZJk8vRq4H3W2aNXTUGTuHWDjZD0HQRlH8HQskWU0W4lR5snxArEpohe_myJ_/exec";
-
-// === Load schedule + standings from Apps Script ===
-async function loadScheduleFromAPI() {
-    try {
-        const res = await fetch(SHEET_API_URL, {
-            method: "GET",
-            mode: "cors",
-            headers: {
-                "Content-Type": "application/json"
-            }
-        });
-
-        const data = await res.json();
-        console.log("API Data:", data);
-
-        if (!data.games) {
-            console.error("❌ API returned no games.");
-            return;
-        }
-
-        window.allGames = data.games;
-
-        // Re-render schedule + standings after loading
-        renderSchedule();
-        renderStandings();
-
-    } catch (err) {
-        console.error("❌ Error loading schedule:", err);
-    }
-}
-
-
-// Format date
-function formatDateFromSheet(value) {
-  if (!value) return "";
-  if (typeof value === "string" && value.includes("T")) {
-    const d = new Date(value);
-    if (!isNaN(d)) {
-      return d.toLocaleDateString();
-    }
-  }
-  return value;
-}
-
-// Format time
-function formatTimeFromSheet(value) {
-  if (!value) return "";
-  if (typeof value === "string" && value.includes("T")) {
-    const d = new Date(value);
-    if (!isNaN(d)) {
-      return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    }
-  }
-  return value;
-}
-
-// Load games from Google Sheet
-async function loadScoresFromGoogleSheet() {
-  try {
-    const response = await fetch(SHEET_API_URL + "?v=" + Date.now(), {
-      cache: "no-store",
-    });
-
-    const data = await response.json();
-    if (!data || !Array.isArray(data.games)) return;
-
-    games = data.games.map((g) => {
-      const n = {};
-      Object.keys(g).forEach((k) => (n[k.toLowerCase()] = g[k]));
-
-      return {
-        division: n["division"] || "",
-        date: formatDateFromSheet(n["date"]),
-        time: formatTimeFromSheet(n["time"]),
-        field: n["field"] || "",
-        home: n["home"] || "",
-        away: n["away"] || "",
-        homeScore:
-          n["home score"] === "" || n["home score"] == null
-            ? null
-            : Number(n["home score"]),
-        awayScore:
-          n["away score"] === "" || n["away score"] == null
-            ? null
-            : Number(n["away score"]),
-      };
-    });
-
-    recomputeGameIndices();
-    saveGames();
-    console.log("Games loaded from Google Sheet:", games.length);
-  } catch (err) {
-    console.error("Google Sheets load error:", err);
-  }
-}
-
-// Reload standings + schedule
-async function reloadAllSchedules() {
-  await loadScoresFromGoogleSheet();
-  renderSchedule();
-  renderStandings();
-}
+// Score overrides (local only, not sent to Sheets)
+// key → { homeScore, awayScore }
+let scoreOverrides = JSON.parse(
+  localStorage.getItem("vpll_score_overrides") || "{}"
+);
 
 // Root element
 const pageRoot = document.getElementById("page-root");
 
-// ⭐ Slide-Up Page Transition Helper
+// ========================
+// HELPER FUNCTIONS
+// ========================
+function normalizeScore(value) {
+  if (value === "" || value == null) return null;
+  const n = Number(value);
+  return Number.isNaN(n) ? null : n;
+}
+
+function normalizeField(value) {
+  if (value == null) return "";
+  return value.toString();
+}
+
+function makeGameKey(game) {
+  return [
+    game.division || "",
+    game.date || "",
+    game.time || "",
+    game.home || "",
+    game.away || ""
+  ]
+    .map((s) => s.toString().trim())
+    .join("|");
+}
+
+function saveMessages() {
+  localStorage.setItem("vpll_messages", JSON.stringify(messages));
+}
+
+function saveScoreOverrides() {
+  localStorage.setItem(
+    "vpll_score_overrides",
+    JSON.stringify(scoreOverrides)
+  );
+}
+
+function applyScoreOverrides() {
+  games.forEach((g) => {
+    const key = g.key;
+    const ov = scoreOverrides[key];
+    if (ov) {
+      g.homeScore = normalizeScore(ov.homeScore);
+      g.awayScore = normalizeScore(ov.awayScore);
+    }
+  });
+}
+
+// Simple slide-up transition
 function applyPageTransition() {
   pageRoot.classList.remove("page-transition");
-  void pageRoot.offsetWidth; // re-trigger animation
+  // force reflow
+  void pageRoot.offsetWidth;
   pageRoot.classList.add("page-transition");
 }
-// === League-wide Alert Bar ===
-let currentAlertTimeout = null;
 
-function showLeagueAlert(message) {
-  const bar = document.getElementById("league-alert");
-  const textEl = document.getElementById("league-alert-text");
-  if (!bar || !textEl) return;
+// ========================
+// API LOAD
+// ========================
+async function loadScheduleFromApi() {
+  try {
+    const res = await fetch(`${API_BASE_URL}?type=schedule`, {
+      method: "GET",
+      mode: "cors"
+    });
 
-  textEl.textContent = message;
-  bar.classList.add("show");
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
 
-  // Auto-hide after 6 seconds
-  if (currentAlertTimeout) clearTimeout(currentAlertTimeout);
-  currentAlertTimeout = setTimeout(() => {
-    bar.classList.remove("show");
-  }, 6000);
+    const data = await res.json();
+    const items = Array.isArray(data.items) ? data.items : [];
+
+    games = items.map((item) => {
+      const lower = {};
+      Object.keys(item || {}).forEach((k) => {
+        lower[k.toLowerCase()] = item[k];
+      });
+
+      const division =
+        item.division || item.Division || lower["division"] || "";
+      const date = normalizeField(
+        item.date || item.Date || lower["date"]
+      );
+      const time = normalizeField(
+        item.time || item.Time || lower["time"]
+      );
+      const field =
+        item.field || item.Field || lower["field"] || "";
+      const home =
+        item.home || item.Home || lower["home"] || "";
+      const away =
+        item.away || item.Away || lower["away"] || "";
+
+      let homeScore =
+        item["Home Score"] ||
+        item.homeScore ||
+        lower["home score"];
+      let awayScore =
+        item["Away Score"] ||
+        item.awayScore ||
+        lower["away score"];
+
+      homeScore = normalizeScore(homeScore);
+      awayScore = normalizeScore(awayScore);
+
+      const game = {
+        division,
+        date,
+        time,
+        field,
+        home,
+        away,
+        homeScore,
+        awayScore
+      };
+      game.key = makeGameKey(game);
+      return game;
+    });
+
+    applyScoreOverrides();
+
+    // Re-render current pages if they depend on data
+    if (currentPage === "schedule") renderSchedule();
+    if (currentPage === "standings") renderStandings();
+    if (currentPage === "home") renderHome();
+  } catch (err) {
+    console.error("Error loading schedule from API:", err);
+  }
 }
 
-// Close button for alert bar
-document.addEventListener("click", (e) => {
-  if (e.target && e.target.id === "league-alert-close") {
-    const bar = document.getElementById("league-alert");
-    if (bar) bar.classList.remove("show");
+// ========================
+// SCORE ENTRY
+// ========================
+function editScore(gameKey) {
+  if (!loggedInCoach && !isAdmin) {
+    alert("You must log in as a coach or admin to edit scores.");
+    return;
   }
-});
 
-// === PUSH NOTIFICATION SETUP BUTTON ===
-document.getElementById("enableNotifsBtn").addEventListener("click", () => {
-    enableNotifications();
-});
-// === NAV BUTTONS ===
-const navButtons = document.querySelectorAll(".nav-btn");
+  const game = games.find((g) => g.key === gameKey);
+  if (!game) return;
 
-// --- HOME PAGE ---
+  if (!SCORING_DIVISIONS.includes(game.division)) {
+    alert("Scores are only tracked for Majors, AAA, and AA.");
+    return;
+  }
+
+  const homePrompt = prompt(
+    `Enter score for ${game.home}`,
+    game.homeScore != null ? game.homeScore : ""
+  );
+  if (homePrompt === null) return;
+
+  const awayPrompt = prompt(
+    `Enter score for ${game.away}`,
+    game.awayScore != null ? game.awayScore : ""
+  );
+  if (awayPrompt === null) return;
+
+  const homeScore = normalizeScore(homePrompt);
+  const awayScore = normalizeScore(awayPrompt);
+
+  game.homeScore = homeScore;
+  game.awayScore = awayScore;
+
+  // Persist locally
+  scoreOverrides[game.key] = {
+    homeScore: homeScore,
+    awayScore: awayScore
+  };
+  saveScoreOverrides();
+
+  // Update views
+  if (currentPage === "schedule") renderSchedule();
+  if (currentPage === "standings") renderStandings();
+  if (currentPage === "home") renderHome();
+}
+
+// ========================
+// HOME PAGE
+// ========================
 function renderHome() {
+  // Simple upcoming games list (first 3 future-ish games)
+  const today = new Date();
+  const upcoming = games
+    .slice()
+    .filter((g) => {
+      // best-effort: treat date as string, we won't parse actual/timezones aggressively
+      return g.date; // show anything with a date
+    })
+    .slice(0, 3);
 
-  // Today's date formatted like your sheet (MM/DD/YYYY)
-  const todayStr = new Date().toLocaleDateString();
+  let upcomingHtml = "";
 
-  // 1) Today's scheduled games (no score yet)
-  const todaysGames = games.filter(g => g.date === todayStr);
-
-  // 2) Most recent 5 games with scores
-  const recentFinals = games
-    .filter(g => g.homeScore != null && g.awayScore != null)
-    .slice(-5);
-
-  // 3) Build ticker messages
-  let tickerMessages = [];
-
-  // Add today's games
-  todaysGames.forEach(g => {
-    tickerMessages.push(
-      `📅 Today: ${g.division} — ${g.home} vs ${g.away} at ${g.time} (Field ${g.field})`
-    );
-  });
-
-  // Add recent finals
-  recentFinals.forEach(g => {
-    tickerMessages.push(
-      `🏁 Final: ${g.division} — ${g.home} ${g.homeScore} - ${g.awayScore} ${g.away}`
-    );
-  });
-
-  // No updates?
-  if (tickerMessages.length === 0) {
-    tickerMessages = ["⚾ No game updates yet — check back soon!"];
+  if (!upcoming.length) {
+    upcomingHtml = `<p>No upcoming games loaded yet.</p>`;
+  } else {
+    upcomingHtml =
+      `<ul class="schedule-list">` +
+      upcoming
+        .map(
+          (g) => `
+        <li>
+          <span><strong>${g.date}</strong> — ${g.division}</span>
+          <span>${g.time || ""}</span>
+          <span>${g.home} vs ${g.away}</span>
+          <span><em>Field: ${g.field || "-"}</em></span>
+        </li>
+      `
+        )
+        .join("") +
+      `</ul>`;
   }
 
-  let tickerText = tickerMessages[0];
-
-  // Start rotating every 4 seconds
-  let tickerIndex = 0;
-  setInterval(() => {
-    tickerIndex = (tickerIndex + 1) % tickerMessages.length;
-    const el = document.querySelector(".live-ticker-content");
-    if (el) el.textContent = tickerMessages[tickerIndex];
-  }, 4000);
-
-  // ---- BUILD HOME PAGE HTML ----
   pageRoot.innerHTML = `
     <section class="card home-card">
-
-      <!-- Banner -->
       <div class="home-banner">
         <img src="home_banner.jpg" alt="League Banner">
       </div>
 
-      <!-- Live Ticker -->
-      <div class="live-ticker">
-        <div class="live-ticker-content">${tickerText}</div>
-      </div>
-
-      <!-- Announcements -->
       <div class="announcements">
         <h3>📣 Announcements</h3>
         <ul>
-          <li>• Coaches Meeting for AA, AAA and Majors — December 20, 9:00am</li>
+          <li>• Coaches Meeting for AA, AAA, Majors — December 20, 9:00am</li>
           <li>• Tryouts — January 10</li>
           <li>• Opening Day — February 28</li>
-          <li>• Angels Day — April 18 vs Padres!</li>
+          <li>• Angels Day — April 18 vs Padres</li>
         </ul>
       </div>
 
+      <div class="announcements">
+        <h3>📅 Upcoming Games</h3>
+        ${upcomingHtml}
+      </div>
     </section>
   `;
 
   applyPageTransition();
 }
 
-// --- TEAMS PAGE ---
+// ========================
+// TEAMS PAGES
+// ========================
 function renderTeams() {
   let html = `
     <section class="card">
@@ -431,14 +343,6 @@ function renderTeams() {
 }
 
 function renderTeamsByDivision(div) {
-  let html = `
-    <section class="card">
-      <div class="card-header">
-        <div class="card-title">${div}</div>
-      </div>
-      <ul class="roster-list">
-  `;
-
   const teamSet = new Set();
   games.forEach((g) => {
     if (g.division === div) {
@@ -446,6 +350,14 @@ function renderTeamsByDivision(div) {
       if (g.away) teamSet.add(g.away);
     }
   });
+
+  let html = `
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">${div}</div>
+      </div>
+      <ul class="roster-list">
+  `;
 
   [...teamSet].forEach((t) => {
     html += `
@@ -480,24 +392,24 @@ function renderTeamSchedule(div, team) {
   `;
 
   teamGames.forEach((g) => {
+    const showScores = SCORING_DIVISIONS.includes(g.division);
+    let scoreText = "";
+
+    if (showScores) {
+      if (g.homeScore == null && g.awayScore == null) {
+        scoreText = "No score yet";
+      } else {
+        scoreText = `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
+      }
+    }
+
     html += `
       <li>
         <span><strong>${g.date}</strong></span>
         <span>${g.time}</span>
         <span><em>Field: ${g.field || "-"}</em></span>
         <span>${g.home} vs ${g.away}</span>
-        <span>
-          ${
-            ["Single A", "Coach Pitch", "T-Ball"].includes(g.division)
-              ? ""
-              : (
-                  (g.homeScore === null || g.homeScore === "") &&
-                  (g.awayScore === null || g.awayScore === "")
-                    ? "No score yet"
-                    : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
-                )
-          }
-        </span>
+        <span>${scoreText}</span>
       </li>
     `;
   });
@@ -511,7 +423,9 @@ function renderTeamSchedule(div, team) {
   applyPageTransition();
 }
 
-// --- SCHEDULE PAGE ---
+// ========================
+// SCHEDULE PAGE
+// ========================
 function renderSchedule() {
   let html = `
     <section class="card">
@@ -522,15 +436,13 @@ function renderSchedule() {
       <div style="padding:16px;">
         <label>
           <strong>Division:</strong>
-          <select onchange="selectedDivision=this.value;renderSchedule()">
-            ${
-              DIVISIONS.map(
-                (d) =>
-                  `<option value="${d}" ${
-                    d === selectedDivision ? "selected" : ""
-                  }>${d}</option>`
-              ).join("")
-            }
+          <select onchange="selectedScheduleDivision=this.value;renderSchedule()">
+            ${DIVISIONS.map(
+              (d) =>
+                `<option value="${d}" ${
+                  d === selectedScheduleDivision ? "selected" : ""
+                }>${d}</option>`
+            ).join("")}
           </select>
         </label>
       </div>
@@ -538,31 +450,49 @@ function renderSchedule() {
       <ul class="schedule-list">
   `;
 
-  games
-    .filter((g) => g.division === selectedDivision)
-    .forEach((g) => {
+  const filtered = games.filter(
+    (g) => g.division === selectedScheduleDivision
+  );
+
+  if (!filtered.length) {
+    html += `
+      <li>
+        <span>No games loaded for this division yet.</span>
+      </li>
+    `;
+  } else {
+    filtered.forEach((g) => {
+      const showScores = SCORING_DIVISIONS.includes(g.division);
+      let scoreText = "";
+
+      if (showScores) {
+        if (g.homeScore == null && g.awayScore == null) {
+          scoreText = "No score yet";
+        } else {
+          scoreText = `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
+        }
+      }
+
+      const canEdit = showScores && (loggedInCoach || isAdmin);
+
       html += `
         <li>
-          <span><strong>${g.date}</strong></span>
+          <span><strong>${g.date}</strong> — ${g.division}</span>
           <span>${g.time}</span>
           <span><em>Field: ${g.field || "-"}</em></span>
           <span>${g.home} vs ${g.away}</span>
-          <span>
-            ${
-              // Divisions that do NOT show scores at all
-              ["Single A", "Coach Pitch", "T-Ball"].includes(g.division)
-                ? ""
-                : (
-                    (g.homeScore === null || g.homeScore === "") &&
-                    (g.awayScore === null || g.awayScore === "")
-                      ? "No score yet"
-                      : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
-                  )
-            }
-          </span>
+          <span>${scoreText}</span>
+          ${
+            canEdit
+              ? `<button style="margin-top:6px;" onclick="editScore('${g.key}')">
+                   Edit Score
+                 </button>`
+              : ""
+          }
         </li>
       `;
     });
+  }
 
   html += `
       </ul>
@@ -573,61 +503,17 @@ function renderSchedule() {
   applyPageTransition();
 }
 
-// --- STANDINGS PAGE ---
-function renderStandings() {
-  let html = `
-    <section class="card">
-      <div class="card-header">
-        <div class="card-title">Standings</div>
-      </div>
-
-      <div style="padding:16px;">
-        <label>
-          <strong>Division:</strong>
-          <select onchange="selectedDivision=this.value;renderStandings()">
-            ${
-              SCORING_DIVISIONS.map(
-                (d) =>
-                  `<option value="${d}" ${
-                    d === selectedDivision ? "selected" : ""
-                  }>${d}</option>`
-              ).join("")
-            }
-          </select>
-        </label>
-      </div>
-
-      <ul class="standings-list">
-  `;
-
-  const standings = computeStandings(selectedDivision);
-
-  standings.forEach((s) => {
-    html += `
-      <li>
-        <span>${s.team}</span>
-        <span class="record">${s.wins} - ${s.losses}</span>
-      </li>
-    `;
-  });
-
-  html += `
-      </ul>
-    </section>
-  `;
-
-  pageRoot.innerHTML = html;
-  applyPageTransition();
-}
-
+// ========================
+// STANDINGS PAGE
+// ========================
 function computeStandings(div) {
   const table = {};
 
   games
     .filter((g) => g.division === div)
     .forEach((g) => {
-      if (!table[g.home]) table[g.home] = { wins: 0, losses: 0 };
-      if (!table[g.away]) table[g.away] = { wins: 0, losses: 0 };
+      if (!table[g.home]) table[g.home] = { team: g.home, wins: 0, losses: 0 };
+      if (!table[g.away]) table[g.away] = { team: g.away, wins: 0, losses: 0 };
 
       if (g.homeScore != null && g.awayScore != null) {
         if (g.homeScore > g.awayScore) {
@@ -640,50 +526,54 @@ function computeStandings(div) {
       }
     });
 
-  return Object.keys(table)
-    .map((team) => ({ team, ...table[team] }))
-    .sort((a, b) => b.wins - a.wins);
+  return Object.values(table).sort((a, b) => b.wins - a.wins);
 }
-// --- MESSAGES PAGE ---
-function renderMessages() {
+
+function renderStandings() {
   let html = `
     <section class="card">
       <div class="card-header">
-        <div class="card-title">Messages</div>
+        <div class="card-title">Standings</div>
       </div>
 
       <div style="padding:16px;">
-        ${messages
-          .map(
-            (m) => `
-          <p><strong>${m.coach}:</strong> ${m.text}</p>
-        `
-          )
-          .join("")}
+        <label>
+          <strong>Division:</strong>
+          <select onchange="selectedStandingsDivision=this.value;renderStandings()">
+            ${SCORING_DIVISIONS.map(
+              (d) =>
+                `<option value="${d}" ${
+                  d === selectedStandingsDivision ? "selected" : ""
+                }>${d}</option>`
+            ).join("")}
+          </select>
+        </label>
       </div>
 
-      <div style="padding:16px;">
-        <label><strong>Coach Login:</strong></label><br>
-        <input id="coach-name" placeholder="Coach Name">
-        <input id="coach-pin" placeholder="PIN" type="password">
-        <button onclick="loginCoach()">Login</button>
-      </div>
-<div style="padding:16px;">
-  <textarea id="msg-input" placeholder="Enter a message"></textarea>
+      <ul class="standings-list">
+  `;
 
-  <button onclick="postMessage()">Post Message</button>
+  const standings = computeStandings(selectedStandingsDivision);
 
-  <button style="margin-left:8px;" onclick="postLeagueAlert()">
-    Post as League Alert
-  </button>
+  if (!standings.length) {
+    html += `
+      <li>
+        <span>No standings yet for this division.</span>
+      </li>
+    `;
+  } else {
+    standings.forEach((s) => {
+      html += `
+        <li>
+          <span>${s.team}</span>
+          <span class="record">${s.wins} - ${s.losses}</span>
+        </li>
+      `;
+    });
+  }
 
-  <!-- NEW PUSH NOTIFICATION BUTTON -->
-  <button style="margin-left:8px; background:#2196F3; color:white;"
-          onclick="sendPushNotification()">
-    Send Push Notification
-  </button>
-</div>
-
+  html += `
+      </ul>
     </section>
   `;
 
@@ -691,31 +581,102 @@ function renderMessages() {
   applyPageTransition();
 }
 
+// ========================
+// MESSAGES PAGE
+// ========================
+function renderMessages() {
+  const isLoggedIn = !!loggedInCoach;
+
+  let msgHtml =
+    messages.length === 0
+      ? "<p>No messages yet.</p>"
+      : messages
+          .map(
+            (m) =>
+              `<p><strong>${m.coach}:</strong> ${m.text}</p>`
+          )
+          .join("");
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">Messages</div>
+      </div>
+
+      <div style="padding:16px;">
+        ${msgHtml}
+      </div>
+
+      <div style="padding:16px; border-top:1px solid #eee;">
+        <div style="margin-bottom:8px;">
+          ${
+            isLoggedIn
+              ? `<p>Logged in as <strong>${loggedInCoach}</strong>
+                   ${isAdmin ? "(Admin)" : ""}</p>
+                 <button onclick="logoutCoach()">Logout</button>`
+              : `
+                 <label><strong>Coach Login:</strong></label><br>
+                 <input id="coach-name" placeholder="Coach Name"><br>
+                 <input id="coach-pin" placeholder="PIN" type="password"><br>
+                 <button style="margin-top:6px;" onclick="loginCoach()">Login</button>
+                `
+          }
+        </div>
+
+        ${
+          isLoggedIn
+            ? `
+          <div style="margin-top:12px;">
+            <textarea id="msg-input" placeholder="Enter a message" style="width:100%; min-height:60px;"></textarea>
+            <button style="margin-top:6px;" onclick="postMessage()">
+              Post Message
+            </button>
+          </div>
+          `
+            : ""
+        }
+      </div>
+    </section>
+  `;
+
+  applyPageTransition();
+}
+
 function loginCoach() {
-  const name = document.getElementById("coach-name").value;
-  const pin = document.getElementById("coach-pin").value;
+  const nameInput = document.getElementById("coach-name");
+  const pinInput = document.getElementById("coach-pin");
+  if (!nameInput || !pinInput) return;
+
+  const name = nameInput.value.trim();
+  const pin = pinInput.value.trim();
 
   if (name === "Admin" && pin === ADMIN_PIN) {
     loggedInCoach = "Admin";
     isAdmin = true;
-    alert("Admin logged in");
+    alert("Admin logged in.");
     renderMessages();
     return;
   }
 
   if (!coachPins[name]) {
-    alert("Unknown coach name");
+    alert("Unknown coach name.");
     return;
   }
 
   if (coachPins[name] !== pin) {
-    alert("Incorrect PIN");
+    alert("Incorrect PIN.");
     return;
   }
 
   loggedInCoach = name;
   isAdmin = false;
-  alert("Coach logged in");
+  alert("Coach logged in.");
+  renderMessages();
+}
+
+function logoutCoach() {
+  loggedInCoach = null;
+  isAdmin = false;
   renderMessages();
 }
 
@@ -725,39 +686,24 @@ function postMessage() {
     return;
   }
 
-  const text = document.getElementById("msg-input").value;
-  if (!text.trim()) return;
+  const textarea = document.getElementById("msg-input");
+  if (!textarea) return;
 
-  messages.push({ coach: loggedInCoach, text });
+  const text = textarea.value.trim();
+  if (!text) return;
+
+  messages.push({
+    coach: loggedInCoach,
+    text
+  });
   saveMessages();
+  textarea.value = "";
   renderMessages();
 }
-function postLeagueAlert() {
-  if (!loggedInCoach) {
-    alert("You must log in first.");
-    return;
-  }
 
-  const textEl = document.getElementById("msg-input");
-  const text = textEl.value;
-  if (!text.trim()) return;
-
-  // Save it like a normal message, but mark as alert (for future if needed)
-  messages.push({ coach: loggedInCoach, text, isAlert: true });
-  saveMessages();
-
-  // Show the alert bar to everyone currently in the app
-  showLeagueAlert(text);
-
-  // Re-render messages list
-  renderMessages();
-
-  // Optional: clear input
-  textEl.value = "";
-}
-
-
-// --- RESOURCES PAGE (updated order + icons) ---
+// ========================
+// RESOURCES PAGE
+// ========================
 function renderResources() {
   pageRoot.innerHTML = `
     <section class="card">
@@ -766,42 +712,31 @@ function renderResources() {
       </div>
 
       <ul class="roster-list">
-
-        <!-- Local League Rules -->
         <li>
           <a href="https://docs.google.com/document/d/1QVtREnvJb_VN_ZkGh5guW5PJI_5uck6K7VjVaKEBSaY/edit?tab=t.0" target="_blank">
             <span>⚙️ Local League Rules</span>
           </a>
         </li>
-
-        <!-- Home Run Club -->
         <li>
           <a href="https://docs.google.com/document/d/11CShzXZavE77uNQQou8dqn4bUINXCe4vOtgeT8RBq6E/edit?tab=t.0" target="_blank">
             <span>💥⚾️ Home Run Club</span>
           </a>
         </li>
-
-        <!-- Volunteer List -->
         <li>
           <a href="https://docs.google.com/document/d/1xh7XvoNy2jounkVr0zCBJ3OnsJv-nUvwGG_cBv9PYkc/edit?tab=t.0" target="_blank">
             <span>🙋‍♂️ Volunteer List</span>
           </a>
         </li>
-
-        <!-- Little League Rule Book -->
         <li>
           <a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">
             <span>🧾 Little League Rulebook</span>
           </a>
         </li>
-
-        <!-- AA Special Rules -->
         <li>
           <a href="https://docs.google.com/document/d/1rq50ps-dPw4Bz2QV6DgVM1bSuSJu1tuf/edit" target="_blank">
             <span>🧢 AA Special Rules</span>
           </a>
         </li>
-
       </ul>
     </section>
   `;
@@ -809,7 +744,9 @@ function renderResources() {
   applyPageTransition();
 }
 
-// --- ADMIN PAGE ---
+// ========================
+// ADMIN PAGE
+// ========================
 function renderAdmin() {
   if (!isAdmin) {
     pageRoot.innerHTML = `
@@ -818,7 +755,7 @@ function renderAdmin() {
           <div class="card-title">Admin</div>
         </div>
         <p style="padding:16px;">
-          Admin access only. Log in on the Messages tab using the admin PIN.
+          Admin access only. Log in as "Admin" on the Messages tab using the admin PIN.
         </p>
       </section>
     `;
@@ -831,20 +768,27 @@ function renderAdmin() {
       <div class="card-header">
         <div class="card-title">Admin Tools</div>
       </div>
-      <p style="padding:16px;">
-        Use the Schedule tab to record scores for Majors / AAA / AA.
-        <br><br>
-        You may also use the Messages tab to broadcast updates.
-      </p>
+      <div style="padding:16px;">
+        <p>
+          • Use the Schedule tab to edit scores for Majors / AAA / AA.<br>
+          • Use the Messages tab to broadcast league updates.
+        </p>
+        <p style="margin-top:8px; font-size:0.9rem; color:#555;">
+          Note: Score changes are currently stored on this device only
+          (not yet written back to Google Sheets).
+        </p>
+      </div>
     </section>
   `;
 
   applyPageTransition();
 }
 
-// --- MORE PAGE ---
+// ========================
+// MORE PAGE
+// ========================
 function renderMore() {
-  const isCoach = loggedInCoach && loggedInCoach !== "Admin";
+  const isCoach = !!loggedInCoach && !isAdmin;
 
   pageRoot.innerHTML = `
     <section class="card">
@@ -853,12 +797,22 @@ function renderMore() {
       </div>
 
       <ul class="roster-list">
-        <li><button class="more-btn" onclick="renderTeams()">Teams</button></li>
-        <li><button class="more-btn" onclick="renderMessages()">Messages</button></li>
-        <li><button class="more-btn" onclick="renderResources()">Resources</button></li>
+        <li>
+          <button style="width:100%; padding:8px;" onclick="renderTeams()">Teams</button>
+        </li>
+        <li>
+          <button style="width:100%; padding:8px;" onclick="renderMessages()">Messages</button>
+        </li>
+        <li>
+          <button style="width:100%; padding:8px;" onclick="renderResources()">Resources</button>
+        </li>
         ${
           isAdmin
-            ? `<li><button class="more-btn" onclick="renderAdmin()">Admin</button></li>`
+            ? `
+        <li>
+          <button style="width:100%; padding:8px;" onclick="renderAdmin()">Admin</button>
+        </li>
+        `
             : ""
         }
       </ul>
@@ -868,67 +822,49 @@ function renderMore() {
   applyPageTransition();
 }
 
-// --- NAVIGATION LOGIC ---
-navButtons.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    currentPage = btn.dataset.page;
-
-    if (currentPage === "home") renderHome();
-    if (currentPage === "schedule") renderSchedule();
-    if (currentPage === "standings") renderStandings();
-    if (currentPage === "more") renderMore();
-    if (currentPage === "admin") renderAdmin();
+// ========================
+// NAVIGATION
+// ========================
+function setActiveNav(page) {
+  const buttons = document.querySelectorAll("#bottomNav .nav-btn");
+  buttons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.page === page);
   });
-});
-
-// --- Pull to Refresh ---
-let startY = 0;
-let isRefreshing = false;
-
-document.addEventListener("touchstart", (e) => {
-  if (window.scrollY === 0) {
-    startY = e.touches[0].clientY;
-  }
-});
-
-document.addEventListener("touchmove", async (e) => {
-  const currentY = e.touches[0].clientY;
-
-  if (currentY - startY > 60 && window.scrollY === 0 && !isRefreshing) {
-    isRefreshing = true;
-    document.getElementById("ptr").style.display = "block";
-
-    // Refresh schedules, ticker, standings, etc
-   await loadScoresFromGoogleSheet();
-
-if (currentPage === "home") renderHome();
-if (currentPage === "schedule") renderSchedule();
-if (currentPage === "standings") renderStandings();
-if (currentPage === "more") renderMore();
-if (currentPage === "admin") renderAdmin();
-
-
-    setTimeout(() => {
-      document.getElementById("ptr").style.display = "none";
-      isRefreshing = false;
-    }, 600);
-  }
-});
-
-// === INITIAL LOAD ===
-renderHome();
-loadScoresFromGoogleSheet();
-// Hide notification button if already enabled on this device
-if (localStorage.getItem("vpll_notifs_enabled") === "1") {
-    const pushDiv = document.getElementById("pushSetup");
-    if (pushDiv) pushDiv.style.display = "none";
 }
+
+function renderPage(page) {
+  currentPage = page;
+  if (page === "home") renderHome();
+  else if (page === "schedule") renderSchedule();
+  else if (page === "standings") renderStandings();
+  else if (page === "more") renderMore();
+}
+
+function setupNav() {
+  const buttons = document.querySelectorAll("#bottomNav .nav-btn");
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const page = btn.dataset.page;
+      setActiveNav(page);
+      renderPage(page);
+    });
+  });
+
+  setActiveNav("home");
+}
+
+// ========================
+// INIT
+// ========================
+function initApp() {
+  setupNav();
+  renderHome();
+  loadScheduleFromApi();
+}
+
+// Because script is loaded with "defer", DOM is ready here
+initApp();
 
 /* --------------------------------------------------
    END OF FILE
-   - All render functions updated
-   - Slide-up animation applied globally
-   - Resources updated with icons + correct order
-   - Schedule scoring logic corrected
-   - Everything initialized cleanly
 -------------------------------------------------- */

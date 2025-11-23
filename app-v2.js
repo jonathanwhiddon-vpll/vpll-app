@@ -181,13 +181,18 @@ function saveMessages() {
 // === GOOGLE SHEET API ENDPOINT ===
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyfhX6MZJk8vRq4H3W2aNXTUGTuHWDjZD0HQRlH8HQskWU0W4lR5snxArEpohe_myJ_/exec";
 
-
 // === Load schedule + standings from Apps Script ===
 async function loadScheduleFromAPI() {
     try {
-        const res = await fetch(SHEET_API_URL);
-        const data = await res.json();
+        const res = await fetch(SHEET_API_URL, {
+            method: "GET",
+            mode: "cors",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
 
+        const data = await res.json();
         console.log("API Data:", data);
 
         if (!data.games) {
@@ -200,10 +205,12 @@ async function loadScheduleFromAPI() {
         // Re-render schedule + standings after loading
         renderSchedule();
         renderStandings();
+
     } catch (err) {
         console.error("❌ Error loading schedule:", err);
     }
 }
+
 
 // Format date
 function formatDateFromSheet(value) {

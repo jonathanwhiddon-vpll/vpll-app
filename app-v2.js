@@ -385,7 +385,7 @@ function renderHome() {
           <li>• Coaches Meeting for AA, AAA and Majors — December 20, 9:00am</li>
           <li>• Tryouts — January 10</li>
           <li>• Opening Day — February 28</li>
-          <li>• Angels Day — April 11</li>
+          <li>• Angels Day — April 18 vs Padres!</li>
         </ul>
       </div>
 

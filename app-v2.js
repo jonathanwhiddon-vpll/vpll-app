@@ -13,7 +13,6 @@
 // ========================
 
 // TODO: Replace this with YOUR Web App URL
-// Example: "https://script.google.com/macros/s/XXXXX/exec"
 const API_BASE_URL = "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/edit?gid=0#gid=0";
 
 

@@ -116,56 +116,71 @@ function applyPageTransition() {
 // LOAD SCHEDULE FROM CSV
 // ========================
 // CSV links for each division
+// ===========================
+// LOAD SCHEDULE FROM MULTIPLE DIVISION CSVs
+// ===========================
 const CSV_URLS = {
     "Majors": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=0&single=true&output=csv",
     "AAA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1857914653&single=true&output=csv",
     "AA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1006784456&single=true&output=csv",
     "Single A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1852143804&single=true&output=csv",
     "Coach Pitch": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=359750423&single=true&output=csv",
-    "T-Ball": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=860483387&single=true&output=csv"
+    "T-Ball": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=359750423&single=true&output=csv"
 };
 
 async function loadScheduleFromApi() {
-    let combined = [];
+    try {
+        let combined = [];
 
-for (const div in CSV_URLS) {
-    const url = CSV_URLS[div];
-    const response = await fetch(url, { cache: "no-cache" });
-    const csvText = await response.text();
+        for (const div in CSV_URLS) {
+            const url = CSV_URLS[div];
 
-    const rows = Papa.parse(csvText, { header: true }).data;
+            const response = await fetch(url, { cache: "no-cache" });
+            const csvText = await response.text();
 
-    const parsed = rows.map(item => {
-        const division = div;   // force correct division
-        const date = item.date || "";
-        const time = item.time || "";
-        const field = item.field || "";
-        const home = item.home || "";
-        const away = item.away || "";
+            const rows = Papa.parse(csvText, { header: true }).data;
 
-        const homeScore = normalizeScore(item.homeScore || "");
-        const awayScore = normalizeScore(item.awayScore || "");
+            const parsed = rows.map(item => {
+                const division = div;
 
-        const game = {
-            division,
-            date,
-            time,
-            field,
-            home,
-            away,
-            homeScore,
-            awayScore,
-        };
+                const date = item.date || item.Date || "";
+                const time = item.time || item.Time || "";
+                const field = item.field || item.Field || "";
+                const home = item.home || item.Home || "";
+                const away = item.away || item.Away || "";
 
-        game.key = makeGameKey(game);
-        return game;
-    });
+                const homeScore = normalizeScore(item["home score"] || item["Home Score"]);
+                const awayScore = normalizeScore(item["away score"] || item["Away Score"]);
 
-    combined = combined.concat(parsed);
+                const game = {
+                    division,
+                    date,
+                    time,
+                    field,
+                    home,
+                    away,
+                    homeScore,
+                    awayScore,
+                };
+
+                game.key = makeGameKey(game);
+                return game;
+            });
+
+            combined = combined.concat(parsed);
+        }
+
+        games = combined;
+        applyScoreOverrides();
+
+        if (currentPage === "schedule") renderSchedule();
+        if (currentPage === "standings") renderStandings();
+        if (currentPage === "home") renderHome();
+
+    } catch (err) {
+        console.error("Error loading schedule CSV:", err);
+    }
 }
-
-games = combined;
-applyScoreOverrides();
 
 // ========================
 // SCORE ENTRY

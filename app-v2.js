@@ -1,20 +1,19 @@
 /* --------------------------------------------------
-   Villa Park Little League - app-v2.js (Clean B Mode)
-   - Uses Google Apps Script ?type=schedule
+   Villa Park Little League - app-v2.js (CSV Version)
+   - Loads schedule from Google Sheets CSV
    - Coach & Admin login
    - Score entry for Majors / AAA / AA
    - Standings computed from scores
    - Messages + Admin pages
-   - No push notifications, no alert bar, no pull-to-refresh
+   - No push notifications, no alert bar
 -------------------------------------------------- */
 
 // ========================
 // CONFIG
 // ========================
 
-// TODO: Replace this with YOUR Web App URL
+// This no longer matters since we're using CSV
 const API_BASE_URL = "/schedule.json";
-
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
@@ -22,7 +21,7 @@ const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 // ========================
 // GLOBAL STATE
 // ========================
-let games = []; // All games from schedule API
+let games = [];
 let currentPage = "home";
 let selectedScheduleDivision = "Majors";
 let selectedStandingsDivision = "Majors";
@@ -30,16 +29,15 @@ let selectedStandingsDivision = "Majors";
 let loggedInCoach = null;
 let isAdmin = false;
 const ADMIN_PIN = "0709";
-// =======================================
-// INITIAL STANDINGS (before scores entered)
-// =======================================
+
+// INITIAL standings layout
 const INITIAL_STANDINGS = {
   "Majors": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"],
-  "AAA":    ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
-  "AA":     ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"]
+  "AAA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
+  "AA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"]
 };
 
-// Same mapping you used before
+// Coach pins
 const coachPins = {
   "Coach Ben": "1101",
   "Coach Brian": "1102",
@@ -66,20 +64,13 @@ const coachPins = {
   "Coach Eight": "3107"
 };
 
-// Messages stored locally on this device
 let messages = JSON.parse(localStorage.getItem("vpll_messages") || "[]");
+let scoreOverrides = JSON.parse(localStorage.getItem("vpll_score_overrides") || "{}");
 
-// Score overrides (local only, not sent to Sheets)
-// key → { homeScore, awayScore }
-let scoreOverrides = JSON.parse(
-  localStorage.getItem("vpll_score_overrides") || "{}"
-);
-
-// Root element
 const pageRoot = document.getElementById("page-root");
 
 // ========================
-// HELPER FUNCTIONS
+// HELPERS
 // ========================
 function normalizeScore(value) {
   if (value === "" || value == null) return null;
@@ -88,20 +79,13 @@ function normalizeScore(value) {
 }
 
 function normalizeField(value) {
-  if (value == null) return "";
-  return value.toString();
+  return value == null ? "" : value.toString();
 }
 
 function makeGameKey(game) {
   return [
-    game.division || "",
-    game.date || "",
-    game.time || "",
-    game.home || "",
-    game.away || ""
-  ]
-    .map((s) => s.toString().trim())
-    .join("|");
+    game.division, game.date, game.time, game.home, game.away
+  ].map(s => s.toString().trim()).join("|");
 }
 
 function saveMessages() {
@@ -109,16 +93,12 @@ function saveMessages() {
 }
 
 function saveScoreOverrides() {
-  localStorage.setItem(
-    "vpll_score_overrides",
-    JSON.stringify(scoreOverrides)
-  );
+  localStorage.setItem("vpll_score_overrides", JSON.stringify(scoreOverrides));
 }
 
 function applyScoreOverrides() {
-  games.forEach((g) => {
-    const key = g.key;
-    const ov = scoreOverrides[key];
+  games.forEach(g => {
+    const ov = scoreOverrides[g.key];
     if (ov) {
       g.homeScore = normalizeScore(ov.homeScore);
       g.awayScore = normalizeScore(ov.awayScore);
@@ -126,33 +106,25 @@ function applyScoreOverrides() {
   });
 }
 
-// Simple slide-up transition
 function applyPageTransition() {
   pageRoot.classList.remove("page-transition");
-  // force reflow
   void pageRoot.offsetWidth;
   pageRoot.classList.add("page-transition");
 }
 
 // ========================
-// API LOAD
-// ========================
-// ========================
-// API LOAD (CSV VERSION)
+// LOAD SCHEDULE FROM CSV
 // ========================
 async function loadScheduleFromApi() {
   try {
-    const SCHEDULE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?output=csv";
+    const SCHEDULE_CSV_URL =
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?output=csv";
 
-
-    // Fetch CSV directly from Google Sheets
     const response = await fetch(SCHEDULE_CSV_URL, { cache: "no-cache" });
     const csvText = await response.text();
 
-    // Convert CSV → JSON
     const rows = Papa.parse(csvText, { header: true }).data;
 
-    // Convert rows into your "games" array format
     const allGames = rows.map(item => {
       const division = item.division || item.Division || "";
       const date = item.date || item.Date || "";
@@ -161,8 +133,12 @@ async function loadScheduleFromApi() {
       const home = item.home || item.Home || "";
       const away = item.away || item.Away || "";
 
-      const homeScore = normalizeScore(item.homeScore || item.HomeScore || item["Home Score"]);
-      const awayScore = normalizeScore(item.awayScore || item.AwayScore || item["Away Score"]);
+      const homeScore = normalizeScore(
+        item.homeScore || item.HomeScore || item["Home Score"]
+      );
+      const awayScore = normalizeScore(
+        item.awayScore || item.AwayScore || item["Away Score"]
+      );
 
       const game = {
         division,
@@ -180,81 +156,13 @@ async function loadScheduleFromApi() {
     });
 
     games = allGames;
-
-    // Re-apply score overrides the app already uses
     applyScoreOverrides();
 
-    // Re-render current page
     if (currentPage === "schedule") renderSchedule();
     if (currentPage === "standings") renderStandings();
     if (currentPage === "home") renderHome();
-
   } catch (err) {
     console.error("Error loading schedule CSV:", err);
-  }
-}
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-
-    const data = await res.json();
-
-    // data should look like:
-    // {
-    //   "Majors": [ { ...game }, { ...game } ],
-    //   "AAA":    [ { ...game }, { ...game } ]
-    // }
-
-    const allGames = [];
-
-    Object.keys(data).forEach((divisionName) => {
-      const gamesForDiv = Array.isArray(data[divisionName])
-        ? data[divisionName]
-        : [];
-
-      gamesForDiv.forEach((item) => {
-        const division = item.division || divisionName;
-
-        const date = normalizeField(item.date);
-        const time = normalizeField(item.time);
-        const field = item.field || "";
-        const home = item.home || "";
-        const away = item.away || "";
-
-        let homeScore = item.homeScore ?? item.home_score ?? item["home score"] ?? item["Home Score"] ?? "";
-        let awayScore = item.awayScore ?? item.away_score ?? item["away score"] ?? item["Away Score"] ?? "";
-
-        homeScore = normalizeScore(homeScore);
-        awayScore = normalizeScore(awayScore);
-
-        const game = {
-          division,
-          date,
-          time,
-          field,
-          home,
-          away,
-          homeScore,
-          awayScore
-        };
-
-        game.key = makeGameKey(game);
-        allGames.push(game);
-      });
-    });
-
-    games = allGames;
-
-    // Re-apply any saved score edits from localStorage
-    applyScoreOverrides();
-
-    // Re-render the current page
-    if (currentPage === "schedule") renderSchedule();
-    if (currentPage === "standings") renderStandings();
-    if (currentPage === "home") renderHome();
-  } catch (err) {
-    console.error("Error loading schedule from JSON:", err);
   }
 }
 
@@ -262,45 +170,29 @@ async function loadScheduleFromApi() {
 // SCORE ENTRY
 // ========================
 function editScore(gameKey) {
-  if (!loggedInCoach && !isAdmin) {
-    alert("You must log in as a coach or admin to edit scores.");
-    return;
-  }
+  if (!loggedInCoach && !isAdmin) return alert("Log in first.");
 
-  const game = games.find((g) => g.key === gameKey);
+  const game = games.find(g => g.key === gameKey);
   if (!game) return;
 
-  if (!SCORING_DIVISIONS.includes(game.division)) {
-    alert("Scores are only tracked for Majors, AAA, and AA.");
-    return;
-  }
+  if (!SCORING_DIVISIONS.includes(game.division))
+    return alert("Scores only for Majors/AAA/AA.");
 
-  const homePrompt = prompt(
-    `Enter score for ${game.home}`,
-    game.homeScore != null ? game.homeScore : ""
-  );
-  if (homePrompt === null) return;
+  const homeInput = prompt(`Score for ${game.home}`, game.homeScore ?? "");
+  if (homeInput === null) return;
 
-  const awayPrompt = prompt(
-    `Enter score for ${game.away}`,
-    game.awayScore != null ? game.awayScore : ""
-  );
-  if (awayPrompt === null) return;
+  const awayInput = prompt(`Score for ${game.away}`, game.awayScore ?? "");
+  if (awayInput === null) return;
 
-  const homeScore = normalizeScore(homePrompt);
-  const awayScore = normalizeScore(awayPrompt);
+  game.homeScore = normalizeScore(homeInput);
+  game.awayScore = normalizeScore(awayInput);
 
-  game.homeScore = homeScore;
-  game.awayScore = awayScore;
-
-  // Persist locally
   scoreOverrides[game.key] = {
-    homeScore: homeScore,
-    awayScore: awayScore
+    homeScore: game.homeScore,
+    awayScore: game.awayScore
   };
   saveScoreOverrides();
 
-  // Update views
   if (currentPage === "schedule") renderSchedule();
   if (currentPage === "standings") renderStandings();
   if (currentPage === "home") renderHome();
@@ -310,33 +202,24 @@ function editScore(gameKey) {
 // HOME PAGE
 // ========================
 function renderHome() {
-  // Simple upcoming games list (first 3 future-ish games)
-  const today = new Date();
-  const upcoming = games
-    .slice()
-    .filter((g) => {
-      // best-effort: treat date as string, we won't parse actual/timezones aggressively
-      return g.date; // show anything with a date
-    })
-    .slice(0, 3);
+  const upcoming = games.slice(0, 3);
 
-  let upcomingHtml = "";
+  let html = "";
 
   if (!upcoming.length) {
-    upcomingHtml = `<p>No upcoming games loaded yet.</p>`;
+    html = "<p>No upcoming games.</p>";
   } else {
-    upcomingHtml =
+    html =
       `<ul class="schedule-list">` +
       upcoming
         .map(
-          (g) => `
+          g => `
         <li>
           <span><strong>${g.date}</strong> — ${g.division}</span>
-          <span>${g.time || ""}</span>
+          <span>${g.time}</span>
           <span>${g.home} vs ${g.away}</span>
-          <span><em>Field: ${g.field || "-"}</em></span>
-        </li>
-      `
+          <span><em>Field: ${g.field}</em></span>
+        </li>`
         )
         .join("") +
       `</ul>`;
@@ -351,16 +234,16 @@ function renderHome() {
       <div class="announcements">
         <h3>📣 Announcements</h3>
         <ul>
-          <li>• Coaches Meeting for AA, AAA, Majors — December 20, 9:00am</li>
-          <li>• Tryouts — January 10</li>
-          <li>• Opening Day — February 28</li>
-          <li>• Angels Day — April 18 vs Padres</li>
+          <li>Coaches Meeting — Dec 20</li>
+          <li>Tryouts — Jan 10</li>
+          <li>Opening Day — Feb 28</li>
+          <li>Angels Day — Apr 18</li>
         </ul>
       </div>
 
       <div class="announcements">
         <h3>📅 Upcoming Games</h3>
-        ${upcomingHtml}
+        ${html}
       </div>
     </section>
   `;
@@ -369,113 +252,89 @@ function renderHome() {
 }
 
 // ========================
-// TEAMS PAGES
+// TEAMS
 // ========================
 function renderTeams() {
-  let html = `
+  pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header">
-        <div class="card-title">Teams</div>
-      </div>
+      <div class="card-header"><div class="card-title">Teams</div></div>
       <ul class="roster-list">
-  `;
-
-  DIVISIONS.forEach((div) => {
-    html += `
-      <li onclick="renderTeamsByDivision('${div}')">
-        <span>${div}</span>
-        <span style="font-weight:700; color:#d32f2f;">View</span>
-      </li>
-    `;
-  });
-
-  html += `
+        ${DIVISIONS.map(
+          d => `
+          <li onclick="renderTeamsByDivision('${d}')">
+            <span>${d}</span>
+            <span style="font-weight:700; color:#d32f2f;">View</span>
+          </li>`
+        ).join("")}
       </ul>
     </section>
   `;
 
-  pageRoot.innerHTML = html;
   applyPageTransition();
 }
 
 function renderTeamsByDivision(div) {
   const teamSet = new Set();
-  games.forEach((g) => {
+  games.forEach(g => {
     if (g.division === div) {
       if (g.home) teamSet.add(g.home);
       if (g.away) teamSet.add(g.away);
     }
   });
 
-  let html = `
+  pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header">
-        <div class="card-title">${div}</div>
-      </div>
+      <div class="card-header"><div class="card-title">${div}</div></div>
       <ul class="roster-list">
-  `;
-
-  [...teamSet].forEach((t) => {
-    html += `
-      <li onclick="renderTeamSchedule('${div}','${t}')">
-        <span>${t}</span>
-        <span style="font-weight:700; color:#d32f2f;">Schedule</span>
-      </li>
-    `;
-  });
-
-  html += `
+        ${[...teamSet]
+          .map(
+            t => `
+            <li onclick="renderTeamSchedule('${div}','${t}')">
+              <span>${t}</span>
+              <span style="font-weight:700; color:#d32f2f;">Schedule</span>
+            </li>
+          `
+          )
+          .join("")}
       </ul>
     </section>
   `;
-
-  pageRoot.innerHTML = html;
   applyPageTransition();
 }
 
 function renderTeamSchedule(div, team) {
-  const teamGames = games.filter(
-    (g) => g.division === div && (g.home === team || g.away === team)
+  const entries = games.filter(
+    g => g.division === div && (g.home === team || g.away === team)
   );
 
-  let html = `
+  pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header">
         <div class="card-title">${team}</div>
         <div class="card-subtitle">${div}</div>
       </div>
+
       <ul class="schedule-list">
-  `;
+        ${entries
+          .map(g => {
+            const score =
+              g.homeScore == null && g.awayScore == null
+                ? "No score yet"
+                : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
 
-  teamGames.forEach((g) => {
-    const showScores = SCORING_DIVISIONS.includes(g.division);
-    let scoreText = "";
-
-    if (showScores) {
-      if (g.homeScore == null && g.awayScore == null) {
-        scoreText = "No score yet";
-      } else {
-        scoreText = `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
-      }
-    }
-
-    html += `
-      <li>
-        <span><strong>${g.date}</strong></span>
-        <span>${g.time}</span>
-        <span><em>Field: ${g.field || "-"}</em></span>
-        <span>${g.home} vs ${g.away}</span>
-        <span>${scoreText}</span>
-      </li>
-    `;
-  });
-
-  html += `
+            return `
+          <li>
+            <span><strong>${g.date}</strong></span>
+            <span>${g.time}</span>
+            <span><em>Field: ${g.field}</em></span>
+            <span>${g.home} vs ${g.away}</span>
+            <span>${score}</span>
+          </li>`;
+          })
+          .join("")}
       </ul>
     </section>
   `;
-
-  pageRoot.innerHTML = html;
   applyPageTransition();
 }
 
@@ -483,18 +342,17 @@ function renderTeamSchedule(div, team) {
 // SCHEDULE PAGE
 // ========================
 function renderSchedule() {
-  let html = `
+  const list = games.filter(g => g.division === selectedScheduleDivision);
+
+  pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header">
-        <div class="card-title">Schedule</div>
-      </div>
+      <div class="card-header"><div class="card-title">Schedule</div></div>
 
       <div style="padding:16px;">
-        <label>
-          <strong>Division:</strong>
-          <select onchange="selectedScheduleDivision=this.value;renderSchedule()">
+        <label><strong>Division:</strong>
+          <select onchange="selectedScheduleDivision=this.value; renderSchedule()">
             ${DIVISIONS.map(
-              (d) =>
+              d =>
                 `<option value="${d}" ${
                   d === selectedScheduleDivision ? "selected" : ""
                 }>${d}</option>`
@@ -504,76 +362,57 @@ function renderSchedule() {
       </div>
 
       <ul class="schedule-list">
-  `;
+        ${
+          !list.length
+            ? `<li><span>No games loaded.</span></li>`
+            : list
+                .map(g => {
+                  const canEdit =
+                    SCORING_DIVISIONS.includes(g.division) &&
+                    (loggedInCoach || isAdmin);
 
-  const filtered = games.filter(
-    (g) => g.division === selectedScheduleDivision
-  );
+                  const score =
+                    g.homeScore == null && g.awayScore == null
+                      ? "No score yet"
+                      : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
 
-  if (!filtered.length) {
-    html += `
-      <li>
-        <span>No games loaded for this division yet.</span>
-      </li>
-    `;
-  } else {
-    filtered.forEach((g) => {
-      const showScores = SCORING_DIVISIONS.includes(g.division);
-      let scoreText = "";
-
-      if (showScores) {
-        if (g.homeScore == null && g.awayScore == null) {
-          scoreText = "No score yet";
-        } else {
-          scoreText = `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
+                  return `
+              <li>
+                <span><strong>${g.date}</strong> — ${g.division}</span>
+                <span>${g.time}</span>
+                <span><em>Field: ${g.field}</em></span>
+                <span>${g.home} vs ${g.away}</span>
+                <span>${score}</span>
+                ${
+                  canEdit
+                    ? `<button onclick="editScore('${g.key}')">Edit Score</button>`
+                    : ""
+                }
+              </li>`;
+                })
+                .join("")
         }
-      }
-
-      const canEdit = showScores && (loggedInCoach || isAdmin);
-
-      html += `
-        <li>
-          <span><strong>${g.date}</strong> — ${g.division}</span>
-          <span>${g.time}</span>
-          <span><em>Field: ${g.field || "-"}</em></span>
-          <span>${g.home} vs ${g.away}</span>
-          <span>${scoreText}</span>
-          ${
-            canEdit
-              ? `<button style="margin-top:6px;" onclick="editScore('${g.key}')">
-                   Edit Score
-                 </button>`
-              : ""
-          }
-        </li>
-      `;
-    });
-  }
-
-  html += `
       </ul>
     </section>
   `;
-
-  pageRoot.innerHTML = html;
   applyPageTransition();
 }
 
 // ========================
-// STANDINGS PAGE
+// STANDINGS
 // ========================
 function computeStandings(div) {
   const table = {};
-// Preload teams in this division with 0–0 records
-if (INITIAL_STANDINGS[div]) {
-  INITIAL_STANDINGS[div].forEach(t => {
-    table[t] = { team: t, wins: 0, losses: 0 };
-  });
-}
+
+  if (INITIAL_STANDINGS[div]) {
+    INITIAL_STANDINGS[div].forEach(t => {
+      table[t] = { team: t, wins: 0, losses: 0 };
+    });
+  }
 
   games
-    .filter((g) => g.division === div)
-    .forEach((g) => {
+    .filter(g => g.division === div)
+    .forEach(g => {
       if (!table[g.home]) table[g.home] = { team: g.home, wins: 0, losses: 0 };
       if (!table[g.away]) table[g.away] = { team: g.away, wins: 0, losses: 0 };
 
@@ -592,18 +431,17 @@ if (INITIAL_STANDINGS[div]) {
 }
 
 function renderStandings() {
-  let html = `
+  const standings = computeStandings(selectedStandingsDivision);
+
+  pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header">
-        <div class="card-title">Standings</div>
-      </div>
+      <div class="card-header"><div class="card-title">Standings</div></div>
 
       <div style="padding:16px;">
-        <label>
-          <strong>Division:</strong>
-          <select onchange="selectedStandingsDivision=this.value;renderStandings()">
+        <label><strong>Division:</strong>
+          <select onchange="selectedStandingsDivision=this.value; renderStandings()">
             ${SCORING_DIVISIONS.map(
-              (d) =>
+              d =>
                 `<option value="${d}" ${
                   d === selectedStandingsDivision ? "selected" : ""
                 }>${d}</option>`
@@ -613,126 +451,89 @@ function renderStandings() {
       </div>
 
       <ul class="standings-list">
-  `;
-
-  const standings = computeStandings(selectedStandingsDivision);
-
-  if (!standings.length) {
-    html += `
-      <li>
-        <span>No standings yet for this division.</span>
-      </li>
-    `;
-  } else {
-    standings.forEach((s) => {
-      html += `
-        <li>
-          <span>${s.team}</span>
-          <span class="record">${s.wins} - ${s.losses}</span>
-        </li>
-      `;
-    });
-  }
-
-  html += `
+        ${
+          !standings.length
+            ? `<li>No standings yet.</li>`
+            : standings
+                .map(
+                  s => `
+            <li>
+              <span>${s.team}</span>
+              <span class="record">${s.wins} - ${s.losses}</span>
+            </li>`
+                )
+                .join("")
+        }
       </ul>
     </section>
   `;
-
-  pageRoot.innerHTML = html;
   applyPageTransition();
 }
 
 // ========================
-// MESSAGES PAGE
+// MESSAGES
 // ========================
 function renderMessages() {
   const isLoggedIn = !!loggedInCoach;
 
-  let msgHtml =
+  const messageHtml =
     messages.length === 0
       ? "<p>No messages yet.</p>"
       : messages
-          .map(
-            (m) =>
-              `<p><strong>${m.coach}:</strong> ${m.text}</p>`
-          )
+          .map(m => `<p><strong>${m.coach}:</strong> ${m.text}</p>`)
           .join("");
 
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header">
-        <div class="card-title">Messages</div>
-      </div>
-
-      <div style="padding:16px;">
-        ${msgHtml}
-      </div>
+      <div class="card-header"><div class="card-title">Messages</div></div>
+      <div style="padding:16px;">${messageHtml}</div>
 
       <div style="padding:16px; border-top:1px solid #eee;">
-        <div style="margin-bottom:8px;">
-          ${
-            isLoggedIn
-              ? `<p>Logged in as <strong>${loggedInCoach}</strong>
-                   ${isAdmin ? "(Admin)" : ""}</p>
-                 <button onclick="logoutCoach()">Logout</button>`
-              : `
-                 <label><strong>Coach Login:</strong></label><br>
-                 <input id="coach-name" placeholder="Coach Name"><br>
-                 <input id="coach-pin" placeholder="PIN" type="password"><br>
-                 <button style="margin-top:6px;" onclick="loginCoach()">Login</button>
-                `
-          }
-        </div>
+        ${
+          isLoggedIn
+            ? `
+            <p>Logged in as <strong>${loggedInCoach}</strong> ${
+                isAdmin ? "(Admin)" : ""
+              }</p>
+            <button onclick="logoutCoach()">Logout</button>
+          `
+            : `
+            <label><strong>Coach Login:</strong></label><br>
+            <input id="coach-name" placeholder="Coach Name"><br>
+            <input id="coach-pin" placeholder="PIN" type="password"><br>
+            <button onclick="loginCoach()">Login</button>
+          `
+        }
 
         ${
           isLoggedIn
             ? `
-          <div style="margin-top:12px;">
             <textarea id="msg-input" placeholder="Enter a message" style="width:100%; min-height:60px;"></textarea>
-            <button style="margin-top:6px;" onclick="postMessage()">
-              Post Message
-            </button>
-          </div>
+            <button onclick="postMessage()">Post Message</button>
           `
             : ""
         }
       </div>
     </section>
   `;
-
   applyPageTransition();
 }
 
 function loginCoach() {
-  const nameInput = document.getElementById("coach-name");
-  const pinInput = document.getElementById("coach-pin");
-  if (!nameInput || !pinInput) return;
-
-  const name = nameInput.value.trim();
-  const pin = pinInput.value.trim();
+  const name = document.getElementById("coach-name").value.trim();
+  const pin = document.getElementById("coach-pin").value.trim();
 
   if (name === "Admin" && pin === ADMIN_PIN) {
     loggedInCoach = "Admin";
     isAdmin = true;
-    alert("Admin logged in.");
-    renderMessages();
-    return;
+    return renderMessages();
   }
 
-  if (!coachPins[name]) {
-    alert("Unknown coach name.");
-    return;
-  }
-
-  if (coachPins[name] !== pin) {
-    alert("Incorrect PIN.");
-    return;
-  }
+  if (!coachPins[name]) return alert("Unknown coach.");
+  if (coachPins[name] !== pin) return alert("Incorrect PIN.");
 
   loggedInCoach = name;
   isAdmin = false;
-  alert("Coach logged in.");
   renderMessages();
 }
 
@@ -743,144 +544,84 @@ function logoutCoach() {
 }
 
 function postMessage() {
-  if (!loggedInCoach) {
-    alert("You must log in first.");
-    return;
-  }
+  if (!loggedInCoach) return alert("Log in first.");
 
   const textarea = document.getElementById("msg-input");
-  if (!textarea) return;
-
   const text = textarea.value.trim();
   if (!text) return;
 
-  messages.push({
-    coach: loggedInCoach,
-    text
-  });
+  messages.push({ coach: loggedInCoach, text });
   saveMessages();
   textarea.value = "";
+
   renderMessages();
 }
 
 // ========================
-// RESOURCES PAGE
+// RESOURCES
 // ========================
 function renderResources() {
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header">
-        <div class="card-title">Resources</div>
-      </div>
+      <div class="card-header"><div class="card-title">Resources</div></div>
 
       <ul class="roster-list">
-        <li>
-          <a href="https://docs.google.com/document/d/1QVtREnvJb_VN_ZkGh5guW5PJI_5uck6K7VjVaKEBSaY/edit?tab=t.0" target="_blank">
-            <span>⚙️ Local League Rules</span>
-          </a>
-        </li>
-        <li>
-          <a href="https://docs.google.com/document/d/11CShzXZavE77uNQQou8dqn4bUINXCe4vOtgeT8RBq6E/edit?tab=t.0" target="_blank">
-            <span>💥⚾️ Home Run Club</span>
-          </a>
-        </li>
-        <li>
-          <a href="https://docs.google.com/document/d/1xh7XvoNy2jounkVr0zCBJ3OnsJv-nUvwGG_cBv9PYkc/edit?tab=t.0" target="_blank">
-            <span>🙋‍♂️ Volunteer List</span>
-          </a>
-        </li>
-        <li>
-          <a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">
-            <span>🧾 Little League Rulebook</span>
-          </a>
-        </li>
-        <li>
-          <a href="https://docs.google.com/document/d/1rq50ps-dPw4Bz2QV6DgVM1bSuSJu1tuf/edit" target="_blank">
-            <span>🧢 AA Special Rules</span>
-          </a>
-        </li>
+        <li><a href="https://docs.google.com/document/d/1QVtREnvJb_VN_ZkGh5guW5PJI_5uck6K7VjVaKEBSaY/edit?tab=t.0" target="_blank">⚙️ Local League Rules</a></li>
+        <li><a href="https://docs.google.com/document/d/11CShzXZavE77uNQQou8dqn4bUINXCe4vOtgeT8RBq6E/edit?tab=t.0" target="_blank">💥 Home Run Club</a></li>
+        <li><a href="https://docs.google.com/document/d/1xh7XvoNy2jounkVr0zCBJ3OnsJv-nUvwGG_cBv9PYkc/edit?tab=t.0" target="_blank">🙋‍♂️ Volunteer List</a></li>
+        <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">🧾 Rulebook</a></li>
+        <li><a href="https://docs.google.com/document/d/1rq50ps-dPw4Bz2QV6DgVM1bSuSJu1tuf/edit" target="_blank">🧢 AA Special Rules</a></li>
       </ul>
     </section>
   `;
-
   applyPageTransition();
 }
 
 // ========================
-// ADMIN PAGE
+// ADMIN
 // ========================
 function renderAdmin() {
   if (!isAdmin) {
     pageRoot.innerHTML = `
       <section class="card">
-        <div class="card-header">
-          <div class="card-title">Admin</div>
-        </div>
-        <p style="padding:16px;">
-          Admin access only. Log in as "Admin" on the Messages tab using the admin PIN.
-        </p>
+        <div class="card-header"><div class="card-title">Admin</div></div>
+        <p style="padding:16px;">Admin only. Log in as Admin on Messages tab.</p>
       </section>
     `;
-    applyPageTransition();
-    return;
+    return applyPageTransition();
   }
 
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header">
-        <div class="card-title">Admin Tools</div>
-      </div>
-      <div style="padding:16px;">
-        <p>
-          • Use the Schedule tab to edit scores for Majors / AAA / AA.<br>
-          • Use the Messages tab to broadcast league updates.
-        </p>
-        <p style="margin-top:8px; font-size:0.9rem; color:#555;">
-          Note: Score changes are currently stored on this device only
-          (not yet written back to Google Sheets).
-        </p>
-      </div>
+      <div class="card-header"><div class="card-title">Admin Tools</div></div>
+      <p style="padding:16px;">
+        • Edit scores from the Schedule tab.<br>
+        • Send announcements from the Messages tab.
+      </p>
+      <p style="padding:16px; font-size:0.9rem; color:#555;">
+        Scores are stored locally on this device (not synced yet).
+      </p>
     </section>
   `;
-
   applyPageTransition();
 }
 
 // ========================
-// MORE PAGE
+// MORE
 // ========================
 function renderMore() {
-  const isCoach = !!loggedInCoach && !isAdmin;
-
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header">
-        <div class="card-title">More</div>
-      </div>
+      <div class="card-header"><div class="card-title">More</div></div>
 
       <ul class="roster-list">
-        <li>
-          <button style="width:100%; padding:8px;" onclick="renderTeams()">Teams</button>
-        </li>
-        <li>
-          <button style="width:100%; padding:8px;" onclick="renderMessages()">Messages</button>
-        </li>
-        <li>
-          <button style="width:100%; padding:8px;" onclick="renderResources()">Resources</button>
-        </li>
-        ${
-          isAdmin
-            ? `
-        <li>
-          <button style="width:100%; padding:8px;" onclick="renderAdmin()">Admin</button>
-        </li>
-        `
-            : ""
-        }
+        <li><button onclick="renderTeams()">Teams</button></li>
+        <li><button onclick="renderMessages()">Messages</button></li>
+        <li><button onclick="renderResources()">Resources</button></li>
+        ${isAdmin ? `<li><button onclick="renderAdmin()">Admin</button></li>` : ""}
       </ul>
     </section>
   `;
-
   applyPageTransition();
 }
 
@@ -889,7 +630,7 @@ function renderMore() {
 // ========================
 function setActiveNav(page) {
   const buttons = document.querySelectorAll("#bottomNav .nav-btn");
-  buttons.forEach((btn) => {
+  buttons.forEach(btn => {
     btn.classList.toggle("active", btn.dataset.page === page);
   });
 }
@@ -904,14 +645,13 @@ function renderPage(page) {
 
 function setupNav() {
   const buttons = document.querySelectorAll("#bottomNav .nav-btn");
-  buttons.forEach((btn) => {
+  buttons.forEach(btn => {
     btn.addEventListener("click", () => {
       const page = btn.dataset.page;
       setActiveNav(page);
       renderPage(page);
     });
   });
-
   setActiveNav("home");
 }
 
@@ -924,7 +664,6 @@ function initApp() {
   loadScheduleFromApi();
 }
 
-// Because script is loaded with "defer", DOM is ready here
 initApp();
 
 /* --------------------------------------------------

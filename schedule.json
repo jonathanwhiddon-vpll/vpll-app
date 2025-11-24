@@ -1,0 +1,64 @@
+{
+  "games": [
+    {
+      "date": "2-28-2026",
+      "time": "9:30:00 AM",
+      "field": "Majors",
+      "home": "Team 1",
+      "away": "Team 6",
+      "homeScore": null,
+      "awayScore": null,
+      "division": "Majors"
+    },
+    {
+      "date": "2-28-2026",
+      "time": "12:00:00 PM",
+      "field": "Majors",
+      "home": "Team 2",
+      "away": "Team 4",
+      "homeScore": null,
+      "awayScore": null,
+      "division": "Majors"
+    },
+    {
+      "date": "2-28-2026",
+      "time": "2:30:00 PM",
+      "field": "Majors",
+      "home": "Team 3",
+      "away": "Team 5",
+      "homeScore": null,
+      "awayScore": null,
+      "division": "Majors"
+    },
+    {
+      "date": "3-7-2026",
+      "time": "9:00:00 AM",
+      "field": "Majors",
+      "home": "Team 5",
+      "away": "Team 1",
+      "homeScore": null,
+      "awayScore": null,
+      "division": "Majors"
+    },
+    {
+      "date": "3-7-2026",
+      "time": "11:30:00 AM",
+      "field": "Majors",
+      "home": "Team 6",
+      "away": "Team 4",
+      "homeScore": null,
+      "awayScore": null,
+      "division": "Majors"
+    },
+    {
+      "date": "3-7-2026",
+      "time": "2:00:00 PM",
+      "field": "Majors",
+      "home": "Team 3",
+      "away": "Team 2",
+      "homeScore": null,
+      "awayScore": null,
+      "division": "Majors"
+    }
+  ]
+}

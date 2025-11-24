@@ -126,49 +126,47 @@ const CSV_URLS = {
 };
 
 async function loadScheduleFromApi() {
-    try {
-        const url = CSV_URLS[selectedScheduleDivision];
-        const response = await fetch(url, { cache: "no-cache" });
-        const csvText = await response.text();
+    let combined = [];
 
-        const rows = Papa.parse(csvText, { header: true }).data;
+for (const div in CSV_URLS) {
+    const url = CSV_URLS[div];
+    const response = await fetch(url, { cache: "no-cache" });
+    const csvText = await response.text();
 
-        const allGames = rows.map(item => {
-            const division = item.division || "";
-            const date = item.date || "";
-            const time = item.time || "";
-            const field = item.field || "";
-            const home = item.home || "";
-            const away = item.away || "";
-            const homeScore = normalizeScore(item.homeScore || "");
-            const awayScore = normalizeScore(item.awayScore || "");
+    const rows = Papa.parse(csvText, { header: true }).data;
 
-            const game = {
-                division,
-                date,
-                time,
-                field,
-                home,
-                away,
-                homeScore,
-                awayScore,
-            };
+    const parsed = rows.map(item => {
+        const division = div;   // force correct division
+        const date = item.date || "";
+        const time = item.time || "";
+        const field = item.field || "";
+        const home = item.home || "";
+        const away = item.away || "";
 
-            game.key = makeGameKey(game);
-            return game;
-        });
+        const homeScore = normalizeScore(item.homeScore || "");
+        const awayScore = normalizeScore(item.awayScore || "");
 
-        games = allGames;
-        applyScoreOverrides();
+        const game = {
+            division,
+            date,
+            time,
+            field,
+            home,
+            away,
+            homeScore,
+            awayScore,
+        };
 
-        if (currentPage === "schedule") renderSchedule();
-        if (currentPage === "standings") renderStandings();
-        if (currentPage === "home") renderHome();
+        game.key = makeGameKey(game);
+        return game;
+    });
 
-    } catch (err) {
-        console.error("Error loading schedule CSV:", err);
-    }
+    combined = combined.concat(parsed);
 }
+
+games = combined;
+applyScoreOverrides();
+
 // ========================
 // SCORE ENTRY
 // ========================

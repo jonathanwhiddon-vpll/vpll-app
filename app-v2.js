@@ -137,13 +137,62 @@ function applyPageTransition() {
 // ========================
 // API LOAD
 // ========================
+// ========================
+// API LOAD (CSV VERSION)
+// ========================
 async function loadScheduleFromApi() {
   try {
-    // We’re DONE with Google Script; just fetch the local JSON file.
-    const res = await fetch(API_BASE_URL, {
-      method: "GET",
-      cache: "no-cache"
+    const SCHEDULE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?output=csv";
+
+
+    // Fetch CSV directly from Google Sheets
+    const response = await fetch(SCHEDULE_CSV_URL, { cache: "no-cache" });
+    const csvText = await response.text();
+
+    // Convert CSV → JSON
+    const rows = Papa.parse(csvText, { header: true }).data;
+
+    // Convert rows into your "games" array format
+    const allGames = rows.map(item => {
+      const division = item.division || item.Division || "";
+      const date = item.date || item.Date || "";
+      const time = item.time || item.Time || "";
+      const field = item.field || item.Field || "";
+      const home = item.home || item.Home || "";
+      const away = item.away || item.Away || "";
+
+      const homeScore = normalizeScore(item.homeScore || item.HomeScore || item["Home Score"]);
+      const awayScore = normalizeScore(item.awayScore || item.AwayScore || item["Away Score"]);
+
+      const game = {
+        division,
+        date,
+        time,
+        field,
+        home,
+        away,
+        homeScore,
+        awayScore
+      };
+
+      game.key = makeGameKey(game);
+      return game;
     });
+
+    games = allGames;
+
+    // Re-apply score overrides the app already uses
+    applyScoreOverrides();
+
+    // Re-render current page
+    if (currentPage === "schedule") renderSchedule();
+    if (currentPage === "standings") renderStandings();
+    if (currentPage === "home") renderHome();
+
+  } catch (err) {
+    console.error("Error loading schedule CSV:", err);
+  }
+}
 
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);

@@ -1,0 +1,17 @@
+{
+  "Majors": {
+    "Team 1": { "wins": 0, "losses": 0, "runsFor": 0, "runsAgainst": 0 },
+    "Team 2": { "wins": 0, "losses": 0, "runsFor": 0, "runsAgainst": 0 },
+    "Team 3": { "wins": 0, "losses": 0, "runsFor": 0, "runsAgainst": 0 },
+    "Team 4": { "wins": 0, "losses": 0, "runsFor": 0, "runsAgainst": 0 },
+    "Team 5": { "wins": 0, "losses": 0, "runsFor": 0, "runsAgainst": 0 },
+    "Team 6": { "wins": 0, "losses": 0, "runsFor": 0, "runsAgainst": 0 }
+  },
+
+  "AAA": {
+    "Team 1": { "wins": 0, "losses": 0, "runsFor": 0, "runsAgainst": 0 },
+    "Team 2": { "wins": 0, "losses": 0, "runsFor": 0, "runsAgainst": 0 },
+    "Team 3": { "wins": 0, "losses": 0, "runsFor": 0, "runsAgainst": 0 },
+    "Team 4": { "wins": 0, "losses": 0, "runsFor": 0, "runsAgainst": 0 }
+  }
+}

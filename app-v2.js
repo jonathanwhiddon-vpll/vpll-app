@@ -14,7 +14,8 @@
 
 // TODO: Replace this with YOUR Web App URL
 // Example: "https://script.google.com/macros/s/XXXXX/exec"
-const API_BASE_URL = "https://script.google.com/macros/s/AKfycbxYDaKoGTzUbs2h1AhsAGgFgSp3L0EfM-o8iMenq3zwBv47E73SGnxLgfEfdOi2KT5nqg/exec";
+const API_BASE_URL = "/schedule.json";
+
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];

@@ -1,64 +1,106 @@
 {
-  "games": [
+  "Majors": [
     {
+      "division": "Majors",
       "date": "2-28-2026",
-      "time": "9:30:00 AM",
+      "time": "9:30 AM",
       "field": "Majors",
       "home": "Team 1",
       "away": "Team 6",
-      "homeScore": null,
-      "awayScore": null,
-      "division": "Majors"
+      "homeScore": "",
+      "awayScore": ""
     },
     {
+      "division": "Majors",
       "date": "2-28-2026",
-      "time": "12:00:00 PM",
+      "time": "12:00 PM",
       "field": "Majors",
       "home": "Team 2",
       "away": "Team 4",
-      "homeScore": null,
-      "awayScore": null,
-      "division": "Majors"
+      "homeScore": "",
+      "awayScore": ""
     },
     {
+      "division": "Majors",
       "date": "2-28-2026",
-      "time": "2:30:00 PM",
+      "time": "2:30 PM",
       "field": "Majors",
       "home": "Team 3",
       "away": "Team 5",
-      "homeScore": null,
-      "awayScore": null,
-      "division": "Majors"
+      "homeScore": "",
+      "awayScore": ""
     },
     {
+      "division": "Majors",
       "date": "3-7-2026",
-      "time": "9:00:00 AM",
+      "time": "9:00 AM",
       "field": "Majors",
       "home": "Team 5",
       "away": "Team 1",
-      "homeScore": null,
-      "awayScore": null,
-      "division": "Majors"
+      "homeScore": "",
+      "awayScore": ""
     },
     {
+      "division": "Majors",
       "date": "3-7-2026",
-      "time": "11:30:00 AM",
+      "time": "11:30 AM",
       "field": "Majors",
       "home": "Team 6",
       "away": "Team 4",
-      "homeScore": null,
-      "awayScore": null,
-      "division": "Majors"
+      "homeScore": "",
+      "awayScore": ""
     },
     {
+      "division": "Majors",
       "date": "3-7-2026",
-      "time": "2:00:00 PM",
+      "time": "2:00 PM",
       "field": "Majors",
       "home": "Team 3",
       "away": "Team 2",
-      "homeScore": null,
-      "awayScore": null,
-      "division": "Majors"
+      "homeScore": "",
+      "awayScore": ""
+    }
+  ],
+  "AAA": [
+    {
+      "division": "AAA",
+      "date": "2-28-2026",
+      "time": "9:00 AM",
+      "field": "Field 1",
+      "home": "Team 1",
+      "away": "Team 2",
+      "homeScore": "",
+      "awayScore": ""
+    },
+    {
+      "division": "AAA",
+      "date": "2-28-2026",
+      "time": "11:30 AM",
+      "field": "Field 2",
+      "home": "Team 3",
+      "away": "Team 4",
+      "homeScore": "",
+      "awayScore": ""
+    },
+    {
+      "division": "AAA",
+      "date": "3-7-2026",
+      "time": "9:00 AM",
+      "field": "Field 1",
+      "home": "Team 4",
+      "away": "Team 2",
+      "homeScore": "",
+      "awayScore": ""
+    },
+    {
+      "division": "AAA",
+      "date": "3-7-2026",
+      "time": "11:30 AM",
+      "field": "Field 2",
+      "home": "Team 3",
+      "away": "Team 1",
+      "homeScore": "",
+      "awayScore": ""
     }
   ]
 }

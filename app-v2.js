@@ -13,7 +13,7 @@
 // ========================
 
 // TODO: Replace this with YOUR Web App URL
-const API_BASE_URL = "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/edit?gid=0#gid=0";
+const API_BASE_URL = "/schedule.json";
 
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
@@ -30,6 +30,14 @@ let selectedStandingsDivision = "Majors";
 let loggedInCoach = null;
 let isAdmin = false;
 const ADMIN_PIN = "0709";
+// =======================================
+// INITIAL STANDINGS (before scores entered)
+// =======================================
+const INITIAL_STANDINGS = {
+  "Majors": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"],
+  "AAA":    ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
+  "AA":     ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"]
+};
 
 // Same mapping you used before
 const coachPins = {
@@ -507,6 +515,12 @@ function renderSchedule() {
 // ========================
 function computeStandings(div) {
   const table = {};
+// Preload teams in this division with 0–0 records
+if (INITIAL_STANDINGS[div]) {
+  INITIAL_STANDINGS[div].forEach(t => {
+    table[t] = { team: t, wins: 0, losses: 0 };
+  });
+}
 
   games
     .filter((g) => g.division === div)

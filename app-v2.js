@@ -14,7 +14,7 @@
 
 // TODO: Replace this with YOUR Web App URL
 // Example: "https://script.google.com/macros/s/XXXXX/exec"
-const API_BASE_URL = "/schedule.json";
+const API_BASE_URL = "https://docs.google.com/spreadsheets/d/1Fh4_dKYj8dWQZaqCoF3qkkec2fQKQxrusGCeZScuqh8/edit?gid=0#gid=0";
 
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
@@ -132,9 +132,10 @@ function applyPageTransition() {
 // ========================
 async function loadScheduleFromApi() {
   try {
-    const res = await fetch(`${API_BASE_URL}?type=schedule`, {
+    // We’re DONE with Google Script; just fetch the local JSON file.
+    const res = await fetch(API_BASE_URL, {
       method: "GET",
-      mode: "cors"
+      cache: "no-cache"
     });
 
     if (!res.ok) {
@@ -142,63 +143,62 @@ async function loadScheduleFromApi() {
     }
 
     const data = await res.json();
-    const items = Array.isArray(data.items) ? data.items : [];
 
-    games = items.map((item) => {
-      const lower = {};
-      Object.keys(item || {}).forEach((k) => {
-        lower[k.toLowerCase()] = item[k];
+    // data should look like:
+    // {
+    //   "Majors": [ { ...game }, { ...game } ],
+    //   "AAA":    [ { ...game }, { ...game } ]
+    // }
+
+    const allGames = [];
+
+    Object.keys(data).forEach((divisionName) => {
+      const gamesForDiv = Array.isArray(data[divisionName])
+        ? data[divisionName]
+        : [];
+
+      gamesForDiv.forEach((item) => {
+        const division = item.division || divisionName;
+
+        const date = normalizeField(item.date);
+        const time = normalizeField(item.time);
+        const field = item.field || "";
+        const home = item.home || "";
+        const away = item.away || "";
+
+        let homeScore = item.homeScore ?? item.home_score ?? item["home score"] ?? item["Home Score"] ?? "";
+        let awayScore = item.awayScore ?? item.away_score ?? item["away score"] ?? item["Away Score"] ?? "";
+
+        homeScore = normalizeScore(homeScore);
+        awayScore = normalizeScore(awayScore);
+
+        const game = {
+          division,
+          date,
+          time,
+          field,
+          home,
+          away,
+          homeScore,
+          awayScore
+        };
+
+        game.key = makeGameKey(game);
+        allGames.push(game);
       });
-
-      const division =
-        item.division || item.Division || lower["division"] || "";
-      const date = normalizeField(
-        item.date || item.Date || lower["date"]
-      );
-      const time = normalizeField(
-        item.time || item.Time || lower["time"]
-      );
-      const field =
-        item.field || item.Field || lower["field"] || "";
-      const home =
-        item.home || item.Home || lower["home"] || "";
-      const away =
-        item.away || item.Away || lower["away"] || "";
-
-      let homeScore =
-        item["Home Score"] ||
-        item.homeScore ||
-        lower["home score"];
-      let awayScore =
-        item["Away Score"] ||
-        item.awayScore ||
-        lower["away score"];
-
-      homeScore = normalizeScore(homeScore);
-      awayScore = normalizeScore(awayScore);
-
-      const game = {
-        division,
-        date,
-        time,
-        field,
-        home,
-        away,
-        homeScore,
-        awayScore
-      };
-      game.key = makeGameKey(game);
-      return game;
     });
 
+    games = allGames;
+
+    // Re-apply any saved score edits from localStorage
     applyScoreOverrides();
 
-    // Re-render current pages if they depend on data
+    // Re-render the current page
     if (currentPage === "schedule") renderSchedule();
     if (currentPage === "standings") renderStandings();
     if (currentPage === "home") renderHome();
   } catch (err) {
-    console.error("Error loading schedule from API:", err);
+    console.error("Error loading schedule from JSON:", err);
   }
 }
 

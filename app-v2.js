@@ -115,57 +115,60 @@ function applyPageTransition() {
 // ========================
 // LOAD SCHEDULE FROM CSV
 // ========================
+// CSV links for each division
+const CSV_URLS = {
+    "Majors": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=0&single=true&output=csv",
+    "AAA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1857914653&single=true&output=csv",
+    "AA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1006784456&single=true&output=csv",
+    "Single A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1852143804&single=true&output=csv",
+    "Coach Pitch": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=359750423&single=true&output=csv",
+    "T-Ball": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=860483387&single=true&output=csv"
+};
+
 async function loadScheduleFromApi() {
-  try {
-    const SCHEDULE_CSV_URL =
-      "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?output=csv";
+    try {
+        const url = CSV_URLS[selectedScheduleDivision];
+        const response = await fetch(url, { cache: "no-cache" });
+        const csvText = await response.text();
 
-    const response = await fetch(SCHEDULE_CSV_URL, { cache: "no-cache" });
-    const csvText = await response.text();
+        const rows = Papa.parse(csvText, { header: true }).data;
 
-    const rows = Papa.parse(csvText, { header: true }).data;
+        const allGames = rows.map(item => {
+            const division = item.division || "";
+            const date = item.date || "";
+            const time = item.time || "";
+            const field = item.field || "";
+            const home = item.home || "";
+            const away = item.away || "";
+            const homeScore = normalizeScore(item.homeScore || "");
+            const awayScore = normalizeScore(item.awayScore || "");
 
-    const allGames = rows.map(item => {
-      const division = item.division || item.Division || "";
-      const date = item.date || item.Date || "";
-      const time = item.time || item.Time || "";
-      const field = item.field || item.Field || "";
-      const home = item.home || item.Home || "";
-      const away = item.away || item.Away || "";
+            const game = {
+                division,
+                date,
+                time,
+                field,
+                home,
+                away,
+                homeScore,
+                awayScore,
+            };
 
-      const homeScore = normalizeScore(
-        item.homeScore || item.HomeScore || item["Home Score"]
-      );
-      const awayScore = normalizeScore(
-        item.awayScore || item.AwayScore || item["Away Score"]
-      );
+            game.key = makeGameKey(game);
+            return game;
+        });
 
-      const game = {
-        division,
-        date,
-        time,
-        field,
-        home,
-        away,
-        homeScore,
-        awayScore
-      };
+        games = allGames;
+        applyScoreOverrides();
 
-      game.key = makeGameKey(game);
-      return game;
-    });
+        if (currentPage === "schedule") renderSchedule();
+        if (currentPage === "standings") renderStandings();
+        if (currentPage === "home") renderHome();
 
-    games = allGames;
-    applyScoreOverrides();
-
-    if (currentPage === "schedule") renderSchedule();
-    if (currentPage === "standings") renderStandings();
-    if (currentPage === "home") renderHome();
-  } catch (err) {
-    console.error("Error loading schedule CSV:", err);
-  }
+    } catch (err) {
+        console.error("Error loading schedule CSV:", err);
+    }
 }
-
 // ========================
 // SCORE ENTRY
 // ========================

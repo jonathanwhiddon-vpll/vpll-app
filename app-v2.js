@@ -382,7 +382,16 @@ function renderSchedule() {
   showSpinner();
 
   setTimeout(() => {
-    const list = games.filter(g => g.division === selectedScheduleDivision);
+    const list = games
+      .filter(g => g.division === selectedScheduleDivision)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Group games by date
+    const gamesByDate = {};
+    list.forEach(g => {
+      if (!gamesByDate[g.date]) gamesByDate[g.date] = [];
+      gamesByDate[g.date].push(g);
+    });
 
     pageRoot.innerHTML = `
       <section class="card">
@@ -401,33 +410,48 @@ function renderSchedule() {
           </label>
         </div>
 
-        <ul class="schedule-list">
+        <div class="schedule-container">
           ${
-            !list.length
-              ? `<li><span>No games loaded.</span></li>`
-              : list
-                  .map(g => {
-                    // NEW: Only scoring divisions show a score
-                    const score = SCORING_DIVISIONS.includes(g.division)
-                      ? (
-                          g.homeScore == null && g.awayScore == null
-                            ? "No score yet"
-                            : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
-                        )
-                      : "";
-
+            list.length === 0
+              ? `<p style="padding:16px;">No games loaded.</p>`
+              : Object.keys(gamesByDate)
+                  .map(date => {
                     return `
-                      <li>
-                        <span><strong>${g.date}</strong> — ${g.division}</span>
-                        <span>${g.time}</span>
-                        <span><em>Field: ${g.field || ""}</em></span>
-                        <span>${g.home} vs ${g.away}</span>
-                        <span>${score}</span>
-                      </li>`;
+                      <div class="schedule-date-block">
+                        <h3 class="schedule-date-header">📅 ${date}</h3>
+                        <ul class="schedule-list">
+                          ${gamesByDate[date]
+                            .map(g => {
+                              const score = SCORING_DIVISIONS.includes(g.division)
+                                ? (
+                                    g.homeScore == null && g.awayScore == null
+                                      ? "No score yet"
+                                      : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
+                                  )
+                                : "";
+
+                              return `
+                                <li class="schedule-item">
+                                  <div class="schedule-time-field">
+                                    <span class="schedule-time">${g.time}</span>
+                                    <span class="schedule-field">Field: ${g.field || ""}</span>
+                                  </div>
+                                  <div class="schedule-teams">${g.home} vs ${g.away}</div>
+                                  ${
+                                    score
+                                      ? `<div class="schedule-score">${score}</div>`
+                                      : ""
+                                  }
+                                </li>`;
+                            })
+                            .join("")}
+                        </ul>
+                      </div>
+                    `;
                   })
                   .join("")
           }
-        </ul>
+        </div>
       </section>
     `;
 
@@ -435,6 +459,7 @@ function renderSchedule() {
     hideSpinner();
   }, 120);
 }
+
 // ========================
 // STANDINGS
 // ========================

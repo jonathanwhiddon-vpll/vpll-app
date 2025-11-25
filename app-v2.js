@@ -267,10 +267,6 @@ function renderHome() {
         </ul>
       </div>
 
-      <div class="announcements">
-        <h3>📅 Upcoming Games</h3>
-        ${html}
-      </div>
     </section>
   `;
 

@@ -329,53 +329,55 @@ function renderTeamsByDivision(div) {
 }
 function renderTeamSchedule(div, team) {
   showSpinner();
-setTimeout(() => {
-  // (existing renderSchedule code stays inside this timeout)
 
-  const entries = games.filter(
-    g => g.division === div && (g.home === team || g.away === team)
-  );
+  setTimeout(() => {
+    const entries = games.filter(
+      g => g.division === div && (g.home === team || g.away === team)
+    );
 
-  pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header">
-        <div class="card-title">${team}</div>
-        <div class="card-subtitle">${div}</div>
-      </div>
+    pageRoot.innerHTML = `
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">${team}</div>
+          <div class="card-subtitle">${div}</div>
+        </div>
 
-      <ul class="schedule-list">
-        ${
-          !entries.length
-            ? `<li>No games found.</li>`
-            : entries
-                .map(g => {
-                  const score =
-                    g.homeScore == null && g.awayScore == null
-                      ? "No score yet"
-                      : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
+        <ul class="schedule-list">
+          ${
+            !entries.length
+              ? `<li>No games found.</li>`
+              : entries
+                  .map(g => {
+                    // NEW: Only scoring divisions have a score value
+                    const score = SCORING_DIVISIONS.includes(g.division)
+                      ? (
+                          g.homeScore == null && g.awayScore == null
+                            ? "No score yet"
+                            : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
+                        )
+                      : "";
 
-                  const fieldName = g.field || g.Field || g.FIELD || "";
+                    const fieldName = g.field || g.Field || g.FIELD || "";
 
-                  return `
-                    <li>
-                      <span><strong>${g.date}</strong></span>
-                      <span>${g.time}</span>
-                      <span><em>Field: ${fieldName}</em></span>
-                      <span>${g.home} vs ${g.away}</span>
-                      <span>${score}</span>
-                    </li>`;
-                })
-                .join("")
-        }
-      </ul>
-    </section>
-  `;
+                    return `
+                      <li>
+                        <span><strong>${g.date}</strong></span>
+                        <span>${g.time}</span>
+                        <span><em>Field: ${fieldName}</em></span>
+                        <span>${g.home} vs ${g.away}</span>
+                        <span>${score}</span>
+                      </li>`;
+                  })
+                  .join("")
+          }
+        </ul>
+      </section>
+    `;
+
     applyPageTransition();
-  hideSpinner();
-}, 100);
+    hideSpinner();
+  }, 120);
 }
-
-
 // ========================
 // SCHEDULE PAGE
 // ========================
@@ -408,14 +410,14 @@ function renderSchedule() {
               ? `<li><span>No games loaded.</span></li>`
               : list
                   .map(g => {
-                    const canEdit =
-                      SCORING_DIVISIONS.includes(g.division) &&
-                      (loggedInCoach || isAdmin);
-
-                    const score =
-                      g.homeScore == null && g.awayScore == null
-                        ? "No score yet"
-                        : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
+                    // NEW: Only scoring divisions show a score
+                    const score = SCORING_DIVISIONS.includes(g.division)
+                      ? (
+                          g.homeScore == null && g.awayScore == null
+                            ? "No score yet"
+                            : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
+                        )
+                      : "";
 
                     return `
                       <li>
@@ -431,11 +433,11 @@ function renderSchedule() {
         </ul>
       </section>
     `;
+
     applyPageTransition();
     hideSpinner();
-  }, 120); // keep spinner visible briefly for a smooth feel
+  }, 120);
 }
-
 // ========================
 // STANDINGS
 // ========================

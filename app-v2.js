@@ -381,57 +381,61 @@ setTimeout(() => {
 // ========================
 function renderSchedule() {
   showSpinner();
-const list = games.filter(g => g.division === selectedScheduleDivision);
 
-  pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header"><div class="card-title">Schedule</div></div>
+  setTimeout(() => {
+    const list = games.filter(g => g.division === selectedScheduleDivision);
 
-      <div style="padding:16px;">
-        <label><strong>Division:</strong>
-          <select onchange="selectedScheduleDivision=this.value; renderSchedule()">
-            ${DIVISIONS.map(
-              d =>
-                `<option value="${d}" ${
-                  d === selectedScheduleDivision ? "selected" : ""
-                }>${d}</option>`
-            ).join("")}
-          </select>
-        </label>
-      </div>
+    pageRoot.innerHTML = `
+      <section class="card">
+        <div class="card-header"><div class="card-title">Schedule</div></div>
 
-      <ul class="schedule-list">
-        ${
-          !list.length
-            ? `<li><span>No games loaded.</span></li>`
-            : list
-                .map(g => {
-                  const canEdit =
-                    SCORING_DIVISIONS.includes(g.division) &&
-                    (loggedInCoach || isAdmin);
+        <div style="padding:16px;">
+          <label><strong>Division:</strong>
+            <select onchange="selectedScheduleDivision=this.value; renderSchedule()">
+              ${DIVISIONS.map(
+                d =>
+                  `<option value="${d}" ${
+                    d === selectedScheduleDivision ? "selected" : ""
+                  }>${d}</option>`
+              ).join("")}
+            </select>
+          </label>
+        </div>
 
-                  const score =
-                    g.homeScore == null && g.awayScore == null
-                      ? "No score yet"
-                      : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
+        <ul class="schedule-list">
+          ${
+            !list.length
+              ? `<li><span>No games loaded.</span></li>`
+              : list
+                  .map(g => {
+                    const canEdit =
+                      SCORING_DIVISIONS.includes(g.division) &&
+                      (loggedInCoach || isAdmin);
 
-                  return `
-                    <li>
-                      <span><strong>${g.date}</strong> — ${g.division}</span>
-                      <span>${g.time}</span>
-                      <span><em>Field: ${g.field || ""}</em></span>
-                      <span>${g.home} vs ${g.away}</span>
-                      <span>${score}</span>
-                    </li>`;
-                })
-                .join("")
-        }
-      </ul>
-    </section>
-  `;
-  applyPageTransition();
-  hideSpinner();
+                    const score =
+                      g.homeScore == null && g.awayScore == null
+                        ? "No score yet"
+                        : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
+
+                    return `
+                      <li>
+                        <span><strong>${g.date}</strong> — ${g.division}</span>
+                        <span>${g.time}</span>
+                        <span><em>Field: ${g.field || ""}</em></span>
+                        <span>${g.home} vs ${g.away}</span>
+                        <span>${score}</span>
+                      </li>`;
+                  })
+                  .join("")
+          }
+        </ul>
+      </section>
+    `;
+    applyPageTransition();
+    hideSpinner();
+  }, 120); // keep spinner visible briefly for a smooth feel
 }
+
 // ========================
 // STANDINGS
 // ========================

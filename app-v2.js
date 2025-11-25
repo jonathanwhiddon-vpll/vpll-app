@@ -260,8 +260,9 @@ function renderHome() {
       <div class="announcements">
         <h3>📣 Announcements</h3>
         <ul>
-          <li>Coaches Meeting — Dec 20</li>
-          <li>Tryouts — Jan 10</li>
+          <li>Coaches Meeting for Majors, AAA & AA - 9:00am — Dec 20</li>
+          <li>Tryouts — Jan 10, make up Jan 12</li>
+          <li>Scheule release early Feb</li>
           <li>Opening Day — Feb 28</li>
           <li>Angels Day — Apr 18 vs Padres</li>
         </ul>
@@ -701,6 +702,57 @@ function initApp() {
   renderHome();
   loadScheduleFromApi();
 }
+// ========================
+// PULL DOWN TO REFRESH (Home Only)
+// ========================
+let touchStartY = 0;
+let touchCurrentY = 0;
+let isPulling = false;
+
+const PULL_THRESHOLD = 60; // how far to pull before triggering
+
+document.addEventListener("touchstart", (e) => {
+  if (currentPage !== "home") return; // Home page only
+  if (window.scrollY > 0) return;     // only when scrolled to top
+
+  touchStartY = e.touches[0].clientY;
+  isPulling = true;
+});
+
+document.addEventListener("touchmove", (e) => {
+  if (!isPulling) return;
+  if (currentPage !== "home") return;
+
+  touchCurrentY = e.touches[0].clientY;
+
+  // If user scrolls upward (negative), cancel
+  if (touchCurrentY < touchStartY) {
+    isPulling = false;
+    return;
+  }
+});
+
+document.addEventListener("touchend", async () => {
+  if (!isPulling) return;
+  if (currentPage !== "home") return;
+
+  const pullDistance = touchCurrentY - touchStartY;
+
+  if (pullDistance > PULL_THRESHOLD) {
+    // Trigger refresh
+    showSpinner();
+
+    // Reload schedule, home content, etc.
+    await loadScheduleFromApi();
+
+    // Re-render home page after data reload
+    renderHome();
+
+    hideSpinner();
+  }
+
+  isPulling = false;
+});
 
 initApp();
 

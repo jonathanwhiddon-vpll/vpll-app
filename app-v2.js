@@ -453,6 +453,8 @@ function renderSchedule() {
           }
         </div>
       </section>
+      <button id="scrollTodayBtn" class="scroll-today-btn" onclick="scrollToToday()">📅 Today</button>
+
     `;
 
     applyPageTransition();
@@ -460,6 +462,25 @@ function renderSchedule() {
   }, 120);
 }
 
+function scrollToToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dateHeaders = document.querySelectorAll(".schedule-date-header");
+
+  for (const header of dateHeaders) {
+    const dateText = header.textContent.replace("📅 ", "").trim();
+    const parsed = new Date(dateText);
+
+    if (!isNaN(parsed) && parsed >= today) {
+      header.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+  }
+
+  // If no future games found, scroll to top
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 // ========================
 // STANDINGS
 // ========================

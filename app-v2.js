@@ -263,7 +263,7 @@ function renderHome() {
           <li>Coaches Meeting — Dec 20</li>
           <li>Tryouts — Jan 10</li>
           <li>Opening Day — Feb 28</li>
-          <li>Angels Day — Apr 18</li>
+          <li>Angels Day — Apr 18 vs Padres</li>
         </ul>
       </div>
 

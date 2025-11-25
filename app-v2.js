@@ -234,7 +234,8 @@ function renderHome() {
           <span><strong>${g.date}</strong> — ${g.division}</span>
           <span>${g.time}</span>
           <span>${g.home} vs ${g.away}</span>
-          <span><em>Field: ${g.field}</em></span>
+          <em>Field: ${g.field || g.Field || g.FIELD || ""}</em>
+
         </li>`
         )
         .join("") +
@@ -317,7 +318,6 @@ function renderTeamsByDivision(div) {
   `;
   applyPageTransition();
 }
-
 function renderTeamSchedule(div, team) {
   const entries = games.filter(
     g => g.division === div && (g.home === team || g.away === team)
@@ -331,29 +331,34 @@ function renderTeamSchedule(div, team) {
       </div>
 
       <ul class="schedule-list">
-        ${entries
-          .map(g => {
-            const score =
-              g.homeScore == null && g.awayScore == null
-                ? "No score yet"
-                : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
+        ${
+          !entries.length
+            ? `<li>No games found.</li>`
+            : entries
+                .map(g => {
+                  const score =
+                    g.homeScore == null && g.awayScore == null
+                      ? "No score yet"
+                      : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
 
-            return `
-          <li>
-            <span><strong>${g.date}</strong></span>
-            <span>${g.time}</span>
-            <span><em>Field: ${g.field}</em></span>
-            <span>${g.home} vs ${g.away}</span>
-            <span>${score}</span>
-          </li>`;
-          })
-          .join("")}
+                  const fieldName = g.field || g.Field || g.FIELD || "";
+
+                  return `
+                    <li>
+                      <span><strong>${g.date}</strong></span>
+                      <span>${g.time}</span>
+                      <span><em>Field: ${fieldName}</em></span>
+                      <span>${g.home} vs ${g.away}</span>
+                      <span>${score}</span>
+                    </li>`;
+                })
+                .join("")
+        }
       </ul>
     </section>
   `;
   applyPageTransition();
 }
-
 // ========================
 // SCHEDULE PAGE
 // ========================
@@ -393,18 +398,13 @@ function renderSchedule() {
                       : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`;
 
                   return `
-              <li>
-                <span><strong>${g.date}</strong> — ${g.division}</span>
-                <span>${g.time}</span>
-                <span><em>Field: ${g.field}</em></span>
-                <span>${g.home} vs ${g.away}</span>
-                <span>${score}</span>
-                ${
-                  canEdit
-                    ? `<button onclick="editScore('${g.key}')">Edit Score</button>`
-                    : ""
-                }
-              </li>`;
+                    <li>
+                      <span><strong>${g.date}</strong> — ${g.division}</span>
+                      <span>${g.time}</span>
+                      <span><em>Field: ${g.field || ""}</em></span>
+                      <span>${g.home} vs ${g.away}</span>
+                      <span>${score}</span>
+                    </li>`;
                 })
                 .join("")
         }
@@ -413,7 +413,6 @@ function renderSchedule() {
   `;
   applyPageTransition();
 }
-
 // ========================
 // STANDINGS
 // ========================

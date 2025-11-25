@@ -11,6 +11,13 @@
 // ========================
 // CONFIG
 // ========================
+function showSpinner() {
+  document.getElementById("loadingSpinner").style.display = "flex";
+}
+
+function hideSpinner() {
+  document.getElementById("loadingSpinner").style.display = "none";
+}
 
 // This no longer matters since we're using CSV
 const API_BASE_URL = "/schedule.json";
@@ -129,8 +136,10 @@ const CSV_URLS = {
 };
 
 async function loadScheduleFromApi() {
+    showSpinner();
     try {
         let combined = [];
+
 
         for (const div in CSV_URLS) {
             const url = CSV_URLS[div];
@@ -172,6 +181,7 @@ async function loadScheduleFromApi() {
 
         games = combined;
         applyScoreOverrides();
+hideSpinner();
 
         if (currentPage === "schedule") renderSchedule();
         if (currentPage === "standings") renderStandings();
@@ -213,7 +223,6 @@ function editScore(gameKey) {
   if (currentPage === "standings") renderStandings();
   if (currentPage === "home") renderHome();
 }
-
 // ========================
 // HOME PAGE
 // ========================
@@ -319,6 +328,10 @@ function renderTeamsByDivision(div) {
   applyPageTransition();
 }
 function renderTeamSchedule(div, team) {
+  showSpinner();
+setTimeout(() => {
+  // (existing renderSchedule code stays inside this timeout)
+
   const entries = games.filter(
     g => g.division === div && (g.home === team || g.away === team)
   );
@@ -357,13 +370,18 @@ function renderTeamSchedule(div, team) {
       </ul>
     </section>
   `;
-  applyPageTransition();
+    applyPageTransition();
+  hideSpinner();
+}, 100);
 }
+
+
 // ========================
 // SCHEDULE PAGE
 // ========================
 function renderSchedule() {
-  const list = games.filter(g => g.division === selectedScheduleDivision);
+  showSpinner();
+const list = games.filter(g => g.division === selectedScheduleDivision);
 
   pageRoot.innerHTML = `
     <section class="card">
@@ -412,6 +430,7 @@ function renderSchedule() {
     </section>
   `;
   applyPageTransition();
+  hideSpinner();
 }
 // ========================
 // STANDINGS
@@ -446,6 +465,7 @@ function computeStandings(div) {
 }
 
 function renderStandings() {
+  showSpinner();
   const standings = computeStandings(selectedStandingsDivision);
 
   pageRoot.innerHTML = `
@@ -483,6 +503,7 @@ function renderStandings() {
     </section>
   `;
   applyPageTransition();
+  hideSpinner();
 }
 
 // ========================

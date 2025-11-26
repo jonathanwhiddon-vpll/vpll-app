@@ -304,6 +304,14 @@ main {
   opacity: 1;
   transform: scale(1.05);
 }
+#vpll-announcement-banner {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 
 

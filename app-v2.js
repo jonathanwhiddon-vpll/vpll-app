@@ -223,6 +223,34 @@ function editScore(gameKey) {
   if (currentPage === "standings") renderStandings();
   if (currentPage === "home") renderHome();
 }
+// ======================
+// ANNOUNCEMENT LOADER
+// ======================
+async function loadAnnouncement() {
+  try {
+    const url =
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
+
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error("Announcement sheet fetch failed");
+
+    const text = await resp.text();
+    const lines = text.trim().split("\n");
+    if (lines.length < 2) return null;
+
+    const cols = lines[0].split(",");
+    const values = lines[1].split(",");
+
+    const announcementIndex = cols.indexOf("announcement");
+    if (announcementIndex < 0) return null;
+
+    return values[announcementIndex];
+  } catch (err) {
+    console.warn("Error loading announcement:", err);
+    return null;
+  }
+}
+
 // ========================
 // HOME PAGE
 // ========================
@@ -230,6 +258,26 @@ function renderHome() {
   const upcoming = games.slice(0, 3);
 
   let html = "";
+// Load announcement and inject banner
+loadAnnouncement().then(text => {
+  if (!text) return;
+
+  const banner = document.createElement("div");
+  banner.id = "vpll-announcement-banner";
+  banner.textContent = text;
+
+  banner.style.padding = "12px";
+  banner.style.background = "#fffae6";
+  banner.style.border = "1px solid #f2d57c";
+  banner.style.borderRadius = "6px";
+  banner.style.marginBottom = "12px";
+  banner.style.fontWeight = "600";
+
+  const homeContainer = document.getElementById("homeContent");
+  if (homeContainer) {
+    homeContainer.prepend(banner);
+  }
+});
 
   if (!upcoming.length) {
     html = "<p>No upcoming games.</p>";

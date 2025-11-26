@@ -224,84 +224,82 @@ function editScore(gameKey) {
   if (currentPage === "home") renderHome();
 }
 
-// ========================
+// =========================
 // ANNOUNCEMENT LOADER
-// ========================
+// =========================
 async function loadAnnouncement() {
     try {
         const url =
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hKOF0CXjfl4_oW03aJh8H3Vy1DU40sbG5SNn5Lad5FZDQK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
 
-        const resp = await fetch(url);
+        const resp = await fetch(url, { cache: "no-cache" });
         if (!resp.ok) throw new Error("Announcement sheet fetch failed");
 
         const text = await resp.text();
         const lines = text.trim().split("\n");
+        if (lines.length < 2) return []; // only header row
 
-        if (lines.length < 2) return [];
+        const header = lines[0].split(",");
+        // Look for "Announcement" column (case-insensitive)
+        let announcementIndex = header.findIndex(
+            (h) => h.trim().toLowerCase() === "announcement"
+        );
+        if (announcementIndex < 0) announcementIndex = 0; // fallback to first column
 
-        const headers = lines[0].split(",");
-        const colIndex = headers.indexOf("Announcement");
-        if (colIndex === -1) return [];
+        const messages = [];
 
-        const announcements = lines
-            .slice(1)
-            .map(row => row.split(",")[colIndex]?.trim())
-            .filter(x => x && x.length > 0);
+        // Start at line 1 (skip header), grab any non-empty cells
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(",");
+            const cell = (cols[announcementIndex] || "").trim();
+            if (cell) messages.push(cell);
+        }
 
-        return announcements;
-
+        return messages;
     } catch (err) {
         console.warn("Error loading announcement:", err);
         return [];
     }
 }
 
-// ========================
-// HOME PAGE
-// ========================
 // =========================
 // HOME PAGE
 // =========================
 function renderHome() {
-
-    // Clear upcoming games (we no longer want them shown)
-    const upcoming = [];  
-
-    // Wipe the home page HTML so we can rebuild cleanly
+    // Base home card markup
     pageRoot.innerHTML = `
         <section class="card home-card">
             <div class="home-banner">
                 <img src="home_banner.jpg" alt="League Banner">
             </div>
 
-            <!-- Announcement banner goes here -->
+            <!-- Wrapper where we inject announcements -->
             <div id="homeContent"></div>
         </section>
     `;
 
-    // Load announcements and display
-    loadAnnouncement().then(lines => {
-        if (!lines || lines.length === 0) return;
+    // Load announcements from Google Sheet and inject into homeContent
+    loadAnnouncement().then((lines) => {
+        if (!lines || !lines.length) return; // nothing to show
 
         const banner = document.createElement("div");
         banner.id = "vpll-announcement-banner";
 
+        // Show each row from the sheet as a bullet point
         banner.innerHTML = `
-            <ul style="margin:0; padding-left:18px;">
-                ${lines.map(line => `<li>${line}</li>`).join("")}
+            <ul style="margin:0; padding:8px 18px 10px 32px;">
+                ${lines.map((line) => `<li>${line}</li>`).join("")}
             </ul>
         `;
 
-        const homeContainer = document.getElementById("homeContent");
-        if (homeContainer) {
-            homeContainer.prepend(banner);
+        const homeContent = document.getElementById("homeContent");
+        if (homeContent) {
+            homeContent.appendChild(banner);
         }
     });
 
     applyPageTransition();
 }
-
 
 // ========================
 // TEAMS

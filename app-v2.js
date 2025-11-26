@@ -262,20 +262,16 @@ async function loadAnnouncement() {
 // ========================
 // HOME PAGE
 // ========================
-// ========================
-// HOME PAGE
-// ========================
 function renderHome() {
-  const upcoming = games.slice(0, 3);
 
-  // 1) Build the base card HTML first
+  // 1) Build the home card layout
   pageRoot.innerHTML = `
     <section class="card home-card">
       <div class="home-banner">
         <img src="home_banner.jpg" alt="League Banner">
       </div>
 
-      <!-- Content area for banner + upcoming games -->
+      <!-- announcement will be inserted here -->
       <div id="homeContent"></div>
     </section>
   `;
@@ -289,13 +285,12 @@ function renderHome() {
 
   // 2) Load announcement and prepend banner
   loadAnnouncement().then(text => {
-    if (!text) return; // no announcement, nothing to show
+    if (!text) return; // no announcement found
 
     const banner = document.createElement("div");
     banner.id = "vpll-announcement-banner";
     banner.textContent = text;
 
-    // simple styling (can be tuned or moved to CSS)
     banner.style.padding = "12px";
     banner.style.background = "#fffae6";
     banner.style.border = "1px solid #f2d57c";
@@ -306,30 +301,7 @@ function renderHome() {
     homeContainer.prepend(banner);
   });
 
-  // 3) Build the upcoming games HTML and append *under* the banner
-  let html = "";
-
-  if (!upcoming.length) {
-    html = "<p>No upcoming games.</p>";
-  } else {
-    html =
-      '<ul class="schedule-list">' +
-      upcoming
-        .map(g => {
-          return `
-            <li>
-              <span><strong>${g.date}</strong> — ${g.division}</span><br>
-              <span>${g.time}</span><br>
-              <span>${g.home} vs ${g.away}</span><br>
-              <em>Field: ${g.field || g.Field || g.FIELD || ""}</em>
-            </li>
-          `;
-        })
-        .join("") +
-      "</ul>";
-  }
-
-  homeContainer.insertAdjacentHTML("beforeend", html);
+  // 3) Nothing else below—no upcoming games
 
   applyPageTransition();
 }

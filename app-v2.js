@@ -305,17 +305,6 @@ loadAnnouncement().then(text => {
         <img src="home_banner.jpg" alt="League Banner">
       </div>
 
-      <div class="announcements">
-        <h3>📣 Announcements</h3>
-        <ul>
-          <li>Coaches Meeting for Majors, AAA & AA - 9:00am — Dec 20</li>
-          <li>Tryouts — Jan 10, make up Jan 12</li>
-          <li>Scheule release early Feb</li>
-          <li>Opening Day — Feb 28</li>
-          <li>Angels Day — Apr 18 vs Padres</li>
-        </ul>
-      </div>
-
     </section>
   `;
 

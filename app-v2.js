@@ -301,11 +301,14 @@ loadAnnouncement().then(text => {
 
   pageRoot.innerHTML = `
     <section class="card home-card">
-      <div class="home-banner">
+    <div class="home-banner">
         <img src="home_banner.jpg" alt="League Banner">
-      </div>
+    </div>
 
-    </section>
+    <!-- ADD THIS WRAPPER SO ANNOUNCEMENT CAN BE INSERTED -->
+    <div id="homeContent"></div>
+</section>
+
   `;
 
   applyPageTransition();

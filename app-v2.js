@@ -257,19 +257,19 @@ async function loadAnnouncement() {
 function renderHome() {
     const upcoming = games.slice(0, 3);
 
-    // 1. Build the page HTML FIRST
+    // 1️⃣ Build DOM FIRST
     pageRoot.innerHTML = `
         <section class="card home-card">
             <div class="home-banner">
                 <img src="home_banner.jpg" alt="League Banner">
             </div>
 
-            <!-- Wrapper where announcement will be injected -->
+            <!-- Announcement wrapper -->
             <div id="homeContent"></div>
         </section>
     `;
 
-    // 2. NOW insert announcement (after HTML exists)
+    // 2️⃣ Insert announcement AFTER DOM exists
     loadAnnouncement().then(text => {
         if (!text) return;
 
@@ -288,9 +288,8 @@ function renderHome() {
         if (homeContainer) homeContainer.prepend(banner);
     });
 
-    // 3. Render upcoming games BELOW the announcement
+    // 3️⃣ Add upcoming games BELOW announcement
     let html = "";
-
     if (!upcoming.length) {
         html = "<p>No upcoming games.</p>";
     } else {
@@ -309,7 +308,6 @@ function renderHome() {
             `</ul>`;
     }
 
-    // ADD upcoming games INTO #homeContent
     document.getElementById("homeContent").innerHTML += html;
 
     applyPageTransition();

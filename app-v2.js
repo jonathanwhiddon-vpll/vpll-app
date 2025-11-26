@@ -308,7 +308,8 @@ function renderHome() {
             `</ul>`;
     }
 
-    document.getElementById("homeContent").innerHTML += html;
+    const homeContainer = document.getElementById("homeContent");
+homeContainer.insertAdjacentHTML("beforeend", html);
 
     applyPageTransition();
 }

@@ -255,62 +255,64 @@ async function loadAnnouncement() {
 // HOME PAGE
 // ========================
 function renderHome() {
-  const upcoming = games.slice(0, 3);
+    const upcoming = games.slice(0, 3);
 
-  let html = "";
-// Load announcement and inject banner
-loadAnnouncement().then(text => {
-  if (!text) return;
+    // 1. Build the page HTML FIRST
+    pageRoot.innerHTML = `
+        <section class="card home-card">
+            <div class="home-banner">
+                <img src="home_banner.jpg" alt="League Banner">
+            </div>
 
-  const banner = document.createElement("div");
-  banner.id = "vpll-announcement-banner";
-  banner.textContent = text;
+            <!-- Wrapper where announcement will be injected -->
+            <div id="homeContent"></div>
+        </section>
+    `;
 
-  banner.style.padding = "12px";
-  banner.style.background = "#fffae6";
-  banner.style.border = "1px solid #f2d57c";
-  banner.style.borderRadius = "6px";
-  banner.style.marginBottom = "12px";
-  banner.style.fontWeight = "600";
+    // 2. NOW insert announcement (after HTML exists)
+    loadAnnouncement().then(text => {
+        if (!text) return;
 
-  const homeContainer = document.getElementById("homeContent");
-  if (homeContainer) {
-    homeContainer.prepend(banner);
-  }
-});
+        const banner = document.createElement("div");
+        banner.id = "vpll-announcement-banner";
+        banner.textContent = text;
 
-  if (!upcoming.length) {
-    html = "<p>No upcoming games.</p>";
-  } else {
-    html =
-      `<ul class="schedule-list">` +
-      upcoming
-        .map(
-          g => `
-        <li>
-          <span><strong>${g.date}</strong> — ${g.division}</span>
-          <span>${g.time}</span>
-          <span>${g.home} vs ${g.away}</span>
-          <em>Field: ${g.field || g.Field || g.FIELD || ""}</em>
+        banner.style.padding = "12px";
+        banner.style.background = "#fffaae";
+        banner.style.border = "1px solid #f2d57c";
+        banner.style.borderRadius = "6px";
+        banner.style.marginBottom = "12px";
+        banner.style.fontWeight = "600";
 
-        </li>`
-        )
-        .join("") +
-      `</ul>`;
-  }
+        const homeContainer = document.getElementById("homeContent");
+        if (homeContainer) homeContainer.prepend(banner);
+    });
 
- pageRoot.innerHTML = `
-<section class="card home-card">
-    <div class="home-banner">
-        <img src="home_banner.jpg" alt="League Banner">
-    </div>
+    // 3. Render upcoming games BELOW the announcement
+    let html = "";
 
-    <!-- This is where the announcement banner will go -->
-    <div id="homeContent"></div>
+    if (!upcoming.length) {
+        html = "<p>No upcoming games.</p>";
+    } else {
+        html =
+            `<ul class="schedule-list">` +
+            upcoming
+                .map(g => `
+                    <li>
+                        <span><strong>${g.date}</strong> — ${g.division}</span>
+                        <span>${g.time}</span>
+                        <span>${g.home} vs ${g.away}</span>
+                        <em>Field: ${g.field || g.Field || g.FIELD || ""}</em>
+                    </li>
+                `)
+                .join("") +
+            `</ul>`;
+    }
 
-</section>
-`;
-  applyPageTransition();
+    // ADD upcoming games INTO #homeContent
+    document.getElementById("homeContent").innerHTML += html;
+
+    applyPageTransition();
 }
 
 // ========================

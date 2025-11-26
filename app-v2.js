@@ -238,19 +238,18 @@ async function loadAnnouncement() {
         const text = await resp.text();
         const lines = text.trim().split("\n");
 
-        if (lines.length < 2) return []; // no announcements
+        if (lines.length < 2) return [];
 
-        // split header row
         const headers = lines[0].split(",");
-
-        // find "Announcement" column index
         const colIndex = headers.indexOf("Announcement");
         if (colIndex === -1) return [];
 
-        // get ALL announcement rows below row 1
-        const announcements = lines.slice(1).map(row => row.split(",")[colIndex]);
+        const announcements = lines
+            .slice(1)
+            .map(row => row.split(",")[colIndex]?.trim())
+            .filter(x => x && x.length > 0);
 
-        return announcements.filter(a => a && a.trim() !== "");
+        return announcements;
 
     } catch (err) {
         console.warn("Error loading announcement:", err);
@@ -261,54 +260,48 @@ async function loadAnnouncement() {
 // ========================
 // HOME PAGE
 // ========================
+// =========================
+// HOME PAGE
+// =========================
 function renderHome() {
 
-  // 1) Build the home card layout
-  pageRoot.innerHTML = `
-    <section class="card home-card">
-      <div class="home-banner">
-        <img src="home_banner.jpg" alt="League Banner">
-      </div>
+    // Clear upcoming games (we no longer want them shown)
+    const upcoming = [];  
 
-      <!-- announcement will be inserted here -->
-      <div id="homeContent"></div>
-    </section>
-  `;
+    // Wipe the home page HTML so we can rebuild cleanly
+    pageRoot.innerHTML = `
+        <section class="card home-card">
+            <div class="home-banner">
+                <img src="home_banner.jpg" alt="League Banner">
+            </div>
 
-  const homeContainer = document.getElementById("homeContent");
-  if (!homeContainer) {
-    console.warn("homeContent container not found");
+            <!-- Announcement banner goes here -->
+            <div id="homeContent"></div>
+        </section>
+    `;
+
+    // Load announcements and display
+    loadAnnouncement().then(lines => {
+        if (!lines || lines.length === 0) return;
+
+        const banner = document.createElement("div");
+        banner.id = "vpll-announcement-banner";
+
+        banner.innerHTML = `
+            <ul style="margin:0; padding-left:18px;">
+                ${lines.map(line => `<li>${line}</li>`).join("")}
+            </ul>
+        `;
+
+        const homeContainer = document.getElementById("homeContent");
+        if (homeContainer) {
+            homeContainer.prepend(banner);
+        }
+    });
+
     applyPageTransition();
-    return;
-  }
-
-  // 2) Load announcement and prepend banner
-  loadAnnouncement().then(lines => {
-    if (!lines || !lines.length) return;
-
-    const banner = document.createElement("div");
-    banner.id = "vpll-announcement-banner";
-
-    // format as list
-    banner.innerHTML =
-        `<ul style="margin:0; padding-left:18px;">
-            ${lines.map(line => `<li>${line}</li>`).join("")}
-        </ul>`;
-
-    banner.style.padding = "12px";
-    banner.style.background = "#fffae6";
-    banner.style.border = "1px solid #f2d57c";
-    banner.style.borderRadius = "6px";
-    banner.style.marginBottom = "12px";
-    banner.style.fontWeight = "600";
-
-    homeContainer.prepend(banner);
-  });
-
-  // 3) Nothing else below—no upcoming games
-
-  applyPageTransition();
 }
+
 
 // ========================
 // TEAMS

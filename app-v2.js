@@ -228,35 +228,34 @@ function editScore(gameKey) {
 // ANNOUNCEMENT LOADER
 // ========================
 async function loadAnnouncement() {
-  try {
-    const url =
-      "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
+    try {
+        const url =
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hKOF0CXjfl4_oW03aJh8H3Vy1DU40sbG5SNn5Lad5FZDQK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
 
-    const resp = await fetch(url, { cache: "no-cache" });
-    if (!resp.ok) throw new Error("Announcement sheet fetch failed");
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error("Announcement sheet fetch failed");
 
-    const text = await resp.text();
-    const lines = text.trim().split("\n");
-    if (lines.length < 2) return null;
+        const text = await resp.text();
+        const lines = text.trim().split("\n");
 
-    const cols = lines[0].split(",");
-    const values = lines[1].split(",");
+        if (lines.length < 2) return []; // no announcements
 
-    // Find the "Announcement" column (case-insensitive)
-    const announcementIndex = cols
-      .map(h => h.trim().toLowerCase())
-      .indexOf("announcement");
+        // split header row
+        const headers = lines[0].split(",");
 
-    if (announcementIndex < 0) return null;
+        // find "Announcement" column index
+        const colIndex = headers.indexOf("Announcement");
+        if (colIndex === -1) return [];
 
-    const value = values[announcementIndex] || "";
-    if (!value.trim()) return null;
+        // get ALL announcement rows below row 1
+        const announcements = lines.slice(1).map(row => row.split(",")[colIndex]);
 
-    return value.trim();
-  } catch (err) {
-    console.warn("Error loading announcement:", err);
-    return null;
-  }
+        return announcements.filter(a => a && a.trim() !== "");
+
+    } catch (err) {
+        console.warn("Error loading announcement:", err);
+        return [];
+    }
 }
 
 // ========================
@@ -284,12 +283,17 @@ function renderHome() {
   }
 
   // 2) Load announcement and prepend banner
-  loadAnnouncement().then(text => {
-    if (!text) return; // no announcement found
+  loadAnnouncement().then(lines => {
+    if (!lines || !lines.length) return;
 
     const banner = document.createElement("div");
     banner.id = "vpll-announcement-banner";
-    banner.textContent = text;
+
+    // format as list
+    banner.innerHTML =
+        `<ul style="margin:0; padding-left:18px;">
+            ${lines.map(line => `<li>${line}</li>`).join("")}
+        </ul>`;
 
     banner.style.padding = "12px";
     banner.style.background = "#fffae6";

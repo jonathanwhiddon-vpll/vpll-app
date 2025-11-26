@@ -223,15 +223,16 @@ function editScore(gameKey) {
   if (currentPage === "standings") renderStandings();
   if (currentPage === "home") renderHome();
 }
-// ======================
+
+// ========================
 // ANNOUNCEMENT LOADER
-// ======================
+// ========================
 async function loadAnnouncement() {
   try {
     const url =
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
 
-    const resp = await fetch(url);
+    const resp = await fetch(url, { cache: "no-cache" });
     if (!resp.ok) throw new Error("Announcement sheet fetch failed");
 
     const text = await resp.text();
@@ -241,10 +242,17 @@ async function loadAnnouncement() {
     const cols = lines[0].split(",");
     const values = lines[1].split(",");
 
-    const announcementIndex = cols.indexOf("announcement");
+    // Find the "Announcement" column (case-insensitive)
+    const announcementIndex = cols
+      .map(h => h.trim().toLowerCase())
+      .indexOf("announcement");
+
     if (announcementIndex < 0) return null;
 
-    return values[announcementIndex];
+    const value = values[announcementIndex] || "";
+    if (!value.trim()) return null;
+
+    return value.trim();
   } catch (err) {
     console.warn("Error loading announcement:", err);
     return null;
@@ -254,64 +262,76 @@ async function loadAnnouncement() {
 // ========================
 // HOME PAGE
 // ========================
+// ========================
+// HOME PAGE
+// ========================
 function renderHome() {
-    const upcoming = games.slice(0, 3);
+  const upcoming = games.slice(0, 3);
 
-    // 1️⃣ Build DOM FIRST
-    pageRoot.innerHTML = `
-        <section class="card home-card">
-            <div class="home-banner">
-                <img src="home_banner.jpg" alt="League Banner">
-            </div>
+  // 1) Build the base card HTML first
+  pageRoot.innerHTML = `
+    <section class="card home-card">
+      <div class="home-banner">
+        <img src="home_banner.jpg" alt="League Banner">
+      </div>
 
-            <!-- Announcement wrapper -->
-            <div id="homeContent"></div>
-        </section>
-    `;
+      <!-- Content area for banner + upcoming games -->
+      <div id="homeContent"></div>
+    </section>
+  `;
 
-    // 2️⃣ Insert announcement AFTER DOM exists
-    loadAnnouncement().then(text => {
-        if (!text) return;
-
-        const banner = document.createElement("div");
-        banner.id = "vpll-announcement-banner";
-        banner.textContent = text;
-
-        banner.style.padding = "12px";
-        banner.style.background = "#fffaae";
-        banner.style.border = "1px solid #f2d57c";
-        banner.style.borderRadius = "6px";
-        banner.style.marginBottom = "12px";
-        banner.style.fontWeight = "600";
-
-        const homeContainer = document.getElementById("homeContent");
-        if (homeContainer) homeContainer.prepend(banner);
-    });
-
-    // 3️⃣ Add upcoming games BELOW announcement
-    let html = "";
-    if (!upcoming.length) {
-        html = "<p>No upcoming games.</p>";
-    } else {
-        html =
-            `<ul class="schedule-list">` +
-            upcoming
-                .map(g => `
-                    <li>
-                        <span><strong>${g.date}</strong> — ${g.division}</span>
-                        <span>${g.time}</span>
-                        <span>${g.home} vs ${g.away}</span>
-                        <em>Field: ${g.field || g.Field || g.FIELD || ""}</em>
-                    </li>
-                `)
-                .join("") +
-            `</ul>`;
-    }
-
-    const homeContainer = document.getElementById("homeContent");
-homeContainer.insertAdjacentHTML("beforeend", html);
-
+  const homeContainer = document.getElementById("homeContent");
+  if (!homeContainer) {
+    console.warn("homeContent container not found");
     applyPageTransition();
+    return;
+  }
+
+  // 2) Load announcement and prepend banner
+  loadAnnouncement().then(text => {
+    if (!text) return; // no announcement, nothing to show
+
+    const banner = document.createElement("div");
+    banner.id = "vpll-announcement-banner";
+    banner.textContent = text;
+
+    // simple styling (can be tuned or moved to CSS)
+    banner.style.padding = "12px";
+    banner.style.background = "#fffae6";
+    banner.style.border = "1px solid #f2d57c";
+    banner.style.borderRadius = "6px";
+    banner.style.marginBottom = "12px";
+    banner.style.fontWeight = "600";
+
+    homeContainer.prepend(banner);
+  });
+
+  // 3) Build the upcoming games HTML and append *under* the banner
+  let html = "";
+
+  if (!upcoming.length) {
+    html = "<p>No upcoming games.</p>";
+  } else {
+    html =
+      '<ul class="schedule-list">' +
+      upcoming
+        .map(g => {
+          return `
+            <li>
+              <span><strong>${g.date}</strong> — ${g.division}</span><br>
+              <span>${g.time}</span><br>
+              <span>${g.home} vs ${g.away}</span><br>
+              <em>Field: ${g.field || g.Field || g.FIELD || ""}</em>
+            </li>
+          `;
+        })
+        .join("") +
+      "</ul>";
+  }
+
+  homeContainer.insertAdjacentHTML("beforeend", html);
+
+  applyPageTransition();
 }
 
 // ========================

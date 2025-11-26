@@ -298,18 +298,18 @@ loadAnnouncement().then(text => {
         .join("") +
       `</ul>`;
   }
-
-  pageRoot.innerHTML = `
-    <section class="card home-card">
+  
+ pageRoot.innerHTML = `
+<section class="card home-card">
     <div class="home-banner">
         <img src="home_banner.jpg" alt="League Banner">
     </div>
 
-    <!-- ADD THIS WRAPPER SO ANNOUNCEMENT CAN BE INSERTED -->
+    <!-- Wrapper INSIDE the section -->
     <div id="homeContent"></div>
 </section>
+`;
 
-  `;
 
   applyPageTransition();
 }

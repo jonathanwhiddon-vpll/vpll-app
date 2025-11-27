@@ -225,99 +225,88 @@ function editScore(gameKey) {
 }
 
 // =========================
-// ANNOUNCEMENT LOADER
+// LOAD ANNOUNCEMENTS (MULTIPLE LINES)
 // =========================
 async function loadAnnouncement() {
     try {
-        const url =
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
+        const url = "YOUR_PUBLISHED_CSV_URL_HERE";
 
         const resp = await fetch(url);
-        if (!resp.ok) {
-            console.warn("Announcement sheet failed to load.");
-            return [];
-        }
+        if (!resp.ok) throw new Error("Announcement sheet fetch failed");
 
         const text = await resp.text();
-        const rows = text.split("\n").map(r => r.split(","));
+        const lines = text.trim().split("\n");
+        if (lines.length < 2) return [];
 
-        if (!rows.length) return [];
+        // Split header & all rows
+        const header = lines[0].split(",");
+        const annIndex = header.indexOf("announcement");
+        if (annIndex < 0) return [];
 
-        // Header row
-        const header = rows[0].map(h => h.trim().replace(/^"(.*)"$/, "$1"));
-        const colIndex = header.indexOf("Announcement");
+        const announcements = [];
 
-        if (colIndex < 0) {
-            console.warn("No 'Announcement' column found.");
-            return [];
+        // Loop through ALL rows (starting at row 2)
+        for (let i = 1; i < lines.length; i++) {
+            const row = lines[i].split(",");
+
+            // Rejoin columns in case announcement contains commas
+            let msg = row.slice(annIndex).join(",").trim();
+
+            // Remove surrounding quotes
+            msg = msg.replace(/^"(.*)"$/, "$1");
+
+            if (msg.length > 0) {
+                announcements.push(msg);
+            }
         }
 
-        // Extract lines in that column
-        const lines = rows
-            .slice(1)
-            .map(r => (r[colIndex] || "").trim().replace(/^"(.*)"$/, "$1"))
-            .filter(text => text !== "");
-
-        return lines;
+        return announcements;
 
     } catch (err) {
-        console.error("Announcement loader error:", err);
-        return []; // never crash app
+        console.warn("Error loading announcements:", err);
+        return [];
     }
 }
 
 // =========================
 // HOME PAGE
 // =========================
-function renderHome() {
+async function renderHome() {
 
+    // Load announcements (array)
+    const announcements = await loadAnnouncement();
+
+    // Build announcement HTML
+    let announcementHTML = "";
+    if (announcements.length > 0) {
+        announcementHTML = `
+            <div class="announcement-card" style="
+                background:#fff9d9;
+                padding:14px;
+                border-radius:10px;
+                margin-bottom:16px;
+                border:1px solid #f2d57c;
+                font-size:16px;
+            ">
+                <ul>
+                    ${announcements.map(a => `<li>${a}</li>`).join("")}
+                </ul>
+            </div>
+        `;
+    }
+
+    // Build final HTML for home page
     pageRoot.innerHTML = `
         <section class="card home-card">
             <div class="home-banner">
                 <img src="home_banner.jpg" alt="League Banner">
             </div>
-            <div id="homeContent"></div>
+
+            ${announcementHTML}
         </section>
     `;
 
-    // Load announcements safely
-    loadAnnouncement().then(lines => {
-
-        const homeContainer = document.getElementById("homeContent");
-        if (!homeContainer) return;
-
-        // Remove duplicates
-        const existing = document.getElementById("vpll-announcement-banner");
-        if (existing) existing.remove();
-
-        if (!lines || lines.length === 0) {
-            applyPageTransition();
-            return;
-        }
-
-        const banner = document.createElement("div");
-        banner.id = "vpll-announcement-banner";
-
-        banner.style.padding = "12px";
-        banner.style.background = "#fff6ae";
-        banner.style.border = "1px solid #f2d57c";
-        banner.style.borderRadius = "6px";
-        banner.style.margin = "12px";
-        banner.style.fontWeight = "600";
-
-        banner.innerHTML = `
-            <ul style="margin:0; padding-left:20px;">
-                ${lines.map(line => `<li>${line}</li>`).join("")}
-            </ul>
-        `;
-
-        homeContainer.prepend(banner);
-
-        applyPageTransition();
-    }).catch(err => {
-        console.error("RenderHome announcement error:", err);
-        applyPageTransition(); // still stop spinner
-    });
+    applyPageTransition();
 }
 
 // ========================

@@ -236,35 +236,31 @@ async function loadAnnouncement() {
         if (!resp.ok) throw new Error("Announcement sheet fetch failed");
 
         const text = await resp.text();
-        const lines = text.trim().split("\n");
-        if (lines.length < 2) return [];
+        const rows = text.trim().split("\n").map(r => r.split(","));
 
-        const cols = lines[0].split(",");
-        const values = lines[1].split(",");
-
-        const idx = cols.indexOf("Announcement");
+        // Find the "Announcement" column index (should be A)
+        const header = rows[0];
+        const idx = header.indexOf("Announcement");
         if (idx < 0) return [];
 
-        // Split multiple announcements stored in additional cells
-        const rawList = values.slice(idx);
-
-        // Clean up quotes, remove blanks
-        const cleaned = rawList
-            .map(v => v.replace(/^"(.*)"$/, "$1").trim())
+        // Extract ALL announcements from rows 2+
+        const lines = rows
+            .slice(1)
+            .map(r => (r[idx] || "").trim().replace(/^"(.*)"$/, "$1"))
             .filter(v => v !== "");
 
-        return cleaned;
+        return lines;
     } catch (err) {
         console.warn("Error loading announcement:", err);
         return [];
     }
 }
 
+
 // =========================
 // HOME PAGE
 // =========================
 function renderHome() {
-    const upcoming = games.slice(0, 3);
 
     pageRoot.innerHTML = `
         <section class="card home-card">
@@ -276,7 +272,7 @@ function renderHome() {
         </section>
     `;
 
-    // Load & insert the announcement banner
+    // Load announcements
     loadAnnouncement().then(lines => {
         if (!lines || !lines.length) return;
 
@@ -291,14 +287,14 @@ function renderHome() {
         banner.style.fontWeight = "600";
 
         banner.innerHTML = `
-            <ul>
+            <ul style="margin:0; padding-left:20px;">
                 ${lines.map(l => `<li>${l}</li>`).join("")}
             </ul>
         `;
 
         const homeContainer = document.getElementById("homeContent");
         if (homeContainer) {
-            // Prevent duplicates
+            // Remove duplicates if refreshing
             const old = document.getElementById("vpll-announcement-banner");
             if (old) old.remove();
 

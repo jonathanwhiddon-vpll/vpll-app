@@ -233,29 +233,38 @@ async function loadAnnouncement() {
             "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FCxcjf4_oW03aJh8H3Vy1DU40sbG5SN5Lad5FZ0DK3exBu5C3UjLAu0/pub?gid=1400490192&single=true&output=csv";
 
         const resp = await fetch(url);
-        if (!resp.ok) throw new Error("Announcement sheet fetch failed");
+        if (!resp.ok) {
+            console.warn("Announcement sheet failed to load.");
+            return [];
+        }
 
         const text = await resp.text();
-        const rows = text.trim().split("\n").map(r => r.split(","));
+        const rows = text.split("\n").map(r => r.split(","));
 
-        // Find the "Announcement" column index (should be A)
-        const header = rows[0];
-        const idx = header.indexOf("Announcement");
-        if (idx < 0) return [];
+        if (!rows.length) return [];
 
-        // Extract ALL announcements from rows 2+
+        // Header row
+        const header = rows[0].map(h => h.trim().replace(/^"(.*)"$/, "$1"));
+        const colIndex = header.indexOf("Announcement");
+
+        if (colIndex < 0) {
+            console.warn("No 'Announcement' column found.");
+            return [];
+        }
+
+        // Extract lines in that column
         const lines = rows
             .slice(1)
-            .map(r => (r[idx] || "").trim().replace(/^"(.*)"$/, "$1"))
-            .filter(v => v !== "");
+            .map(r => (r[colIndex] || "").trim().replace(/^"(.*)"$/, "$1"))
+            .filter(text => text !== "");
 
         return lines;
+
     } catch (err) {
-        console.warn("Error loading announcement:", err);
-        return [];
+        console.error("Announcement loader error:", err);
+        return []; // never crash app
     }
 }
-
 
 // =========================
 // HOME PAGE
@@ -267,14 +276,24 @@ function renderHome() {
             <div class="home-banner">
                 <img src="home_banner.jpg" alt="League Banner">
             </div>
-
             <div id="homeContent"></div>
         </section>
     `;
 
-    // Load announcements
+    // Load announcements safely
     loadAnnouncement().then(lines => {
-        if (!lines || !lines.length) return;
+
+        const homeContainer = document.getElementById("homeContent");
+        if (!homeContainer) return;
+
+        // Remove duplicates
+        const existing = document.getElementById("vpll-announcement-banner");
+        if (existing) existing.remove();
+
+        if (!lines || lines.length === 0) {
+            applyPageTransition();
+            return;
+        }
 
         const banner = document.createElement("div");
         banner.id = "vpll-announcement-banner";
@@ -288,21 +307,17 @@ function renderHome() {
 
         banner.innerHTML = `
             <ul style="margin:0; padding-left:20px;">
-                ${lines.map(l => `<li>${l}</li>`).join("")}
+                ${lines.map(line => `<li>${line}</li>`).join("")}
             </ul>
         `;
 
-        const homeContainer = document.getElementById("homeContent");
-        if (homeContainer) {
-            // Remove duplicates if refreshing
-            const old = document.getElementById("vpll-announcement-banner");
-            if (old) old.remove();
+        homeContainer.prepend(banner);
 
-            homeContainer.prepend(banner);
-        }
+        applyPageTransition();
+    }).catch(err => {
+        console.error("RenderHome announcement error:", err);
+        applyPageTransition(); // still stop spinner
     });
-
-    applyPageTransition();
 }
 
 // ========================

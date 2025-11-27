@@ -230,7 +230,7 @@ function editScore(gameKey) {
 async function loadAnnouncement() {
     try {
         const url =
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FCxcjf4_oW03aJh8H3Vy1DU40sbG5SN5Lad5FZ0DK3exBu5C3UjLAu0/pub?gid=1400490192&single=true&output=csv";
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
 
         const resp = await fetch(url);
         if (!resp.ok) {

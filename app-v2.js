@@ -229,7 +229,7 @@ function editScore(gameKey) {
 // =========================
 async function loadAnnouncement() {
     try {
-        const url = "YOUR_PUBLISHED_CSV_URL_HERE";
+        const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
 
         const resp = await fetch(url);
         if (!resp.ok) throw new Error("Announcement sheet fetch failed");

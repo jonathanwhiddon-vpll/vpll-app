@@ -238,26 +238,24 @@ async function loadAnnouncement() {
         const lines = text.trim().split("\n");
         if (lines.length < 2) return [];
 
-        // Split header & all rows
+        // Split header
         const header = lines[0].split(",");
-        const annIndex = header.indexOf("announcement");
+        const annIndex = header.indexOf("Announcement");
         if (annIndex < 0) return [];
 
         const announcements = [];
 
-        // Loop through ALL rows (starting at row 2)
+        // Loop through all rows starting from row 2
         for (let i = 1; i < lines.length; i++) {
             const row = lines[i].split(",");
 
-            // Rejoin columns in case announcement contains commas
+            // Rejoin in case announcement text contains commas
             let msg = row.slice(annIndex).join(",").trim();
 
             // Remove surrounding quotes
             msg = msg.replace(/^"(.*)"$/, "$1");
 
-            if (msg.length > 0) {
-                announcements.push(msg);
-            }
+            if (msg.length > 0) announcements.push(msg);
         }
 
         return announcements;
@@ -273,21 +271,22 @@ async function loadAnnouncement() {
 // =========================
 async function renderHome() {
 
-    // Load announcements (array)
+    // Load all announcement rows
     const announcements = await loadAnnouncement();
 
-    // Build announcement HTML
+    // Build HTML if announcements exist
     let announcementHTML = "";
     if (announcements.length > 0) {
         announcementHTML = `
-            <div class="announcement-card" style="
-                background:#fff9d9;
-                padding:14px;
-                border-radius:10px;
-                margin-bottom:16px;
-                border:1px solid #f2d57c;
-                font-size:16px;
-            ">
+            <div class="announcement-card" 
+                style="
+                    background:#fff9d9;
+                    padding:14px;
+                    border-radius:10px;
+                    margin-bottom:16px;
+                    border:1px solid #f2d57c;
+                    font-size:16px;
+                ">
                 <ul>
                     ${announcements.map(a => `<li>${a}</li>`).join("")}
                 </ul>
@@ -295,7 +294,7 @@ async function renderHome() {
         `;
     }
 
-    // Build final HTML for home page
+    // Build Home Page content
     pageRoot.innerHTML = `
         <section class="card home-card">
             <div class="home-banner">

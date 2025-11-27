@@ -230,32 +230,30 @@ function editScore(gameKey) {
 async function loadAnnouncement() {
     try {
         const url =
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FCxcjf4_oW03aJh8H3Vy1DU40sbG5SN5Lad5FZ0DK3exBu5C3UjLAu0/pub?gid=1400490192&single=true&output=csv";
 
-        const resp = await fetch(url, { cache: "no-cache" });
+        const resp = await fetch(url);
         if (!resp.ok) throw new Error("Announcement sheet fetch failed");
 
         const text = await resp.text();
         const lines = text.trim().split("\n");
-        if (lines.length < 2) return []; // only header row
+        if (lines.length < 2) return [];
 
-        const header = lines[0].split(",");
-        // Look for "Announcement" column (case-insensitive)
-        let announcementIndex = header.findIndex(
-            (h) => h.trim().toLowerCase() === "announcement"
-        );
-        if (announcementIndex < 0) announcementIndex = 0; // fallback to first column
+        const cols = lines[0].split(",");
+        const values = lines[1].split(",");
 
-        const messages = [];
+        const idx = cols.indexOf("Announcement");
+        if (idx < 0) return [];
 
-        // Start at line 1 (skip header), grab any non-empty cells
-        for (let i = 1; i < lines.length; i++) {
-            const cols = lines[i].split(",");
-            const cell = (cols[announcementIndex] || "").trim();
-            if (cell) messages.push(cell);
-        }
+        // Split multiple announcements stored in additional cells
+        const rawList = values.slice(idx);
 
-        return messages;
+        // Clean up quotes, remove blanks
+        const cleaned = rawList
+            .map(v => v.replace(/^"(.*)"$/, "$1").trim())
+            .filter(v => v !== "");
+
+        return cleaned;
     } catch (err) {
         console.warn("Error loading announcement:", err);
         return [];
@@ -266,35 +264,45 @@ async function loadAnnouncement() {
 // HOME PAGE
 // =========================
 function renderHome() {
-    // Base home card markup
+    const upcoming = games.slice(0, 3);
+
     pageRoot.innerHTML = `
         <section class="card home-card">
             <div class="home-banner">
                 <img src="home_banner.jpg" alt="League Banner">
             </div>
 
-            <!-- Wrapper where we inject announcements -->
             <div id="homeContent"></div>
         </section>
     `;
 
-    // Load announcements from Google Sheet and inject into homeContent
-    loadAnnouncement().then((lines) => {
-        if (!lines || !lines.length) return; // nothing to show
+    // Load & insert the announcement banner
+    loadAnnouncement().then(lines => {
+        if (!lines || !lines.length) return;
 
         const banner = document.createElement("div");
         banner.id = "vpll-announcement-banner";
 
-        // Show each row from the sheet as a bullet point
+        banner.style.padding = "12px";
+        banner.style.background = "#fff6ae";
+        banner.style.border = "1px solid #f2d57c";
+        banner.style.borderRadius = "6px";
+        banner.style.margin = "12px";
+        banner.style.fontWeight = "600";
+
         banner.innerHTML = `
-            <ul style="margin:0; padding:8px 18px 10px 32px;">
-                ${lines.map((line) => `<li>${line}</li>`).join("")}
+            <ul>
+                ${lines.map(l => `<li>${l}</li>`).join("")}
             </ul>
         `;
 
-        const homeContent = document.getElementById("homeContent");
-        if (homeContent) {
-            homeContent.appendChild(banner);
+        const homeContainer = document.getElementById("homeContent");
+        if (homeContainer) {
+            // Prevent duplicates
+            const old = document.getElementById("vpll-announcement-banner");
+            if (old) old.remove();
+
+            homeContainer.prepend(banner);
         }
     });
 

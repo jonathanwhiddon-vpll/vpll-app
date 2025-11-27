@@ -229,7 +229,7 @@ function editScore(gameKey) {
 // =========================
 async function loadAnnouncement() {
     try {
-        const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oW0a3Jh8Hh3Vy1DU40sbGSSN5Lad5FZDGk3exbBu5C3j1LAu0/pub?gid=1400490192&single=true&output=csv";
+        const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
 
 
         const resp = await fetch(url);

@@ -224,89 +224,92 @@ function editScore(gameKey) {
   if (currentPage === "home") renderHome();
 }
 
-// =========================
-// LOAD ANNOUNCEMENTS (MULTIPLE LINES)
-// =========================
+
+// ================================
+// LOAD ANNOUNCEMENTS (CSV)
+// ================================
 async function loadAnnouncement() {
-    try {
-        const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
+  try {
+    const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
 
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error("Announcement CSV fetch failed");
 
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error("Announcement sheet fetch failed");
+    const csv = await resp.text();
+    const lines = csv.trim().split("\n");
+    if (lines.length < 2) return [];
 
-        const text = await resp.text();
-        const lines = text.trim().split("\n");
-        if (lines.length < 2) return [];
+    // Parse header
+    const header = lines[0].split(",");
+    const annIndex = header.findIndex(h => h.toLowerCase().includes("announcement"));
+    if (annIndex < 0) return [];
 
-        // Split header
-        const header = lines[0].split(",");
-        const annIndex = header.indexOf("Announcement");
-        if (annIndex < 0) return [];
+    const announcements = [];
 
-        const announcements = [];
+    // Parse each row
+    for (let i = 1; i < lines.length; i++) {
+      // Split by comma, but safely (allowing commas inside quotes)
+      const row = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+      if (!row) continue;
 
-        // Loop through all rows starting from row 2
-        for (let i = 1; i < lines.length; i++) {
-            const row = lines[i].split(",");
+      let msg = row[annIndex] || "";
+      msg = msg.trim();
 
-            // Rejoin in case announcement text contains commas
-            let msg = row.slice(annIndex).join(",").trim();
+      // Remove wrapping quotes ("message" → message)
+      if (msg.startsWith('"') && msg.endsWith('"')) {
+        msg = msg.slice(1, -1);
+      }
 
-            // Remove surrounding quotes
-            msg = msg.replace(/^"(.*)"$/, "$1");
-
-            if (msg.length > 0) announcements.push(msg);
-        }
-
-        return announcements;
-
-    } catch (err) {
-        console.warn("Error loading announcements:", err);
-        return [];
+      if (msg.length > 0) {
+        announcements.push(msg);
+      }
     }
+
+    return announcements;
+
+  } catch (err) {
+    console.warn("Error loading announcements:", err);
+    return [];
+  }
 }
 
-// =========================
+// ================================
 // HOME PAGE
-// =========================
+// ================================
 async function renderHome() {
 
-    // Load all announcement rows
-    const announcements = await loadAnnouncement();
+  const announcements = await loadAnnouncement();
+  let announcementHTML = "";
 
-    // Build HTML if announcements exist
-    let announcementHTML = "";
-    if (announcements.length > 0) {
-        announcementHTML = `
-            <div class="announcement-card" 
-                style="
-                    background:#fff9d9;
-                    padding:14px;
-                    border-radius:10px;
-                    margin-bottom:16px;
-                    border:1px solid #f2d57c;
-                    font-size:16px;
-                ">
-                <ul>
-                    ${announcements.map(a => `<li>${a}</li>`).join("")}
-                </ul>
-            </div>
-        `;
-    }
-
-    // Build Home Page content
-    pageRoot.innerHTML = `
-        <section class="card home-card">
-            <div class="home-banner">
-                <img src="home_banner.jpg" alt="League Banner">
-            </div>
-
-            ${announcementHTML}
-        </section>
+  if (announcements.length > 0) {
+    announcementHTML = `
+      <div class="announcement-card" style="
+        background:#fff9d9;
+        padding:14px;
+        border-radius:10px;
+        margin-bottom:16px;
+        border:1px solid #f2d57c;
+        font-size:16px;
+      ">
+        <ul>
+          ${announcements.map(a => `<li>${a}</li>`).join("")}
+        </ul>
+      </div>
     `;
+  }
 
-    applyPageTransition();
+  // Build final home page HTML
+  pageRoot.innerHTML = `
+    <section class="card home-card">
+      <div class="home-banner">
+        <img src="home_banner.jpg" alt="League Banner">
+      </div>
+
+      ${announcementHTML}
+    </section>
+  `;
+
+  applyPageTransition();
 }
 
 // ========================

@@ -505,37 +505,54 @@ async function renderTicker() {
     if (!tickerContent) return;
 
     try {
-        // Fetch all schedules (Majors, AAA, AA)
-        const divisions = ["Majors", "AAA", "AA"];
+        const urls = {
+            "Majors": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Uj9-t68hK0FZKcjf4_oWO3aJh8Hh3VyIDU4O5bG5SN5Lad5FZQDK3exbBu5C3jJLAuO/pub?gid=0&single=true&output=csv",
+            "AAA":    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Uj9-t68hK0FZKcjf4_oWO3aJh8Hh3VyIDU4O5bG5SN5Lad5FZQDK3exbBu5C3jJLAuO/pub?gid=1857914653&single=true&output=csv",
+            "AA":     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Uj9-t68hK0FZKcjf4_oWO3aJh8Hh3VyIDU4O5bG5SN5Lad5FZQDK3exbBu5C3jJLAuO/pub?gid=1006784456&single=true&output=csv"
+        };
+
         let todayGames = [];
+        const today = new Date().toLocaleDateString("en-US");
 
-        for (let div of divisions) {
-            const url = `${baseScheduleURL}&tab=${encodeURIComponent(div)}`;
-            const response = await fetch(url);
-            const data = await response.json();
+        for (const [division, csvUrl] of Object.entries(urls)) {
+            const res = await fetch(csvUrl);
+            const csvText = await res.text();
 
-            // Find today's date
-            const today = new Date().toLocaleDateString("en-US");
+            // Parse CSV
+            const rows = csvText.split("\n").map(r => r.split(","));
 
-            data.forEach(game => {
-                if (game.Date === today) {
-                    let text = `${div} – ${game.Visitor} ${game.VisitorScore || ''} vs ${game.Home} ${game.HomeScore || ''} @ ${game.Time}`;
-                    todayGames.push(text);
+            // Find column indexes by header row
+            const header = rows[0];
+            const iDivision = header.indexOf("division");
+            const iDate = header.indexOf("date");
+            const iTime = header.indexOf("time");
+            const iField = header.indexOf("Field");
+            const iHome = header.indexOf("home");
+            const iAway = header.indexOf("away");
+
+            // For every row, check today’s date
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (row[iDate] === today) {
+                    todayGames.push(
+                        `${division} – ${row[iAway]} @ ${row[iHome]} ${row[iTime]} (${row[iField]})`
+                    );
                 }
-            });
+            }
         }
 
         if (todayGames.length === 0) {
             tickerContent.textContent = "No games scheduled today.";
-            return;
+        } else {
+            tickerContent.textContent = todayGames.join(" • ");
         }
 
-        tickerContent.textContent = todayGames.join(" • ");
     } catch (err) {
+        console.error(err);
         tickerContent.textContent = "Unable to load games.";
-        console.error("Ticker error:", err);
     }
 }
+
 
 function scrollToToday() {
   const today = new Date();

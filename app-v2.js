@@ -505,6 +505,7 @@ async function renderTicker() {
     if (!tickerContent) return;
 
     try {
+        // Your published CSV URLs
         const urls = {
             "Majors": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Uj9-t68hK0FZKcjf4_oWO3aJh8Hh3VyIDU4O5bG5SN5Lad5FZQDK3exbBu5C3jJLAuO/pub?gid=0&single=true&output=csv",
             "AAA":    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Uj9-t68hK0FZKcjf4_oWO3aJh8Hh3VyIDU4O5bG5SN5Lad5FZQDK3exbBu5C3jJLAuO/pub?gid=1857914653&single=true&output=csv",
@@ -512,13 +513,13 @@ async function renderTicker() {
         };
 
         let todayGames = [];
-        const today = new Date();
-        const todayFormatted = today.toLocaleDateString("en-US");
+        const now = new Date();
+        const todayFormatted = now.toLocaleDateString("en-US");
 
         for (const [division, csvUrl] of Object.entries(urls)) {
+
             const res = await fetch(csvUrl);
             const csvText = await res.text();
-
             const rows = csvText.split("\n").map(r => r.split(","));
 
             const header = rows[0];
@@ -535,49 +536,55 @@ async function renderTicker() {
 
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
+
                 const gameDate = row[idx.date];
                 const gameTime = row[idx.time];
-                const gameField = row[idx.field];
+                const field = row[idx.field];
                 const home = row[idx.home];
                 const away = row[idx.away];
 
                 if (!gameDate || !home || !away) continue;
 
-                if (gameDate === todayFormatted) {
-                    // Determine status
-                    let statusBadge = "";
-                    let icon = "⚾";
+                // Only show today's games
+                if (gameDate !== todayFormatted) continue;
 
-                    const homeScore = row[idx.homeScore] || "";
-                    const awayScore = row[idx.awayScore] || "";
+                const homeScore = idx.homeScore !== -1 ? row[idx.homeScore] : "";
+                const awayScore = idx.awayScore !== -1 ? row[idx.awayScore] : "";
 
-                    if (homeScore && awayScore) {
-                        statusBadge = "FINAL";
-                        icon = "🏁"; 
+                let statusBadge = "";
+                let badgeText = "";
+
+                if (homeScore && awayScore) {
+                    statusBadge = "FINAL";
+                    badgeText = "FINAL";
+                } else {
+                    const gameDateTime = new Date(`${gameDate} ${gameTime}`);
+
+                    if (now > gameDateTime) {
+                        statusBadge = "LIVE";
+                        badgeText = "🔥 LIVE";
                     } else {
-                        // Compare time
-                        const gameDateObj = new Date(`${gameDate} ${gameTime}`);
-                        if (today > gameDateObj) {
-                            statusBadge = "LIVE";
-                            icon = "🔴"; 
-                        } else {
-                            statusBadge = "TODAY";
-                            icon = "⚾";
-                        }
+                        statusBadge = "TODAY";
+                        badgeText = "TODAY";
                     }
-
-                    todayGames.push(
-    `${division.toUpperCase()} | ⚾ ${away} ${awayScore && homeScore ? awayScore : ""}${awayScore && homeScore ? "–" : ""}${homeScore || ""} ${home} ${!homeScore && !awayScore ? `@ ${home}` : ""} | ${
-        statusBadge === "LIVE" ? "🔥 LIVE" :
-        statusBadge === "FINAL" ? "FINAL" :
-        "TODAY"
-    }`
-);
-
                 }
+
+                // Build matchup text depending on score availability
+                let matchupText = "";
+                if (homeScore && awayScore) {
+                    matchupText = `${away} ${awayScore}–${homeScore} ${home}`;
+                } else {
+                    matchupText = `${away} @ ${home} ${gameTime}`;
+                }
+
+                // ESPN Style C format
+                todayGames.push(
+                    `${division.toUpperCase()} | ⚾ ${matchupText} | ${badgeText}`
+                );
             }
         }
 
+        // Output
         if (todayGames.length === 0) {
             tickerContent.textContent = "⚾ No games scheduled today.";
         } else {
@@ -585,7 +592,7 @@ async function renderTicker() {
         }
 
     } catch (err) {
-        console.error(err);
+        console.error("Ticker Error:", err);
         tickerContent.textContent = "Unable to load games.";
     }
 }

@@ -512,37 +512,69 @@ async function renderTicker() {
         };
 
         let todayGames = [];
-        const today = new Date().toLocaleDateString("en-US");
+        const today = new Date();
+        const todayFormatted = today.toLocaleDateString("en-US");
 
         for (const [division, csvUrl] of Object.entries(urls)) {
             const res = await fetch(csvUrl);
             const csvText = await res.text();
 
-            // Parse CSV
             const rows = csvText.split("\n").map(r => r.split(","));
 
-            // Find column indexes by header row
             const header = rows[0];
-            const iDivision = header.indexOf("division");
-            const iDate = header.indexOf("date");
-            const iTime = header.indexOf("time");
-            const iField = header.indexOf("Field");
-            const iHome = header.indexOf("home");
-            const iAway = header.indexOf("away");
+            const idx = {
+                division: header.indexOf("division"),
+                date: header.indexOf("date"),
+                time: header.indexOf("time"),
+                field: header.indexOf("Field"),
+                home: header.indexOf("home"),
+                away: header.indexOf("away"),
+                homeScore: header.indexOf("homeScore"),
+                awayScore: header.indexOf("awayScore")
+            };
 
-            // For every row, check today’s date
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
-                if (row[iDate] === today) {
+                const gameDate = row[idx.date];
+                const gameTime = row[idx.time];
+                const gameField = row[idx.field];
+                const home = row[idx.home];
+                const away = row[idx.away];
+
+                if (!gameDate || !home || !away) continue;
+
+                if (gameDate === todayFormatted) {
+                    // Determine status
+                    let statusBadge = "";
+                    let icon = "⚾";
+
+                    const homeScore = row[idx.homeScore] || "";
+                    const awayScore = row[idx.awayScore] || "";
+
+                    if (homeScore && awayScore) {
+                        statusBadge = "FINAL";
+                        icon = "🏁"; 
+                    } else {
+                        // Compare time
+                        const gameDateObj = new Date(`${gameDate} ${gameTime}`);
+                        if (today > gameDateObj) {
+                            statusBadge = "LIVE";
+                            icon = "🔴"; 
+                        } else {
+                            statusBadge = "TODAY";
+                            icon = "⚾";
+                        }
+                    }
+
                     todayGames.push(
-                        `${division} – ${row[iAway]} @ ${row[iHome]} ${row[iTime]} (${row[iField]})`
+                        `${icon} ${division}: ${away} @ ${home} – ${gameTime} (${gameField}) [${statusBadge}]`
                     );
                 }
             }
         }
 
         if (todayGames.length === 0) {
-            tickerContent.textContent = "No games scheduled today.";
+            tickerContent.textContent = "⚾ No games scheduled today.";
         } else {
             tickerContent.textContent = todayGames.join(" • ");
         }
@@ -552,7 +584,6 @@ async function renderTicker() {
         tickerContent.textContent = "Unable to load games.";
     }
 }
-
 
 function scrollToToday() {
   const today = new Date();

@@ -170,6 +170,102 @@ hideSpinner();
         console.error("Error loading schedule CSV:", err);
     }
 }
+// ================================
+// FETCH SCORES + STANDINGS (FORM)
+// ================================
+async function fetchScoresAndStandings() {
+    const url = "https://docs.google.com/spreadsheets/d/13ngf4TN4UwTnYMXAXqgrRuqYm4sBlkx3YnXidNDMaXE/gviz/tq?tqx=out:csv&gid=1691535422";
+
+    try {
+        const response = await fetch(url);
+        const csvText = await response.text();
+        const rows = csvText.split("\n").slice(1); // skip header
+
+        let games = [];
+
+        rows.forEach(row => {
+            let cols = row.split(",");
+
+            if (cols.length < 10) return; // skip incomplete rows
+
+            let game = {
+                timestamp: cols[0],
+                division: cols[1],
+                date: cols[2],
+                time: cols[3],
+                field: cols[4],
+                homeTeam: cols[5],
+                awayTeam: cols[6],
+                homeScore: parseInt(cols[7] || "0"),
+                awayScore: parseInt(cols[8] || "0"),
+                submittedBy: cols[9]
+            };
+
+            games.push(game);
+        });
+
+        return games;
+
+    } catch (err) {
+        console.error("Error fetching scores/standings:", err);
+        return [];
+    }
+}
+function buildStandings(games) {
+    let table = {};
+
+    games.forEach(g => {
+        if (!table[g.division]) table[g.division] = {};
+
+        // Ensure home team exists
+        if (!table[g.division][g.homeTeam]) {
+            table[g.division][g.homeTeam] = { wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
+        }
+        // Ensure away team exists
+        if (!table[g.division][g.awayTeam]) {
+            table[g.division][g.awayTeam] = { wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
+        }
+
+        // Add RF/RA
+        table[g.division][g.homeTeam].runsFor += g.homeScore;
+        table[g.division][g.homeTeam].runsAgainst += g.awayScore;
+        table[g.division][g.awayTeam].runsFor += g.awayScore;
+        table[g.division][g.awayTeam].runsAgainst += g.homeScore;
+
+        // Wins / Losses
+        if (g.homeScore > g.awayScore) {
+            table[g.division][g.homeTeam].wins++;
+            table[g.division][g.awayTeam].losses++;
+        } else if (g.homeScore < g.awayScore) {
+            table[g.division][g.awayTeam].wins++;
+            table[g.division][g.homeTeam].losses++;
+        } else {
+            table[g.division][g.homeTeam].ties++;
+            table[g.division][g.awayTeam].ties++;
+        }
+    });
+
+    return table;
+}
+function buildTicker(formGames) {
+    formGames.sort((a, b) => {
+        return new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time);
+    });
+
+    return formGames.map(g => {
+        return `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`;
+    });
+}
+async function loadScoresAndStandings() {
+    let formGames = await fetchScoresAndStandings();
+
+    standingsData = buildStandings(formGames);
+    tickerData = buildTicker(formGames);
+
+    // These functions already exist in your file
+    if (currentPage === "standings") renderStandings();
+    if (currentPage === "home") renderHome();
+}
 
 // ========================
 // SCORE ENTRY
@@ -479,101 +575,16 @@ function renderSchedule() {
     hideSpinner();
   }, 120);
 }
-async function renderTicker() {
-    const tickerContent = document.getElementById("tickerContent");
-    if (!tickerContent) return;
+function renderTicker() {
+    const el = document.getElementById("tickerContent");
+    if (!el) return;
 
-    try {
-        // Your published CSV URLs
-        const urls = {
-            "Majors": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Uj9-t68hK0FZKcjf4_oWO3aJh8Hh3VyIDU4O5bG5SN5Lad5FZQDK3exbBu5C3jJLAuO/pub?gid=0&single=true&output=csv",
-            "AAA":    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Uj9-t68hK0FZKcjf4_oWO3aJh8Hh3VyIDU4O5bG5SN5Lad5FZQDK3exbBu5C3jJLAuO/pub?gid=1857914653&single=true&output=csv",
-            "AA":     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Uj9-t68hK0FZKcjf4_oWO3aJh8Hh3VyIDU4O5bG5SN5Lad5FZQDK3exbBu5C3jJLAuO/pub?gid=1006784456&single=true&output=csv"
-        };
-
-        let todayGames = [];
-        const now = new Date();
-        const todayFormatted = now.toLocaleDateString("en-US");
-
-        for (const [division, csvUrl] of Object.entries(urls)) {
-
-            const res = await fetch(csvUrl);
-            const csvText = await res.text();
-            const rows = csvText.split("\n").map(r => r.split(","));
-
-            const header = rows[0];
-            const idx = {
-                division: header.indexOf("division"),
-                date: header.indexOf("date"),
-                time: header.indexOf("time"),
-                field: header.indexOf("Field"),
-                home: header.indexOf("home"),
-                away: header.indexOf("away"),
-                homeScore: header.indexOf("homeScore"),
-                awayScore: header.indexOf("awayScore")
-            };
-
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-
-                const gameDate = row[idx.date];
-                const gameTime = row[idx.time];
-                const field = row[idx.field];
-                const home = row[idx.home];
-                const away = row[idx.away];
-
-                if (!gameDate || !home || !away) continue;
-
-                // Only show today's games
-                if (gameDate !== todayFormatted) continue;
-
-                const homeScore = idx.homeScore !== -1 ? row[idx.homeScore] : "";
-                const awayScore = idx.awayScore !== -1 ? row[idx.awayScore] : "";
-
-                let statusBadge = "";
-                let badgeText = "";
-
-                if (homeScore && awayScore) {
-                    statusBadge = "FINAL";
-                    badgeText = "FINAL";
-                } else {
-                    const gameDateTime = new Date(`${gameDate} ${gameTime}`);
-
-                    if (now > gameDateTime) {
-                        statusBadge = "LIVE";
-                        badgeText = "🔥 LIVE";
-                    } else {
-                        statusBadge = "TODAY";
-                        badgeText = "TODAY";
-                    }
-                }
-
-                // Build matchup text depending on score availability
-                let matchupText = "";
-                if (homeScore && awayScore) {
-                    matchupText = `${away} ${awayScore}–${homeScore} ${home}`;
-                } else {
-                    matchupText = `${away} @ ${home} ${gameTime}`;
-                }
-
-                // ESPN Style C format
-                todayGames.push(
-                    `${division.toUpperCase()} | ⚾ ${matchupText} | ${badgeText}`
-                );
-            }
-        }
-
-        // Output
-        if (todayGames.length === 0) {
-            tickerContent.textContent = "⚾ No games scheduled today.";
-        } else {
-            tickerContent.textContent = todayGames.join(" • ");
-        }
-
-    } catch (err) {
-        console.error("Ticker Error:", err);
-        tickerContent.textContent = "Unable to load games.";
+    if (!tickerData || tickerData.length === 0) {
+        el.textContent = "⚾ No score submissions yet.";
+        return;
     }
+
+    el.textContent = tickerData.join(" • ");
 }
 
 function scrollToToday() {
@@ -595,80 +606,71 @@ function scrollToToday() {
   // If no future games found, scroll to top
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
-// ========================
-// STANDINGS
-// ========================
-function computeStandings(div) {
-  const table = {};
-
-  if (INITIAL_STANDINGS[div]) {
-    INITIAL_STANDINGS[div].forEach(t => {
-      table[t] = { team: t, wins: 0, losses: 0 };
-    });
-  }
-
-  games
-    .filter(g => g.division === div)
-    .forEach(g => {
-      if (!table[g.home]) table[g.home] = { team: g.home, wins: 0, losses: 0 };
-      if (!table[g.away]) table[g.away] = { team: g.away, wins: 0, losses: 0 };
-
-      if (g.homeScore != null && g.awayScore != null) {
-        if (g.homeScore > g.awayScore) {
-          table[g.home].wins++;
-          table[g.away].losses++;
-        } else if (g.awayScore > g.homeScore) {
-          table[g.away].wins++;
-          table[g.home].losses++;
-        }
-      }
-    });
-
-  return Object.values(table).sort((a, b) => b.wins - a.wins);
-}
-
 function renderStandings() {
-  showSpinner();
-  const standings = computeStandings(selectedStandingsDivision);
+    showSpinner();
 
-  pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header"><div class="card-title">Standings</div></div>
+    // standingsData was created in loadScoresAndStandings()
+    // Example shape:
+    // standingsData = {
+    //   "Majors": { "Team 1": {wins, losses, ties, runsFor, runsAgainst}, ... },
+    //   "AAA": { ... },
+    //   "AA": { ... }
+    // }
+    const division = selectedStandingsDivision;
+    const divStandings = standingsData?.[division] || {};
 
-      <div style="padding:16px;">
-        <label><strong>Division:</strong>
-          <select onchange="selectedStandingsDivision=this.value; renderStandings()">
-            ${SCORING_DIVISIONS.map(
-              d =>
-                `<option value="${d}" ${
-                  d === selectedStandingsDivision ? "selected" : ""
-                }>${d}</option>`
-            ).join("")}
-          </select>
-        </label>
-      </div>
+    // Convert object → array
+    const standingsArray = Object.keys(divStandings).map(team => ({
+        team: team,
+        ...divStandings[team]
+    }));
 
-      <ul class="standings-list">
-        ${
-          !standings.length
-            ? `<li>No standings yet.</li>`
-            : standings
-                .map(
-                  s => `
-            <li>
-              <span>${s.team}</span>
-              <span class="record">${s.wins} - ${s.losses}</span>
-            </li>`
-                )
-                .join("")
-        }
-      </ul>
-    </section>
-  `;
-  applyPageTransition();
-  hideSpinner();
+    // Sort by wins DESC, then run differential DESC
+    standingsArray.sort((a, b) => {
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        const diffA = a.runsFor - a.runsAgainst;
+        const diffB = b.runsFor - b.runsAgainst;
+        return diffB - diffA;
+    });
+
+    pageRoot.innerHTML = `
+        <section class="card">
+            <div class="card-header"><div class="card-title">Standings</div></div>
+
+            <div style="padding:16px;">
+                <label><strong>Division:</strong>
+                    <select onchange="selectedStandingsDivision=this.value; renderStandings()">
+                        ${SCORING_DIVISIONS.map(
+                            d =>
+                              `<option value="${d}" ${
+                                  d === selectedStandingsDivision ? "selected" : ""
+                              }>${d}</option>`
+                        ).join("")}
+                    </select>
+                </label>
+            </div>
+
+            <ul class="standings-list">
+                ${
+                    standingsArray.length === 0
+                        ? `<li>No standings yet.</li>`
+                        : standingsArray
+                              .map(
+                                  s => `
+                    <li>
+                        <span>${s.team}</span>
+                        <span class="record">${s.wins}-${s.losses}</span>
+                    </li>`
+                              )
+                              .join("")
+                }
+            </ul>
+        </section>
+    `;
+
+    applyPageTransition();
+    hideSpinner();
 }
-
 
 function loginCoach() {
   const name = document.getElementById("coach-name").value.trim();
@@ -771,21 +773,17 @@ function renderAdmin() {
 // ========================
 function renderMore() {
     pageRoot.innerHTML = `
-        <section class="card">
-            <div class="card-header">
-                <div class="card-title">More</div>
-            </div>
+    <section class="card">
+        <div class="card-header"><div class="card-title">More</div></div>
 
-            <ul class="roster-list">
-                <li><button onclick="renderTeams()">Teams</button></li>
-                <li><button onclick="renderResources()">Resources</button></li>
-                <li><button onclick="renderLogin()">Coach / Admin Login</button></li>
-                ${isAdmin ? `<li><button onclick="renderAdmin()">Admin Tools</button></li>` : ""}
-            </ul>
-
-        </section>
+        <ul class="roster-list">
+            <li><button onclick="renderTeams()">Teams</button></li>
+            <li><button onclick="renderResources()">Resources</button></li>
+            <li><button onclick="openScoreForm()">Enter Final Score</button></li>
+            ${isAdmin ? `<li><button onclick="renderAdmin()">Admin</button></li>` : ""}
+        </ul>
+    </section>
     `;
-
     applyPageTransition();
 }
 
@@ -843,6 +841,9 @@ function setActiveNav(page) {
     btn.classList.toggle("active", btn.dataset.page === page);
   });
 }
+function openScoreForm() {
+    window.open("https://docs.google.com/spreadsheets/d/13ngf4TN4UwTnYMXAXqgrRuqYm4sBlkx3YnXidNDMaXE/edit?resourcekey=&gid=1691535422#gid=1691535422", "_blank");
+}
 
 function renderPage(page) {
   currentPage = page;
@@ -871,6 +872,8 @@ function initApp() {
   setupNav();
   renderHome();
   loadScheduleFromApi();
+  loadScoresAndStandings();
+
 }
 // ========================
 // PULL DOWN TO REFRESH (Home Only)

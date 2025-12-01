@@ -51,9 +51,6 @@ const coachPins = {
     "AA": "3333"
 };
 
-// Admin login stays separate
-const ADMIN_PIN = "0709";
-
 let scoreOverrides = JSON.parse(localStorage.getItem("vpll_score_overrides") || "{}");
 
 const pageRoot = document.getElementById("page-root");

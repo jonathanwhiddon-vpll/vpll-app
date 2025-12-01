@@ -308,6 +308,7 @@ async function renderHome() {
       ${announcementHTML}
     </section>
   `;
+renderTicker();
 
   applyPageTransition();
 }
@@ -498,6 +499,42 @@ function renderSchedule() {
     applyPageTransition();
     hideSpinner();
   }, 120);
+}
+async function renderTicker() {
+    const tickerContent = document.getElementById("tickerContent");
+    if (!tickerContent) return;
+
+    try {
+        // Fetch all schedules (Majors, AAA, AA)
+        const divisions = ["Majors", "AAA", "AA"];
+        let todayGames = [];
+
+        for (let div of divisions) {
+            const url = `${baseScheduleURL}&tab=${encodeURIComponent(div)}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            // Find today's date
+            const today = new Date().toLocaleDateString("en-US");
+
+            data.forEach(game => {
+                if (game.Date === today) {
+                    let text = `${div} – ${game.Visitor} ${game.VisitorScore || ''} vs ${game.Home} ${game.HomeScore || ''} @ ${game.Time}`;
+                    todayGames.push(text);
+                }
+            });
+        }
+
+        if (todayGames.length === 0) {
+            tickerContent.textContent = "No games scheduled today.";
+            return;
+        }
+
+        tickerContent.textContent = todayGames.join(" • ");
+    } catch (err) {
+        tickerContent.textContent = "Unable to load games.";
+        console.error("Ticker error:", err);
+    }
 }
 
 function scrollToToday() {

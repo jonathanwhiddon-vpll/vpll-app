@@ -39,39 +39,21 @@ const ADMIN_PIN = "0709";
 
 // INITIAL standings layout
 const INITIAL_STANDINGS = {
-  "Majors": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"],
-  "AAA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
-  "AA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"]
+  "Majors": ["Team Hanna", "Team Cole", "Team 3", "Team 4", "Team 5", "Team 6"],
+  "AAA": ["Team Cairney", "Team 2", "Team 3", "Team Whiddon", "Team 5", "Team 6", "Team 7", "Team 8"],
+  "AA": ["Team Scott", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"]
 };
 
-// Coach pins
+// Division-level login (simple)
 const coachPins = {
-  "Coach Ben": "1101",
-  "Coach Brian": "1102",
-  "Coach Todd": "1103",
-  "Coach Kevin": "1104",
-  "Coach Five": "1105",
-  "Coach Six": "1106",
-
-  "Coach Jon": "2101",
-  "Coach Matt C": "2102",
-  "Coach Matt P": "2103",
-  "Coach Devin": "2104",
-  "Coach Matt B": "2105",
-  "Coach JJ": "2106",
-  "Coach George": "2107",
-  "Coach Eric": "2108",
-
-  "Coach Scott": "3101",
-  "Coach Cory": "3102",
-  "Coach Mitch": "3103",
-  "Coach Matt": "3104",
-  "Coach Dustin": "3105",
-  "Coach Brent": "3106",
-  "Coach Eight": "3107"
+    "Majors": "1111",
+    "AAA": "2222",
+    "AA": "3333"
 };
 
-let messages = JSON.parse(localStorage.getItem("vpll_messages") || "[]");
+// Admin login stays separate
+const ADMIN_PIN = "0709";
+
 let scoreOverrides = JSON.parse(localStorage.getItem("vpll_score_overrides") || "{}");
 
 const pageRoot = document.getElementById("page-root");
@@ -690,54 +672,6 @@ function renderStandings() {
   hideSpinner();
 }
 
-// ========================
-// MESSAGES
-// ========================
-function renderMessages() {
-  const isLoggedIn = !!loggedInCoach;
-
-  const messageHtml =
-    messages.length === 0
-      ? "<p>No messages yet.</p>"
-      : messages
-          .map(m => `<p><strong>${m.coach}:</strong> ${m.text}</p>`)
-          .join("");
-
-  pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header"><div class="card-title">Messages</div></div>
-      <div style="padding:16px;">${messageHtml}</div>
-
-      <div style="padding:16px; border-top:1px solid #eee;">
-        ${
-          isLoggedIn
-            ? `
-            <p>Logged in as <strong>${loggedInCoach}</strong> ${
-                isAdmin ? "(Admin)" : ""
-              }</p>
-            <button onclick="logoutCoach()">Logout</button>
-          `
-            : `
-            <label><strong>Coach Login:</strong></label><br>
-            <input id="coach-name" placeholder="Coach Name"><br>
-            <input id="coach-pin" placeholder="PIN" type="password"><br>
-            <button onclick="loginCoach()">Login</button>
-          `
-        }
-
-        ${
-          isLoggedIn
-            ? `
-            <textarea id="msg-input" placeholder="Enter a message" style="width:100%; min-height:60px;"></textarea>
-            <button onclick="postMessage()">Post Message</button>
-          `
-            : ""
-        }
-      </div>
-    </section>
-  `;
-  applyPageTransition();
-}
 
 function loginCoach() {
   const name = document.getElementById("coach-name").value.trim();
@@ -746,7 +680,6 @@ function loginCoach() {
   if (name === "Admin" && pin === ADMIN_PIN) {
     loggedInCoach = "Admin";
     isAdmin = true;
-    return renderMessages();
   }
 
   if (!coachPins[name]) return alert("Unknown coach.");
@@ -754,13 +687,11 @@ function loginCoach() {
 
   loggedInCoach = name;
   isAdmin = false;
-  renderMessages();
 }
 
 function logoutCoach() {
   loggedInCoach = null;
   isAdmin = false;
-  renderMessages();
 }
 
 function postMessage() {
@@ -830,21 +761,70 @@ function renderAdmin() {
 // MORE
 // ========================
 function renderMore() {
-  pageRoot.innerHTML = `
-    <section class="card">
-      <div class="card-header"><div class="card-title">More</div></div>
+    pageRoot.innerHTML = `
+        <section class="card">
+            <div class="card-header">
+                <div class="card-title">More</div>
+            </div>
 
-      <ul class="roster-list">
-        <li><button onclick="renderTeams()">Teams</button></li>
-        <li><button onclick="renderMessages()">Messages</button></li>
-        <li><button onclick="renderResources()">Resources</button></li>
-        ${isAdmin ? `<li><button onclick="renderAdmin()">Admin</button></li>` : ""}
-      </ul>
-    </section>
-  `;
-  applyPageTransition();
+            <ul class="roster-list">
+                <li><button onclick="renderTeams()">Teams</button></li>
+                <li><button onclick="renderResources()">Resources</button></li>
+                <li><button onclick="renderLogin()">Coach / Admin Login</button></li>
+                ${isAdmin ? `<li><button onclick="renderAdmin()">Admin Tools</button></li>` : ""}
+            </ul>
+
+        </section>
+    `;
+
+    applyPageTransition();
 }
 
+function renderLogin() {
+    const isLoggedIn = !!loggedInCoach;
+
+    pageRoot.innerHTML = `
+        <section class="card">
+            <div class="card-header">
+                <div class="card-title">Division Login</div>
+            </div>
+
+            <div style="padding:16px;">
+
+                ${
+                    isLoggedIn
+                    ? `
+                        <p>
+                            Logged in as
+                            <strong>${loggedInCoach}</strong>
+                            ${isAdmin ? "(Admin)" : ""}
+                        </p>
+
+                        <button onclick="logoutCoach()">Logout</button>
+                    `
+                    : `
+                        <p>Enter your division name and PIN to enter final scores.</p>
+
+                        <label><strong>Division:</strong></label><br>
+                        <input id="coach-name" placeholder="Majors, AAA, or AA"><br><br>
+
+                        <label><strong>PIN:</strong></label><br>
+                        <input id="coach-pin" type="password" placeholder="PIN"><br><br>
+
+                        <button onclick="loginCoach()">Login</button>
+
+                        <p style="margin-top:12px; font-size:0.85rem; color:#666;">
+                            Admin login: name <strong>Admin</strong>
+                        </p>
+                    `
+                }
+
+            </div>
+        </section>
+    `;
+
+    applyPageTransition();
+}
 // ========================
 // NAVIGATION
 // ========================

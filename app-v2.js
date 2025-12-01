@@ -674,16 +674,28 @@ function loginCoach() {
   const name = document.getElementById("coach-name").value.trim();
   const pin = document.getElementById("coach-pin").value.trim();
 
+  // FIRST: Check admin login
   if (name === "Admin" && pin === ADMIN_PIN) {
     loggedInCoach = "Admin";
     isAdmin = true;
+    renderMore();
+    return;
   }
 
-  if (!coachPins[name]) return alert("Unknown coach.");
-  if (coachPins[name] !== pin) return alert("Incorrect PIN.");
+  // THEN: Check division login
+  if (!coachPins[name]) {
+    alert("Unknown division.");
+    return;
+  }
+
+  if (coachPins[name] !== pin) {
+    alert("Incorrect PIN.");
+    return;
+  }
 
   loggedInCoach = name;
   isAdmin = false;
+  renderMore();
 }
 
 function logoutCoach() {

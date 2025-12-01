@@ -567,8 +567,13 @@ async function renderTicker() {
                     }
 
                     todayGames.push(
-                        `${icon} ${division}: ${away} @ ${home} – ${gameTime} (${gameField}) [${statusBadge}]`
-                    );
+    `${division.toUpperCase()} | ⚾ ${away} ${awayScore && homeScore ? awayScore : ""}${awayScore && homeScore ? "–" : ""}${homeScore || ""} ${home} ${!homeScore && !awayScore ? `@ ${home}` : ""} | ${
+        statusBadge === "LIVE" ? "🔥 LIVE" :
+        statusBadge === "FINAL" ? "FINAL" :
+        "TODAY"
+    }`
+);
+
                 }
             }
         }

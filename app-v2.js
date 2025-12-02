@@ -729,10 +729,11 @@ function renderResources() {
 
       <ul class="roster-list">
         <li><a href="/viewer.html?file=/resources/local_rules.pdf">⚙️ Local League Rules (PDF)</a></li>
-        <li><a href="/viewer.html?file=/resources/home_run_club.pdf">💥 Home Run Club</a></li>
-        <li><a href="/viewer.html?file=/resources/volunteer_list.pdf">🙋‍♂️ Volunteer List</a></li>
+        <li><a href="/viewer.html?file=/resources/home_run_club.pdf">💥 Home Run Club (PDF)</a></li>
+        <li><a href="/viewer.html?file=/resources/volunteer_list.pdf">🙋‍♂️ Volunteer List (PDF)</a></li>
         <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">🧾 Rulebook</a></li>
         <li><a href="/viewer.html?file=/resources/aa_rules.pdf">🧢 AA Special Rules (PDF)</a></li>
+
 
       </ul>
     </section>

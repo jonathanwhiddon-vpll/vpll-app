@@ -1,99 +1,310 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VPLL Resource</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VPLL Resource Viewer</title>
 
-    <style>
-        body {
-            margin: 0;
-            background: #f5f5f5;
-            font-family: Arial, sans-serif;
-        }
+  <!-- PDF.js from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
-        /* VPLL Header Bar */
-        header {
-            background-color: #0a2a66; /* dark navy */
-            color: white;
-            padding: 14px 0;
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            border-bottom: 5px solid #f4b41a; /* gold */
-            position: relative;
-        }
+  <style>
+    :root {
+      --vpll-navy: #0a2a66;
+      --vpll-gold: #f4b41a;
+      --bg-light: #f5f5f5;
+    }
 
-        /* Back button */
-        #backBtn {
-            position: absolute;
-            left: 12px;
-            top: 12px;
-            background: #f4b41a;
-            color: #0a2a66;
-            border: none;
-            padding: 8px 14px;
-            font-size: 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        #backBtn:hover {
-            background: #ffcc33;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        /* PDF container */
-        iframe {
-            width: 100%;
-            height: calc(100vh - 65px);
-            border: none;
-        }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg-light);
+      color: #111;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
 
-        /* Error message */
-        .error {
-            padding: 30px;
-            text-align: center;
-            font-size: 18px;
-            color: #333;
-        }
-    </style>
+    /* Header */
+    header {
+      background-color: var(--vpll-navy);
+      color: white;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 4px solid var(--vpll-gold);
+      position: relative;
+    }
+
+    #backBtn {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--vpll-gold);
+      color: var(--vpll-navy);
+      border: none;
+      padding: 6px 12px;
+      font-size: 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #backBtn:active {
+      transform: translateY(-50%) scale(0.97);
+    }
+
+    #titleText {
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      max-width: 70%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Toolbar */
+    #toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px;
+      background: #ffffff;
+      border-bottom: 1px solid #ddd;
+      font-size: 14px;
+      flex-wrap: wrap;
+    }
+
+    #toolbar button {
+      border: none;
+      background: var(--vpll-navy);
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    #toolbar button:disabled {
+      background: #999;
+      cursor: default;
+    }
+
+    #pageInfo {
+      margin: 0 6px;
+      min-width: 70px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    #zoomInfo {
+      font-size: 13px;
+      color: #333;
+    }
+
+    /* Viewer area */
+    #viewerContainer {
+      flex: 1;
+      overflow: auto;
+      background: #999;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 8px;
+    }
+
+    #pdfCanvas {
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Error / loading text */
+    .message {
+      padding: 24px;
+      text-align: center;
+      font-size: 16px;
+      color: #222;
+    }
+
+    @media (max-width: 600px) {
+      #toolbar {
+        font-size: 12px;
+      }
+      #toolbar button {
+        padding: 5px 8px;
+        font-size: 12px;
+      }
+      #titleText {
+        font-size: 16px;
+      }
+    }
+  </style>
 </head>
-
 <body>
 
-<header>
+  <header>
     <button id="backBtn" onclick="history.back()">← Back</button>
-    VPLL Resource
-</header>
+    <div id="titleText">VPLL Resource</div>
+  </header>
 
-<div id="pdfContainer"></div>
+  <div id="toolbar">
+    <button id="prevPageBtn">‹ Prev</button>
+    <span id="pageInfo">Page 1 / 1</span>
+    <button id="nextPageBtn">Next ›</button>
+    <span id="zoomInfo">100%</span>
+    <button id="zoomOutBtn">−</button>
+    <button id="zoomInBtn">+</button>
+  </div>
 
-<script>
-    // Get ?file= parameter
+  <div id="viewerContainer">
+    <canvas id="pdfCanvas"></canvas>
+  </div>
+
+  <div id="statusMessage" class="message" style="display:none;"></div>
+
+  <script>
+    // ====== Get file param ======
     const params = new URLSearchParams(window.location.search);
     const file = params.get("file");
 
-    const container = document.getElementById("pdfContainer");
+    const statusEl = document.getElementById("statusMessage");
+    const canvas = document.getElementById("pdfCanvas");
+    const ctx = canvas.getContext("2d");
+    const titleText = document.getElementById("titleText");
+
+    const prevBtn = document.getElementById("prevPageBtn");
+    const nextBtn = document.getElementById("nextPageBtn");
+    const zoomInBtn = document.getElementById("zoomInBtn");
+    const zoomOutBtn = document.getElementById("zoomOutBtn");
+    const pageInfo = document.getElementById("pageInfo");
+    const zoomInfo = document.getElementById("zoomInfo");
 
     if (!file) {
-        container.innerHTML = "<div class='error'>No PDF file specified.</div>";
-    } else {
-        // Detect iPhone / iOS Safari
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-if (isIOS) {
-    // Open PDF using native iOS viewer
-    window.location.href = file;
-} else {
-    // Use iframe viewer on everything else
-    container.innerHTML = `
-        <iframe src="${file}" title="PDF Viewer"></iframe>
-    `;
-}
-
+      statusEl.style.display = "block";
+      statusEl.textContent = "No PDF file specified.";
     }
-</script>
+
+    // Friendly titles based on filename
+    const fileName = file ? file.split("/").pop() : "";
+    const titles = {
+      "local_rules.pdf": "Local League Rules",
+      "aa_rules.pdf": "AA Division Rules",
+      "home_run_club.pdf": "Home Run Club",
+      "volunteer_list.pdf": "Volunteer List"
+    };
+    if (titles[fileName]) {
+      titleText.textContent = titles[fileName];
+    }
+
+    // ====== PDF.js setup ======
+    let pdfDoc = null;
+    let currentPage = 1;
+    let totalPages = 1;
+    let scale = 1.0;
+    const minScale = 0.5;
+    const maxScale = 2.0;
+    const scaleStep = 0.1;
+
+    // Required worker setup for PDF.js
+    if (window["pdfjsLib"]) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+
+    function setStatus(msg) {
+      statusEl.style.display = "block";
+      statusEl.textContent = msg;
+    }
+
+    async function renderPage(num) {
+      if (!pdfDoc) return;
+
+      statusEl.style.display = "block";
+      statusEl.textContent = "Loading page " + num + "...";
+
+      const page = await pdfDoc.getPage(num);
+
+      const viewport = page.getViewport({ scale });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport
+      };
+
+      await page.render(renderContext).promise;
+
+      statusEl.style.display = "none";
+
+      // Update controls
+      pageInfo.textContent = `Page ${currentPage} / ${totalPages}`;
+      zoomInfo.textContent = Math.round(scale * 100) + "%";
+
+      prevBtn.disabled = currentPage <= 1;
+      nextBtn.disabled = currentPage >= totalPages;
+      zoomOutBtn.disabled = scale <= minScale;
+      zoomInBtn.disabled = scale >= maxScale;
+    }
+
+    async function loadPdf(url) {
+      try {
+        setStatus("Loading PDF...");
+        const loadingTask = pdfjsLib.getDocument(url);
+        pdfDoc = await loadingTask.promise;
+        totalPages = pdfDoc.numPages;
+        currentPage = 1;
+        setStatus("");
+        await renderPage(currentPage);
+      } catch (err) {
+        console.error("PDF load error:", err);
+        setStatus("Unable to load PDF.");
+      }
+    }
+
+    // Toolbar actions
+    prevBtn.addEventListener("click", async () => {
+      if (currentPage <= 1) return;
+      currentPage--;
+      await renderPage(currentPage);
+    });
+
+    nextBtn.addEventListener("click", async () => {
+      if (currentPage >= totalPages) return;
+      currentPage++;
+      await renderPage(currentPage);
+    });
+
+    zoomInBtn.addEventListener("click", async () => {
+      if (scale >= maxScale) return;
+      scale = Math.min(maxScale, scale + scaleStep);
+      await renderPage(currentPage);
+    });
+
+    zoomOutBtn.addEventListener("click", async () => {
+      if (scale <= minScale) return;
+      scale = Math.max(minScale, scale - scaleStep);
+      await renderPage(currentPage);
+    });
+
+    // Start
+    if (file && window["pdfjsLib"]) {
+      loadPdf(file);
+    }
+  </script>
 
 </body>
 </html>
+
 

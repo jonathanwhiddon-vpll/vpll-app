@@ -728,11 +728,12 @@ function renderResources() {
       <div class="card-header"><div class="card-title">Resources</div></div>
 
       <ul class="roster-list">
-        <li><a href="/resources/local_rules.pdf" target="_blank">⚙️ Local League Rules (PDF)</a></li>
-        <li><a href="https://docs.google.com/document/d/11CShzXZavE77uNQQou8dqn4bUINXCe4vOtgeT8RBq6E/edit?tab=t.0" target="_blank">💥 Home Run Club</a></li>
-        <li><a href="https://docs.google.com/document/d/1xh7XvoNy2jounkVr0zCBJ3OnsJv-nUvwGG_cBv9PYkc/edit?tab=t.0" target="_blank">🙋‍♂️ Volunteer List</a></li>
+        <li><a href="/viewer.html?file=/resources/local_rules.pdf">⚙️ Local League Rules (PDF)</a></li>
+        <li><a href="/viewer.html?file=/resources/home_run_club.pdf">💥 Home Run Club</a></li>
+        <li><a href="/viewer.html?file=/resources/volunteer_list.pdf">🙋‍♂️ Volunteer List</a></li>
         <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">🧾 Rulebook</a></li>
-        <li><a href="/resources/aa_rules.pdf" target="_blank">🧢 AA Special Rules (PDF)</a></li>
+        <li><a href="/viewer.html?file=/resources/aa_rules.pdf">🧢 AA Special Rules (PDF)</a></li>
+
       </ul>
     </section>
   `;

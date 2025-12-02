@@ -686,15 +686,15 @@ function loginCoach() {
   const name = document.getElementById("coach-name").value.trim();
   const pin = document.getElementById("coach-pin").value.trim();
 
-  // FIRST: Check admin login
+  // FIRST: Admin login
   if (name === "Admin" && pin === ADMIN_PIN) {
     loggedInCoach = "Admin";
     isAdmin = true;
-    renderMore();
+    renderCoachScoreForm();
     return;
   }
 
-  // THEN: Check division login
+  // Division login
   if (!coachPins[name]) {
     alert("Unknown division.");
     return;
@@ -707,26 +707,9 @@ function loginCoach() {
 
   loggedInCoach = name;
   isAdmin = false;
-  renderMore();
-}
 
-function logoutCoach() {
-  loggedInCoach = null;
-  isAdmin = false;
-}
-
-function postMessage() {
-  if (!loggedInCoach) return alert("Log in first.");
-
-  const textarea = document.getElementById("msg-input");
-  const text = textarea.value.trim();
-  if (!text) return;
-
-  messages.push({ coach: loggedInCoach, text });
-  saveMessages();
-  textarea.value = "";
-
-  renderMessages();
+  // GO STRAIGHT TO SCORE FORM
+  renderCoachScoreForm();
 }
 
 // ========================
@@ -748,6 +731,31 @@ function renderResources() {
     </section>
   `;
   applyPageTransition();
+}
+function renderCoachScoreForm() {
+    const root = document.getElementById("page-root");
+
+    root.innerHTML = `
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">Enter Final Score</div>
+        </div>
+
+        <div style="padding:16px;">
+            <p>You are logged in as <strong>${loggedInCoach}</strong>.</p>
+
+            <p>Tap below to open the score submission form:</p>
+
+            <a class="form-button"
+               href="https://docs.google.com/forms/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8h8WyIDU405bG5SNSLaD5FZQDK3exbuS5C3jlLAuO/viewform?usp=pp_url"
+               target="_blank">
+               Open Score Submission Form
+            </a>
+        </div>
+      </section>
+    `;
+
+    applyPageTransition();
 }
 
 // ========================

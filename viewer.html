@@ -78,9 +78,19 @@
     if (!file) {
         container.innerHTML = "<div class='error'>No PDF file specified.</div>";
     } else {
-        container.innerHTML = `
-            <iframe src="${file}" title="PDF Viewer"></iframe>
-        `;
+        // Detect iPhone / iOS Safari
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+if (isIOS) {
+    // Open PDF using native iOS viewer
+    window.location.href = file;
+} else {
+    // Use iframe viewer on everything else
+    container.innerHTML = `
+        <iframe src="${file}" title="PDF Viewer"></iframe>
+    `;
+}
+
     }
 </script>
 

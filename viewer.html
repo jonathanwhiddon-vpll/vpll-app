@@ -111,7 +111,7 @@
       color: #333;
     }
 
-    /* Viewer area */
+    /* Viewer container */
     #viewerContainer {
       flex: 1;
       overflow: auto;
@@ -129,28 +129,15 @@
       height: auto;
     }
 
-    /* Error / loading text */
     .message {
       padding: 24px;
       text-align: center;
       font-size: 16px;
       color: #222;
     }
-
-    @media (max-width: 600px) {
-      #toolbar {
-        font-size: 12px;
-      }
-      #toolbar button {
-        padding: 5px 8px;
-        font-size: 12px;
-      }
-      #titleText {
-        font-size: 16px;
-      }
-    }
   </style>
 </head>
+
 <body>
 
   <header>
@@ -158,6 +145,7 @@
     <div id="titleText">VPLL Resource</div>
   </header>
 
+  <!-- Toolbar -->
   <div id="toolbar">
     <button id="prevPageBtn">‹ Prev</button>
     <span id="pageInfo">Page 1 / 1</span>
@@ -216,7 +204,6 @@
     const maxScale = 2.0;
     const scaleStep = 0.1;
 
-    // Required worker setup for PDF.js
     if (window["pdfjsLib"]) {
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -230,9 +217,7 @@
     async function renderPage(num) {
       if (!pdfDoc) return;
 
-      statusEl.style.display = "block";
-      statusEl.textContent = "Loading page " + num + "...";
-
+      setStatus("Loading page " + num + "...");
       const page = await pdfDoc.getPage(num);
 
       const viewport = page.getViewport({ scale });
@@ -245,10 +230,8 @@
       };
 
       await page.render(renderContext).promise;
-
       statusEl.style.display = "none";
 
-      // Update controls
       pageInfo.textContent = `Page ${currentPage} / ${totalPages}`;
       zoomInfo.textContent = Math.round(scale * 100) + "%";
 
@@ -263,10 +246,21 @@
         setStatus("Loading PDF...");
         const loadingTask = pdfjsLib.getDocument(url);
         pdfDoc = await loadingTask.promise;
+
         totalPages = pdfDoc.numPages;
         currentPage = 1;
+
         setStatus("");
+
+        // Hide toolbar if single-page PDF
+        if (totalPages === 1) {
+          document.getElementById("toolbar").style.display = "none";
+        } else {
+          document.getElementById("toolbar").style.display = "flex";
+        }
+
         await renderPage(currentPage);
+
       } catch (err) {
         console.error("PDF load error:", err);
         setStatus("Unable to load PDF.");
@@ -306,5 +300,6 @@
 
 </body>
 </html>
+
 
 

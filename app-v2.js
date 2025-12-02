@@ -884,7 +884,10 @@ function setActiveNav(page) {
   });
 }
 function openScoreForm() {
-    window.open("https://docs.google.com/spreadsheets/d/13ngf4TN4UwTnYMXAXqgrRuqYm4sBlkx3YnXidNDMaXE/edit?resourcekey=&gid=1691535422#gid=1691535422", "_blank");
+    window.open(
+        "https://docs.google.com/forms/d/e/1FAIpQLSdCWC1qhvh3YHTqbHZTFbl6Wkfpwr3_1WWk5-3skq8Oh6UxhA/viewform?usp=header",
+        "_blank"
+    );
 }
 
 function renderPage(page) {

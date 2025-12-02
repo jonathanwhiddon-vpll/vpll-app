@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Document Viewer</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #0b0e11;
+    }
+    #backBtn {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: #ffffff;
+      color: #000;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      text-decoration: none;
+      z-index: 9999;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <a id="backBtn" href="javascript:history.back()">⬅ Back</a>
+
+  <iframe id="pdfFrame"></iframe>
+
+  <script>
+    const url = new URL(location.href);
+    const file = url.searchParams.get("file");
+    document.getElementById("pdfFrame").src = file;
+  </script>
+</body>
+</html>

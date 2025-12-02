@@ -733,9 +733,8 @@ function renderResources() {
         <li><a href="/viewer.html?file=/resources/volunteer_list.pdf">🙋‍♂️ Volunteer List (PDF)</a></li>
         <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">🧾 Rulebook</a></li>
         <li><a href="/viewer.html?file=/resources/aa_rules.pdf">🧢 AA Special Rules (PDF)</a></li>
-
-
       </ul>
+
     </section>
   `;
   applyPageTransition();

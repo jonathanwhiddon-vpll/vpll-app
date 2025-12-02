@@ -97,7 +97,7 @@ function applyPageTransition() {
 
   // Start fade-out
   root.style.opacity = 0;
-  root.style.transition = "opacity 0.25s ease";
+  root.style.transition = "opacity 0.35s ease";
 
   // Wait a tiny bit, then fade back in
   requestAnimationFrame(() => {

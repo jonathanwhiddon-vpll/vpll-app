@@ -93,10 +93,20 @@ function applyScoreOverrides() {
 }
 
 function applyPageTransition() {
-  pageRoot.classList.remove("page-transition");
-  void pageRoot.offsetWidth;
-  pageRoot.classList.add("page-transition");
+  const root = document.getElementById("page-root");
+
+  // Start fade-out
+  root.style.opacity = 0;
+  root.style.transition = "opacity 0.25s ease";
+
+  // Wait a tiny bit, then fade back in
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      root.style.opacity = 1;
+    }, 50);
+  });
 }
+
 
 // ========================
 // LOAD SCHEDULE FROM CSV

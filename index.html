@@ -1,78 +1,99 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Villa Park Little League</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VPLL Document Viewer</title>
+  <style>
+    :root {
+      --vpll-navy: #0a1a40;
+      --vpll-gold: #f7c948;
+      --white: #ffffff;
+    }
 
-  <!-- CSS -->
-<link rel="stylesheet" href="style.css?v=5" />
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--vpll-navy);
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
 
-<!-- JS -->
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    /* Top VPLL Header Bar */
+    #headerBar {
+      width: 100%;
+      height: 55px;
+      background: var(--vpll-navy);
+      border-bottom: 4px solid var(--vpll-gold);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      box-sizing: border-box;
+      position: relative;
+      z-index: 10;
+    }
 
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "192e5a60-076a-4ed7-8d07-14dd45389879",
-    });
-  });
-</script>
+    /* Back Button */
+    #backBtn {
+      background: var(--vpll-gold);
+      color: var(--vpll-navy);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-block;
+      box-shadow: 0px 2px 6px rgba(0,0,0,0.25);
+    }
 
+    #titleText {
+      flex: 1;
+      text-align: center;
+      color: var(--white);
+      font-size: 18px;
+      font-weight: bold;
+      margin-right: 40px; /* keeps centered look */
+    }
 
-    <script src="app-v2.js?v=5" defer></script>
+    /* PDF Frame */
+    iframe {
+      width: 100%;
+      height: calc(100% - 55px);
+      border: none;
+      background: #fff;
+    }
 
-    <!-- PWA -->
-    <link rel="manifest" href="manifest.json" />
-    <link rel="icon" type="image/png" href="60thlogo.jpg" />
+  </style>
 </head>
-
 <body>
-<div id="loadingSpinner" class="spinner-overlay" style="display:none;">
-  <img src="vpll-spinner.svg" class="vpll-spinner" alt="Loading">
-</div>
 
-<!-- Header -->
-<header>
-    <img src="60thlogo.jpg" alt="Villa Park Logo" />
-    Villa Park Little League
-</header>
-<div id="gameTicker" class="ticker">
-    <div class="ticker__wrap">
-        <div class="ticker__move" id="tickerContent"></div>
-    </div>
-</div>
+  <div id="headerBar">
+    <a id="backBtn" href="javascript:history.back()">⬅ Back</a>
+    <div id="titleText">VPLL Resource</div>
+  </div>
 
-<!-- Main App Root (all pages rendered by app-v2.js) -->
-<main id="page-root">
-    <div id="homeContent"></div>
-</main>
+  <iframe id="pdfFrame"></iframe>
 
+  <script>
+    const url = new URL(location.href);
+    const file = url.searchParams.get("file");
 
-<!-- Bottom Navigation -->
-<nav id="bottomNav">
-    <button class="nav-btn" data-page="home">
-        <span class="icon">🏠</span>
-        <span class="label">Home</span>
-    </button>
+    // Set PDF
+    document.getElementById("pdfFrame").src = file;
 
-    <button class="nav-btn" data-page="schedule">
-        <span class="icon">📅</span>
-        <span class="label">Schedule</span>
-    </button>
+    // Set title dynamically based on filename
+    const fileName = file.split("/").pop();
 
-    <button class="nav-btn" data-page="standings">
-        <span class="icon">🏆</span>
-        <span class="label">Standings</span>
-    </button>
+    const titles = {
+      "local_rules.pdf": "Local League Rules",
+      "aa_rules.pdf": "AA Division Rules",
+      "home_run_club.pdf": "Home Run Club",
+      "volunteer_list.pdf": "Volunteer List"
+    };
 
-    <button class="nav-btn" data-page="more">
-        <span class="icon">⋯</span>
-        <span class="label">More</span>
-    </button>
-</nav>
+    document.getElementById("titleText").innerHTML =
+      titles[fileName] || "VPLL Resource";
+  </script>
 
 </body>
 </html>

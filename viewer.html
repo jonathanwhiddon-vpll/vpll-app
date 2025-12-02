@@ -1,46 +1,89 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Document Viewer</title>
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: #0b0e11;
-    }
-    #backBtn {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      background: #ffffff;
-      color: #000;
-      padding: 8px 14px;
-      border-radius: 6px;
-      font-size: 16px;
-      font-weight: bold;
-      text-decoration: none;
-      z-index: 9999;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      margin-top: 0;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPLL Resource</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+
+        /* VPLL Header Bar */
+        header {
+            background-color: #0a2a66; /* dark navy */
+            color: white;
+            padding: 14px 0;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            border-bottom: 5px solid #f4b41a; /* gold */
+            position: relative;
+        }
+
+        /* Back button */
+        #backBtn {
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            background: #f4b41a;
+            color: #0a2a66;
+            border: none;
+            padding: 8px 14px;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #backBtn:hover {
+            background: #ffcc33;
+        }
+
+        /* PDF container */
+        iframe {
+            width: 100%;
+            height: calc(100vh - 65px);
+            border: none;
+        }
+
+        /* Error message */
+        .error {
+            padding: 30px;
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+        }
+    </style>
 </head>
+
 <body>
-  <a id="backBtn" href="javascript:history.back()">⬅ Back</a>
 
-  <iframe id="pdfFrame"></iframe>
+<header>
+    <button id="backBtn" onclick="history.back()">← Back</button>
+    VPLL Resource
+</header>
 
-  <script>
-    const url = new URL(location.href);
-    const file = url.searchParams.get("file");
-    document.getElementById("pdfFrame").src = file;
-  </script>
+<div id="pdfContainer"></div>
+
+<script>
+    // Get ?file= parameter
+    const params = new URLSearchParams(window.location.search);
+    const file = params.get("file");
+
+    const container = document.getElementById("pdfContainer");
+
+    if (!file) {
+        container.innerHTML = "<div class='error'>No PDF file specified.</div>";
+    } else {
+        container.innerHTML = `
+            <iframe src="${file}" title="PDF Viewer"></iframe>
+        `;
+    }
+</script>
+
 </body>
 </html>
+

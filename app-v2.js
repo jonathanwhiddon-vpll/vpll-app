@@ -783,20 +783,43 @@ function renderAdmin() {
 // MORE
 // ========================
 function renderMore() {
-    pageRoot.innerHTML = `
-    <section class="card">
-        <div class="card-header"><div class="card-title">More</div></div>
+    const root = document.getElementById("page-root");
 
-        <ul class="roster-list">
-            <li><button onclick="renderTeams()">Teams</button></li>
-            <li><button onclick="renderResources()">Resources</button></li>
-            <li><button onclick="openScoreForm()">Enter Final Score</button></li>
-            ${isAdmin ? `<li><button onclick="renderAdmin()">Admin</button></li>` : ""}
-        </ul>
-    </section>
+    root.innerHTML = `
+      <div class="more-grid">
+
+        <div class="more-card" data-target="teams">
+          <div class="more-icon">👥</div>
+          <div class="more-label">Teams</div>
+        </div>
+
+        <div class="more-card" data-target="resources">
+          <div class="more-icon">📚</div>
+          <div class="more-label">Resources</div>
+        </div>
+
+        <div class="more-card more-card-wide" data-target="enter-score">
+          <div class="more-icon">📝</div>
+          <div class="more-label">Enter Final Score</div>
+        </div>
+
+      </div>
     `;
-    applyPageTransition();
+
+    // Add click handlers
+    document.querySelectorAll(".more-card").forEach(card => {
+        card.addEventListener("click", () => {
+            const target = card.getAttribute("data-target");
+
+            if (target === "teams") renderTeams();
+            if (target === "resources") renderResources();
+            if (target === "enter-score") renderEnterScorePage();
+
+            applyPageTransition();
+        });
+    });
 }
+
 
 function renderLogin() {
     const isLoggedIn = !!loggedInCoach;

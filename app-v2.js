@@ -813,7 +813,7 @@ function renderMore() {
 
             if (target === "teams") renderTeams();
             if (target === "resources") renderResources();
-            if (target === "enter-score") renderEnterScorePage();
+            if (target === "enter-score") renderLogin();
 
             applyPageTransition();
         });

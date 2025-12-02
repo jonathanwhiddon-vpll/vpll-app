@@ -736,24 +736,24 @@ function renderCoachScoreForm() {
     const root = document.getElementById("page-root");
 
     root.innerHTML = `
-      <section class="card">
-        <div class="card-header">
-          <div class="card-title">Enter Final Score</div>
-        </div>
+<section class="card">
+    <div class="card-header">
+        <div class="card-title">Enter Final Score</div>
+    </div>
 
-        <div style="padding:16px;">
-            <p>You are logged in as <strong>${loggedInCoach}</strong>.</p>
+    <div style="padding:16px;">
+        <p>You are logged in as <strong>${loggedInCoach}</strong>.</p>
 
-            <p>Tap below to open the score submission form:</p>
+        <p>Tap below to open the score submission form:</p>
 
-            <a class="form-button"
-               href="https://docs.google.com/forms/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8h8WyIDU405bG5SNSLaD5FZQDK3exbuS5C3jlLAuO/viewform?usp=pp_url"
-               target="_blank">
-               Open Score Submission Form
-            </a>
-        </div>
-      </section>
-    `;
+        <a class="form-button"
+           href="https://docs.google.com/forms/d/e/1FAIpQLSdCWC1qhvh3YHTqbHZTFbl6Wkfpwr3_1WWk5-3skq8Oh6UxhA/viewform?usp=header"
+           target="_blank">
+            Open Score Submission Form
+        </a>
+    </div>
+</section>
+`;
 
     applyPageTransition();
 }

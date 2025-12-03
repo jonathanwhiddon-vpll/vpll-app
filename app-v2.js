@@ -202,17 +202,18 @@ async function fetchScoresAndStandings() {
             if (cols.length < 10) return; // skip incomplete rows
 
             let game = {
-                timestamp: cols[0],
-                division: cols[1],
-                date: cols[2],
-                time: cols[3],
-                field: cols[4],
-                homeTeam: cols[5],
-                awayTeam: cols[6],
-                homeScore: parseInt(cols[7] || "0"),
-                awayScore: parseInt(cols[8] || "0"),
-                submittedBy: cols[9]
-            };
+    timestamp: cols[0],
+    division: cols[1],
+    date: cols[3],          // Using "Game Time" and "Game Date"
+    time: cols[4],          // adjust if needed
+    field: cols[5],
+    homeTeam: cols[6],
+    awayTeam: cols[7],
+    homeScore: parseInt(cols[8] || "0"),
+    awayScore: parseInt(cols[9] || "0"),
+    submittedBy: cols[10]
+};
+
 
             games.push(game);
         });

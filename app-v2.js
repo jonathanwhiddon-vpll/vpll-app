@@ -42,9 +42,9 @@ let tickerData = [];      // <— NEW
 
 // INITIAL standings layout
 const INITIAL_STANDINGS = {
-  "Majors": ["Team Hanna", "Team Cole", "Team 3", "Team 4", "Team 5", "Team 6"],
-  "AAA": ["Team Cairney", "Team 2", "Team 3", "Team Whiddon", "Team 5", "Team 6", "Team 7", "Team 8"],
-  "AA": ["Team Scott", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"]
+  "Majors": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"],
+  "AAA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
+  "AA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"]
 };
 
 // Division-level login (simple)

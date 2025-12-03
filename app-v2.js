@@ -822,17 +822,17 @@ function renderMore() {
       <div class="more-grid">
 
         <div class="more-card" data-target="teams">
-          <div class="more-icon">👥</div>
+          <div class="more-icon">⚾</div>
           <div class="more-label">Teams</div>
         </div>
 
         <div class="more-card" data-target="resources">
-          <div class="more-icon">📚</div>
+          <div class="more-icon">📘</div>
           <div class="more-label">Resources</div>
         </div>
 
         <div class="more-card more-card-wide" data-target="enter-score">
-          <div class="more-icon">📝</div>
+          <div class="more-icon">🧾</div>
           <div class="more-label">Enter Final Score</div>
         </div>
 

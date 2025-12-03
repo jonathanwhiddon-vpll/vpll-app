@@ -187,7 +187,7 @@ hideSpinner();
 // FETCH SCORES + STANDINGS (FORM)
 // ================================
 async function fetchScoresAndStandings() {
-    const url = "https://docs.google.com/spreadsheets/d/13ngf4TN4UwTnYMXAXqgrRuqYm4sBlkx3YnXidNDMaXE/gviz/tq?tqx=out:csv&gid=1463341365";
+    const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1463341365&single=true&output=csv";
 
     try {
         const response = await fetch(url);

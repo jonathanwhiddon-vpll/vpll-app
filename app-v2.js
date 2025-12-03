@@ -36,6 +36,9 @@ let selectedStandingsDivision = "Majors";
 let loggedInCoach = null;
 let isAdmin = false;
 const ADMIN_PIN = "0709";
+let standingsData = {};   // <— NEW
+let tickerData = [];      // <— NEW
+
 
 // INITIAL standings layout
 const INITIAL_STANDINGS = {
@@ -619,28 +622,40 @@ function scrollToToday() {
 function renderStandings() {
     showSpinner();
 
-    // standingsData was created in loadScoresAndStandings()
-    // Example shape:
-    // standingsData = {
-    //   "Majors": { "Team 1": {wins, losses, ties, runsFor, runsAgainst}, ... },
-    //   "AAA": { ... },
-    //   "AA": { ... }
-    // }
+    // Ensure data exists
+    if (!standingsData || Object.keys(standingsData).length === 0) {
+        hideSpinner();
+        pageRoot.innerHTML = `
+            <section class="card">
+                <div class="card-header"><div class="card-title">Standings</div></div>
+                <p style="padding:16px;">No standings available yet.</p>
+            </section>
+        `;
+        return;
+    }
+
     const division = selectedStandingsDivision;
-    const divStandings = standingsData?.[division] || {};
+    const divStandings = standingsData[division] || {};
 
     // Convert object → array
     const standingsArray = Object.keys(divStandings).map(team => ({
-        team: team,
-        ...divStandings[team]
+        team,
+        ...divStandings[team],
+        runDiff: divStandings[team].runsFor - divStandings[team].runsAgainst,
+        winPct:
+            (divStandings[team].wins +
+                0.5 * divStandings[team].ties) /
+            (divStandings[team].wins +
+                divStandings[team].losses +
+                divStandings[team].ties || 1)
     }));
 
-    // Sort by wins DESC, then run differential DESC
+    // Sort by win%, then run diff, then runs for, then team name
     standingsArray.sort((a, b) => {
-        if (b.wins !== a.wins) return b.wins - a.wins;
-        const diffA = a.runsFor - a.runsAgainst;
-        const diffB = b.runsFor - b.runsAgainst;
-        return diffB - diffA;
+        if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+        if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
+        if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
+        return a.team.localeCompare(b.team);
     });
 
     pageRoot.innerHTML = `
@@ -652,9 +667,9 @@ function renderStandings() {
                     <select onchange="selectedStandingsDivision=this.value; renderStandings()">
                         ${SCORING_DIVISIONS.map(
                             d =>
-                              `<option value="${d}" ${
-                                  d === selectedStandingsDivision ? "selected" : ""
-                              }>${d}</option>`
+                                `<option value="${d}" ${
+                                    d === selectedStandingsDivision ? "selected" : ""
+                                }>${d}</option>`
                         ).join("")}
                     </select>
                 </label>
@@ -665,14 +680,14 @@ function renderStandings() {
                     standingsArray.length === 0
                         ? `<li>No standings yet.</li>`
                         : standingsArray
-                              .map(
-                                  s => `
+                                .map(
+                                    s => `
                     <li>
                         <span>${s.team}</span>
                         <span class="record">${s.wins}-${s.losses}</span>
                     </li>`
-                              )
-                              .join("")
+                                )
+                                .join("")
                 }
             </ul>
         </section>

@@ -593,13 +593,22 @@ function renderTicker() {
     const el = document.getElementById("tickerContent");
     if (!el) return;
 
+    // Build ticker content
     if (!tickerData || tickerData.length === 0) {
-        el.textContent = "⚾ No score submissions yet.";
-        return;
+        el.innerHTML = `<span class="ticker-text">⚾ No score submissions yet.</span>`;
+    } else {
+        el.innerHTML = `<span class="ticker-text">${tickerData.join(" • ")}</span>`;
     }
 
-    el.textContent = tickerData.join(" • ");
+    // iPhone Safari animation fix (force reflow)
+    const span = el.querySelector(".ticker-text");
+    if (span) {
+        span.style.animation = "none";
+        span.offsetHeight;   // <— forces browser to recalc layout
+        span.style.animation = "";  // <— restart animation cleanly
+    }
 }
+
 
 function scrollToToday() {
   const today = new Date();

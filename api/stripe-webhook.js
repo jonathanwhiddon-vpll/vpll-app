@@ -37,7 +37,10 @@ module.exports = async (req, res) => {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
 
-    const email = session.customer_email;
+    const email =
+  (session.customer_details && session.customer_details.email) ||
+  session.customer_email;
+
 
     console.log("🎉 Payment completed for:", email);
 

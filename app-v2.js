@@ -179,6 +179,21 @@ async function handleLogin(rawEmail /*, _passwordIgnored */) {
 // On load, see if there's a Supabase session; if so, verify access and start app
 async function initAuthAndApp() {
   try {
+        // Detect redirect from magic link
+    if (window.location.hash && window.location.hash.includes("auth")) {
+      console.log("Handling magic link redirect…");
+
+      // Supabase will finalize login via session stored in local storage
+      const { data } = await supabaseClient.auth.getUser();
+
+      if (data?.user?.email) {
+        localStorage.setItem("vpll-user", data.user.email.toLowerCase());
+        showAppShell();
+        initApp();
+        return;
+      }
+    }
+
     const { data, error } = await supabaseClient.auth.getUser();
 
     if (error) {

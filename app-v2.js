@@ -7,6 +7,12 @@
    - Messages + Admin pages
    - No push notifications, no alert bar
 -------------------------------------------------- */
+// --- Supabase Initialization ---
+// --- Supabase Initialization ---
+const SUPABASE_URL = "https://ikckvtdoskayhtdzvttx.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrY2t2dGRvc2theWh0ZHp2dHR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3NzIzOTEsImV4cCI6MjA4MDM0ODM5MX0.yxm32dawRpDTcQTucGL4QQdVjSbs1_V0ApUq8TV_Fhg";
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ========================
 // CONFIG
@@ -57,6 +63,64 @@ const coachPins = {
 let scoreOverrides = JSON.parse(localStorage.getItem("vpll_score_overrides") || "{}");
 
 const pageRoot = document.getElementById("page-root");
+async function vpllLogin(email, password) {
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
+
+  if (error) {
+    alert("Login failed: " + error.message);
+    return null;
+  }
+
+  return data.user;
+}
+async function checkUserAccess(email) {
+
+  // FREE ACCESS LIST — YOU CAN EDIT THIS ANY TIME
+  const freeEmails = [
+    "bcole1910@gmail.com",
+    "jonathanwhiddon@gmail.com" // <-- add yourself so you never get locked out
+  ];
+
+  if (freeEmails.includes(email)) {
+    return true;
+  }
+
+  // Check Supabase users table for paid status
+  const { data, error } = await supabaseClient
+  .from("users")
+  .select("paid")
+  .eq("email", email)
+  .single();
+
+  if (error || !data) {
+    return false;
+  }
+
+  return data.paid === true;
+}
+async function handleLogin(email, password) {
+  const user = await vpllLogin(email, password);
+  if (!user) return;
+
+  const access = await checkUserAccess(email);
+
+  if (!access) {
+    alert("You must purchase the app for $1.99 to continue.");
+    window.location.href = "/paywall.html"; 
+    return;
+  }
+
+  // Save login session
+  localStorage.setItem("vpll-user", email);
+
+  // Continue into the app
+  setActiveNav("home");
+renderHome();
+
+}
 
 // ========================
 // HELPERS

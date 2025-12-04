@@ -134,9 +134,10 @@ async function sendMagicLink(email) {
   const { error } = await supabaseClient.auth.signInWithOtp({
     email,
     options: {
-      // After they tap the link in the email, send them back to the app root
-      emailRedirectTo: window.location.origin + "/"
-    }
+    // Redirect back into the installed PWA after tapping the email link
+    emailRedirectTo: "https://vpll-app.vercel.app/#auth"
+}
+
   });
 
   if (error) {
@@ -1162,4 +1163,3 @@ initAuthAndApp();
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-

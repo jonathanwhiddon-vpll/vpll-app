@@ -88,7 +88,7 @@ async function checkUserAccess(rawEmail) {
   // FREE ACCESS LIST — edit this anytime
   const freeEmails = [
     "bcole1910@gmail.com",
-    "jonathanwhiddon@gmail.com",
+    "jonathan.whiddon@gmail.com",
     "aaronmsadler@gmail.com",
     "agaasch@hotmail.com",
     "amazzajr@gmail.com",
@@ -1162,3 +1162,4 @@ initAuthAndApp();
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+

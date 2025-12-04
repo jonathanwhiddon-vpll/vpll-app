@@ -38,9 +38,8 @@ module.exports = async (req, res) => {
     const session = event.data.object;
 
     const email =
-  (session.customer_details && session.customer_details.email) ||
-  session.customer_email;
-
+      (session.customer_details && session.customer_details.email) ||
+      session.customer_email;
 
     console.log("🎉 Payment completed for:", email);
 
@@ -61,3 +60,9 @@ module.exports = async (req, res) => {
     }).catch((err) => {
       console.error("Supabase error:", err);
     });
+  }
+
+  // Respond to Stripe
+  res.statusCode = 200;
+  res.end("Webhook received");
+};

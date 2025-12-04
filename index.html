@@ -40,6 +40,28 @@
     <img src="60thlogo.jpg" alt="Villa Park Logo" />
     Villa Park Little League
 </header>
+<!-- AUTH SECTION (Shown before user unlocks) -->
+<div id="auth-section" style="display:none; padding:20px; text-align:center;">
+
+  <h2 style="margin-bottom:10px;">Unlock App</h2>
+
+  <p>Please enter your email address:</p>
+
+  <input 
+    id="auth-email" 
+    type="email" 
+    placeholder="you@example.com"
+    style="padding:10px; width:80%; max-width:300px; margin-top:10px;"
+  />
+
+  <button 
+    onclick="handleLogin(document.getElementById('auth-email').value)"
+    style="margin-top:15px; padding:10px 20px;">
+      Send Magic Link
+  </button>
+
+</div>
+
 <div id="gameTicker" class="ticker">
     <div class="ticker__wrap">
         <div class="ticker__move" id="tickerContent"></div>
@@ -52,34 +74,38 @@
   </button>
 </form>
 
-<!-- Main App Root (all pages rendered by app-v2.js) -->
-<main id="page-root">
-    <div id="homeContent"></div>
-</main>
+<!-- APP SHELL (Hidden until user unlocks) -->
+<div id="app-shell" style="display:none;">
 
+  <!-- Main App Root -->
+  <main id="page-root">
+      <div id="homeContent"></div>
+  </main>
 
-<!-- Bottom Navigation -->
-<nav id="bottomNav">
-    <button class="nav-btn" data-page="home">
-        <span class="icon">🏠</span>
-        <span class="label">Home</span>
-    </button>
+  <!-- Bottom Navigation -->
+  <nav id="bottomNav">
+      <button class="nav-btn" data-page="home">
+          <span class="icon">🏠</span>
+          <span class="label">Home</span>
+      </button>
 
-    <button class="nav-btn" data-page="schedule">
-        <span class="icon">📅</span>
-        <span class="label">Schedule</span>
-    </button>
+      <button class="nav-btn" data-page="schedule">
+          <span class="icon">📅</span>
+          <span class="label">Schedule</span>
+      </button>
 
-    <button class="nav-btn" data-page="standings">
-        <span class="icon">🏆</span>
-        <span class="label">Standings</span>
-    </button>
+      <button class="nav-btn" data-page="standings">
+          <span class="icon">🏆</span>
+          <span class="label">Standings</span>
+      </button>
 
-    <button class="nav-btn" data-page="more">
-        <span class="icon">⋯</span>
-        <span class="label">More</span>
-    </button>
-</nav>
+      <button class="nav-btn" data-page="more">
+          <span class="icon">⋯</span>
+          <span class="label">More</span>
+      </button>
+  </nav>
+
+</div>
 
 </body>
 </html>

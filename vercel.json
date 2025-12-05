@@ -1,9 +1,0 @@
-{
-  "redirects": [
-    {
-      "source": "/auth",
-      "destination": "/index.html#auth",
-      "permanent": false
-    }
-  ]
-}

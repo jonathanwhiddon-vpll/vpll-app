@@ -12,6 +12,24 @@ const SUPABASE_URL = "https://ikckvtdoskayhtdzvttx.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrY2t2dGRvc2theWh0ZHp2dHR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3NzIzOTEsImV4cCI6MjA4MDM0ODM5MX0.yxm32dawRpDTcQTucGL4QQdVjSbs1_V0ApUq8TV_Fhg";
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// =====================================================
+// MAGIC LINK HANDLER — FIX FOR iPHONE OPENING SAFARI
+// =====================================================
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  console.log("Auth event:", event);
+
+  // When user clicks magic link and Safari logs them in:
+  if (event === "SIGNED_IN" && session) {
+    const email = session.user?.email?.toLowerCase() || "";
+
+    // Save login locally
+    localStorage.setItem("vpll-user", email);
+
+    // Return to app interface
+    showAppShell();
+    initApp();
+  }
+});
 
 // ========================
 // CONFIG
@@ -179,20 +197,24 @@ async function handleLogin(rawEmail /*, _passwordIgnored */) {
 // On load, see if there's a Supabase session; if so, verify access and start app
 async function initAuthAndApp() {
   try {
-        // Detect redirect from magic link
-    if (window.location.hash && window.location.hash.includes("auth")) {
-      console.log("Handling magic link redirect…");
+       // Detect redirect from magic link returned to the PWA
+if (window.location.hash.includes("auth")) {
+  console.log("Magic link redirect detected…");
 
-      // Supabase will finalize login via session stored in local storage
-      const { data } = await supabaseClient.auth.getUser();
+  const { data: sessionData } = await supabaseClient.auth.getSession();
 
-      if (data?.user?.email) {
-        localStorage.setItem("vpll-user", data.user.email.toLowerCase());
-        showAppShell();
-        initApp();
-        return;
-      }
-    }
+  if (sessionData?.session?.user?.email) {
+    const email = sessionData.session.user.email.toLowerCase();
+    localStorage.setItem("vpll-user", email);
+
+    // Clean up URL hash
+    window.location.hash = "";
+
+    showAppShell();
+    initApp();
+    return;
+  }
+}
 
     const { data, error } = await supabaseClient.auth.getUser();
 

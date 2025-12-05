@@ -153,7 +153,8 @@ async function sendMagicLink(email) {
     email,
     options: {
     // Redirect back into the installed PWA after tapping the email link
-    emailRedirectTo: "https://vpll-app.vercel.app/#auth"
+    emailRedirectTo: "https://vpll-app.vercel.app/auth"
+
 }
 
   });

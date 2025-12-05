@@ -2,7 +2,7 @@
 //  CLEAN, SAFE, STABLE SERVICE WORKER (NO NOTIFICATIONS)
 // --------------------------------------------------------------
 
-const CACHE_NAME = "vpll-static-v7";
+const CACHE_NAME = "vpll-static-v8";
 
 const STATIC_ASSETS = [
   "/", 

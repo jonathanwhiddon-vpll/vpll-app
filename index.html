@@ -26,7 +26,10 @@
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json" />
-    <link rel="icon" type="image/png" href="60thlogo.jpg" />
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="theme-color" content="#0a192f">
+
 </head>
 
 <body>
@@ -73,6 +76,12 @@
         <span class="label">More</span>
     </button>
 </nav>
-
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/vpll-sw-v7.js');
+  });
+}
+</script>
 </body>
 </html>

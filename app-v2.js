@@ -746,7 +746,7 @@ function renderResources() {
       <div class="card-header"><div class="card-title">Resources</div></div>
 
       <ul class="roster-list">
-        <li><a href="/viewer.html?file=/resources/local_rules.pdf">⚙️ Local League Rules (PDF)</a></li>
+        <li><a href="/viewer.html?file=resources/local_rules.pdf">⚙️ Local League Rules (PDF)</a></li>
         <li><a href="/viewer.html?file=/resources/home_run_club.pdf">💥 Home Run Club (PDF)</a></li>
         <li><a href="/viewer.html?file=/resources/volunteer_list.pdf">🙋‍♂️ Volunteer List (PDF)</a></li>
         <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">🧾 Rulebook</a></li>

@@ -832,7 +832,7 @@ function renderMore() {
         </div>
 
         <div class="more-card more-card-wide" data-target="enter-score">
-          <div class="more-icon">🧾</div>
+          <div class="more-icon">📋✅</div>
           <div class="more-label">Enter Final Score</div>
         </div>
 

@@ -7,13 +7,12 @@
     { "src": "*.json", "use": "@vercel/static" },
     { "src": "*.svg", "use": "@vercel/static" },
     { "src": "*.jpg", "use": "@vercel/static" },
-    { "src": "*.png", "use": "@vercel/static" }
-    { "src": "resources/.*", "use": "@vercel/static" }
-    { "src": "resources/*.pdf", "use": "@vercel/static" }
-
+    { "src": "*.png", "use": "@vercel/static" },
+    { "src": "resources/**", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/", "dest": "/index.html" }
   ]
 }
+
 

@@ -7,6 +7,29 @@
    - Messages + Admin pages
    - No push notifications, no alert bar
 -------------------------------------------------- */
+// --- Supabase Initialization ---
+const SUPABASE_URL = "https://ikckvtdoskayhtdzvttx.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrY2t2dGRvc2theWh0ZHp2dHR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3NzIzOTEsImV4cCI6MjA4MDM0ODM5MX0.yxm32dawRpDTcQTucGL4QQdVjSbs1_V0ApUq8TV_Fhg";
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// =====================================================
+// MAGIC LINK HANDLER — FIX FOR iPHONE OPENING SAFARI
+// =====================================================
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  console.log("Auth event:", event);
+
+  // When user clicks magic link and Safari logs them in:
+  if (event === "SIGNED_IN" && session) {
+    const email = session.user?.email?.toLowerCase() || "";
+
+    // Save login locally
+    localStorage.setItem("vpll-user", email);
+
+    // Return to app interface
+    showAppShell();
+    initApp();
+  }
+});
 
 // ========================
 // CONFIG
@@ -39,7 +62,6 @@ const ADMIN_PIN = "0709";
 let standingsData = {};   // <— NEW
 let tickerData = [];      // <— NEW
 
-
 // INITIAL standings layout
 const INITIAL_STANDINGS = {
   "Majors": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"],
@@ -49,14 +71,185 @@ const INITIAL_STANDINGS = {
 
 // Division-level login (simple)
 const coachPins = {
-    "Majors": "1111",
-    "AAA": "2222",
-    "AA": "3333"
+  "Majors": "1111",
+  "AAA": "2222",
+  "AA": "3333"
 };
 
 let scoreOverrides = JSON.parse(localStorage.getItem("vpll_score_overrides") || "{}");
 
 const pageRoot = document.getElementById("page-root");
+
+/* ========================
+   AUTH + ACCESS (MAGIC LINK)
+======================== */
+
+// Show/hide auth section vs app shell (optional, safe if IDs don't exist)
+function showAuthSection() {
+  const authSection = document.getElementById("auth-section");
+  const appShell = document.getElementById("app-shell");
+  if (authSection) authSection.style.display = "block";
+  if (appShell) appShell.style.display = "none";
+}
+
+function showAppShell() {
+  const authSection = document.getElementById("auth-section");
+  const appShell = document.getElementById("app-shell");
+  if (authSection) authSection.style.display = "none";
+  if (appShell) appShell.style.display = "flex"; // or "block" depending on your CSS
+}
+
+// FREE / COACH / BOARD emails + paid check
+async function checkUserAccess(rawEmail) {
+  const email = (rawEmail || "").trim().toLowerCase();
+
+  // FREE ACCESS LIST — edit this anytime
+  const freeEmails = [
+    "bcole1910@gmail.com",
+    "jonathan.whiddon@gmail.com",
+    "aaronmsadler@gmail.com",
+    "agaasch@hotmail.com",
+    "amazzajr@gmail.com",
+    "ben@hannaconstruction.net",
+    "chad@bessire-casenhiser.com",
+    "gferguson101@yahoo.com",
+    "kra24mons3@gmail.com",
+    "jasonpwalker@gmail.com",
+    "nava.dossey@gmail.com",
+    "jmyers24@yahoo.com",
+    "katiestassos@gmail.com",
+    "chlellp@gmail.com",
+    "coachtooz@gmail.com",
+    "matthewcairney@gmail.com",
+    "mattwilliams351@gmail.com",
+    "mrscottbelcher@gmail.com",
+    "naesnillup@yahoo.com",
+    "tthergesen25@aol.com",
+    "tranger79@yahoo.com"
+  ].map(e => e.toLowerCase());
+
+  if (freeEmails.includes(email)) {
+    return true;
+  }
+
+  // Check Supabase users table for paid status (Stripe webhook updates this)
+  const { data, error } = await supabaseClient
+    .from("users")
+    .select("paid")
+    .eq("email", email)
+    .single();
+
+  if (error || !data) {
+    console.warn("checkUserAccess: no paid record for", email, error);
+    return false;
+  }
+
+  return data.paid === true;
+}
+
+// Send Supabase Magic Link
+async function sendMagicLink(email) {
+  const { error } = await supabaseClient.auth.signInWithOtp({
+    email,
+    options: {
+    // Redirect back into the installed PWA after tapping the email link
+    emailRedirectTo: "https://vpll-app.vercel.app/auth"
+
+}
+
+  });
+
+  if (error) {
+    alert("Failed to send magic link: " + error.message);
+    console.error("sendMagicLink error", error);
+    return false;
+  }
+
+  return true;
+}
+
+// Called by your login form. Password (2nd arg) is ignored now.
+async function handleLogin(rawEmail /*, _passwordIgnored */) {
+  const email = (rawEmail || "").trim().toLowerCase();
+  if (!email) {
+    alert("Please enter an email address.");
+    return;
+  }
+
+  // Check if this email is allowed (free list or paid)
+  const access = await checkUserAccess(email);
+
+  if (!access) {
+    alert("You must purchase the app for $1.99 to continue.");
+    // Pass email to paywall so you can pre-fill Stripe or show a message
+    window.location.href = "/paywall.html?email=" + encodeURIComponent(email);
+    return;
+  }
+
+  const ok = await sendMagicLink(email);
+  if (!ok) return;
+
+  alert(
+    "A magic login link has been sent to your email. " +
+    "Tap the link, then reopen the app to start using it."
+  );
+}
+
+// On load, see if there's a Supabase session; if so, verify access and start app
+async function initAuthAndApp() {
+  try {
+       // Detect redirect from magic link returned to the PWA
+if (window.location.hash.includes("auth")) {
+  console.log("Magic link redirect detected…");
+
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+
+  if (sessionData?.session?.user?.email) {
+    const email = sessionData.session.user.email.toLowerCase();
+    localStorage.setItem("vpll-user", email);
+
+    // Clean up URL hash
+    window.location.hash = "";
+
+    showAppShell();
+    initApp();
+    return;
+  }
+}
+
+    const { data, error } = await supabaseClient.auth.getUser();
+
+    if (error) {
+      console.warn("Supabase getUser error:", error);
+    }
+
+    const user = data && data.user ? data.user : null;
+
+    if (user && user.email) {
+      const email = user.email.toLowerCase();
+      const access = await checkUserAccess(email);
+
+      if (!access) {
+        showAuthSection();
+        window.location.href = "/paywall.html?email=" + encodeURIComponent(email);
+        return;
+      }
+
+      // Save login session
+      localStorage.setItem("vpll-user", email);
+
+      // Show main app shell (if those containers exist) and start app
+      showAppShell();
+      initApp();
+    } else {
+      // Not logged in yet; show login
+      showAuthSection();
+    }
+  } catch (err) {
+    console.error("Error during auth init:", err);
+    showAuthSection();
+  }
+}
 
 // ========================
 // HELPERS
@@ -110,7 +303,6 @@ function applyPageTransition() {
   });
 }
 
-
 // ========================
 // LOAD SCHEDULE FROM CSV
 // ========================
@@ -119,166 +311,168 @@ function applyPageTransition() {
 // LOAD SCHEDULE FROM MULTIPLE DIVISION CSVs
 // ===========================
 const CSV_URLS = {
-    "Majors": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=0&single=true&output=csv",
-    "AAA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1857914653&single=true&output=csv",
-    "AA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1006784456&single=true&output=csv",
-    "Single A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1852143804&single=true&output=csv",
-    "Coach Pitch": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=359750423&single=true&output=csv",
-    "T-Ball": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=860483387&single=true&output=csv"
+  "Majors": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=0&single=true&output=csv",
+  "AAA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1857914653&single=true&output=csv",
+  "AA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1006784456&single=true&output=csv",
+  "Single A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1852143804&single=true&output=csv",
+  "Coach Pitch": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=359750423&single=true&output=csv",
+  "T-Ball": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=860483387&single=true&output=csv"
 };
 
 async function loadScheduleFromApi() {
-    showSpinner();
-    try {
-        let combined = [];
+  showSpinner();
+  try {
+    let combined = [];
 
+    for (const div in CSV_URLS) {
+      const url = CSV_URLS[div];
 
-        for (const div in CSV_URLS) {
-            const url = CSV_URLS[div];
+      const response = await fetch(url, { cache: "no-cache" });
+      const csvText = await response.text();
 
-            const response = await fetch(url, { cache: "no-cache" });
-            const csvText = await response.text();
+      const rows = Papa.parse(csvText, { header: true }).data;
 
-            const rows = Papa.parse(csvText, { header: true }).data;
+      const parsed = rows.map(item => {
+        const division = div;
 
-            const parsed = rows.map(item => {
-                const division = div;
+        const date = item.date || item.Date || "";
+        const time = item.time || item.Time || "";
+        const field = item.field || item.Field || "";
+        const home = item.home || item.Home || "";
+        const away = item.away || item.Away || "";
 
-                const date = item.date || item.Date || "";
-                const time = item.time || item.Time || "";
-                const field = item.field || item.Field || "";
-                const home = item.home || item.Home || "";
-                const away = item.away || item.Away || "";
+        const homeScore = normalizeScore(item["home score"] || item["Home Score"]);
+        const awayScore = normalizeScore(item["away score"] || item["Away Score"]);
 
-                const homeScore = normalizeScore(item["home score"] || item["Home Score"]);
-                const awayScore = normalizeScore(item["away score"] || item["Away Score"]);
+        const game = {
+          division,
+          date,
+          time,
+          field,
+          home,
+          away,
+          homeScore,
+          awayScore,
+        };
 
-                const game = {
-                    division,
-                    date,
-                    time,
-                    field,
-                    home,
-                    away,
-                    homeScore,
-                    awayScore,
-                };
+        game.key = makeGameKey(game);
+        return game;
+      });
 
-                game.key = makeGameKey(game);
-                return game;
-            });
-
-            combined = combined.concat(parsed);
-        }
-
-        games = combined;
-        applyScoreOverrides();
-hideSpinner();
-
-        if (currentPage === "schedule") renderSchedule();
-        if (currentPage === "standings") renderStandings();
-        if (currentPage === "home") renderHome();
-
-    } catch (err) {
-        console.error("Error loading schedule CSV:", err);
+      combined = combined.concat(parsed);
     }
+
+    games = combined;
+    applyScoreOverrides();
+    hideSpinner();
+
+    if (currentPage === "schedule") renderSchedule();
+    if (currentPage === "standings") renderStandings();
+    if (currentPage === "home") renderHome();
+
+  } catch (err) {
+    console.error("Error loading schedule CSV:", err);
+  }
 }
+
 // ================================
 // FETCH SCORES + STANDINGS (FORM)
 // ================================
 async function fetchScoresAndStandings() {
-    const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1463341365&single=true&output=csv";
+  const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1463341365&single=true&output=csv";
 
-    try {
-        const response = await fetch(url);
-        const csvText = await response.text();
-        const rows = csvText.split("\n").slice(1); // skip header
+  try {
+    const response = await fetch(url);
+    const csvText = await response.text();
+    const rows = csvText.split("\n").slice(1); // skip header
 
-        let games = [];
+    let games = [];
 
-        rows.forEach(row => {
-            let cols = row.split(",");
+    rows.forEach(row => {
+      let cols = row.split(",");
 
-            if (cols.length < 10) return; // skip incomplete rows
+      if (cols.length < 10) return; // skip incomplete rows
 
-            let game = {
-    timestamp: cols[0],
-    division: cols[1],
-    date: cols[3],          // Using "Game Time" and "Game Date"
-    time: cols[4],          // adjust if needed
-    field: cols[5],
-    homeTeam: cols[6],
-    awayTeam: cols[7],
-    homeScore: parseInt(cols[8] || "0"),
-    awayScore: parseInt(cols[9] || "0"),
-    submittedBy: cols[10]
-};
+      let game = {
+        timestamp: cols[0],
+        division: cols[1],
+        date: cols[3],          // Using "Game Time" and "Game Date"
+        time: cols[4],          // adjust if needed
+        field: cols[5],
+        homeTeam: cols[6],
+        awayTeam: cols[7],
+        homeScore: parseInt(cols[8] || "0"),
+        awayScore: parseInt(cols[9] || "0"),
+        submittedBy: cols[10]
+      };
 
+      games.push(game);
+    });
 
-            games.push(game);
-        });
+    return games;
 
-        return games;
-
-    } catch (err) {
-        console.error("Error fetching scores/standings:", err);
-        return [];
-    }
+  } catch (err) {
+    console.error("Error fetching scores/standings:", err);
+    return [];
+  }
 }
+
 function buildStandings(games) {
-    let table = {};
+  let table = {};
 
-    games.forEach(g => {
-        if (!table[g.division]) table[g.division] = {};
+  games.forEach(g => {
+    if (!table[g.division]) table[g.division] = {};
 
-        // Ensure home team exists
-        if (!table[g.division][g.homeTeam]) {
-            table[g.division][g.homeTeam] = { wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
-        }
-        // Ensure away team exists
-        if (!table[g.division][g.awayTeam]) {
-            table[g.division][g.awayTeam] = { wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
-        }
+    // Ensure home team exists
+    if (!table[g.division][g.homeTeam]) {
+      table[g.division][g.homeTeam] = { wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
+    }
+    // Ensure away team exists
+    if (!table[g.division][g.awayTeam]) {
+      table[g.division][g.awayTeam] = { wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
+    }
 
-        // Add RF/RA
-        table[g.division][g.homeTeam].runsFor += g.homeScore;
-        table[g.division][g.homeTeam].runsAgainst += g.awayScore;
-        table[g.division][g.awayTeam].runsFor += g.awayScore;
-        table[g.division][g.awayTeam].runsAgainst += g.homeScore;
+    // Add RF/RA
+    table[g.division][g.homeTeam].runsFor += g.homeScore;
+    table[g.division][g.homeTeam].runsAgainst += g.awayScore;
+    table[g.division][g.awayTeam].runsFor += g.awayScore;
+    table[g.division][g.awayTeam].runsAgainst += g.homeScore;
 
-        // Wins / Losses
-        if (g.homeScore > g.awayScore) {
-            table[g.division][g.homeTeam].wins++;
-            table[g.division][g.awayTeam].losses++;
-        } else if (g.homeScore < g.awayScore) {
-            table[g.division][g.awayTeam].wins++;
-            table[g.division][g.homeTeam].losses++;
-        } else {
-            table[g.division][g.homeTeam].ties++;
-            table[g.division][g.awayTeam].ties++;
-        }
-    });
+    // Wins / Losses
+    if (g.homeScore > g.awayScore) {
+      table[g.division][g.homeTeam].wins++;
+      table[g.division][g.awayTeam].losses++;
+    } else if (g.homeScore < g.awayScore) {
+      table[g.division][g.awayTeam].wins++;
+      table[g.division][g.homeTeam].losses++;
+    } else {
+      table[g.division][g.homeTeam].ties++;
+      table[g.division][g.awayTeam].ties++;
+    }
+  });
 
-    return table;
+  return table;
 }
+
 function buildTicker(formGames) {
-    formGames.sort((a, b) => {
-        return new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time);
-    });
+  formGames.sort((a, b) => {
+    return new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time);
+  });
 
-    return formGames.map(g => {
-        return `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`;
-    });
+  return formGames.map(g => {
+    return `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`;
+  });
 }
+
 async function loadScoresAndStandings() {
-    let formGames = await fetchScoresAndStandings();
+  let formGames = await fetchScoresAndStandings();
 
-    standingsData = buildStandings(formGames);
-    tickerData = buildTicker(formGames);
+  standingsData = buildStandings(formGames);
+  tickerData = buildTicker(formGames);
 
-    // These functions already exist in your file
-    if (currentPage === "standings") renderStandings();
-    if (currentPage === "home") renderHome();
+  // These functions already exist in your file
+  if (currentPage === "standings") renderStandings();
+  if (currentPage === "home") renderHome();
 }
 
 // ========================
@@ -312,7 +506,6 @@ function editScore(gameKey) {
   if (currentPage === "standings") renderStandings();
   if (currentPage === "home") renderHome();
 }
-
 
 // ================================
 // LOAD ANNOUNCEMENTS (CSV)
@@ -397,7 +590,7 @@ async function renderHome() {
       ${announcementHTML}
     </section>
   `;
-renderTicker();
+  renderTicker();
 
   applyPageTransition();
 }
@@ -452,6 +645,7 @@ function renderTeamsByDivision(div) {
   `;
   applyPageTransition();
 }
+
 function renderTeamSchedule(div, team) {
   showSpinner();
 
@@ -503,6 +697,7 @@ function renderTeamSchedule(div, team) {
     hideSpinner();
   }, 120);
 }
+
 // ========================
 // SCHEDULE PAGE
 // ========================
@@ -589,26 +784,26 @@ function renderSchedule() {
     hideSpinner();
   }, 120);
 }
+
 function renderTicker() {
-    const el = document.getElementById("tickerContent");
-    if (!el) return;
+  const el = document.getElementById("tickerContent");
+  if (!el) return;
 
-    // Build ticker content
-    if (!tickerData || tickerData.length === 0) {
-        el.innerHTML = `<span class="ticker-text">⚾ No score submissions yet.</span>`;
-    } else {
-        el.innerHTML = `<span class="ticker-text">${tickerData.join(" • ")}</span>`;
-    }
+  // Build ticker content
+  if (!tickerData || tickerData.length === 0) {
+    el.innerHTML = `<span class="ticker-text">⚾ No score submissions yet.</span>`;
+  } else {
+    el.innerHTML = `<span class="ticker-text">${tickerData.join(" • ")}</span>`;
+  }
 
-    // iPhone Safari animation fix (force reflow)
-    const span = el.querySelector(".ticker-text");
-    if (span) {
-        span.style.animation = "none";
-        span.offsetHeight;   // <— forces browser to recalc layout
-        span.style.animation = "";  // <— restart animation cleanly
-    }
+  // iPhone Safari animation fix (force reflow)
+  const span = el.querySelector(".ticker-text");
+  if (span) {
+    span.style.animation = "none";
+    span.offsetHeight;   // <— forces browser to recalc layout
+    span.style.animation = "";  // <— restart animation cleanly
+  }
 }
-
 
 function scrollToToday() {
   const today = new Date();
@@ -629,82 +824,83 @@ function scrollToToday() {
   // If no future games found, scroll to top
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
 function renderStandings() {
-    showSpinner();
+  showSpinner();
 
-    // Ensure data exists
-    if (!standingsData || Object.keys(standingsData).length === 0) {
-        hideSpinner();
-        pageRoot.innerHTML = `
-            <section class="card">
-                <div class="card-header"><div class="card-title">Standings</div></div>
-                <p style="padding:16px;">No standings available yet.</p>
-            </section>
-        `;
-        return;
-    }
-
-    const division = selectedStandingsDivision;
-    const divStandings = standingsData[division] || {};
-
-    // Convert object → array
-    const standingsArray = Object.keys(divStandings).map(team => ({
-        team,
-        ...divStandings[team],
-        runDiff: divStandings[team].runsFor - divStandings[team].runsAgainst,
-        winPct:
-            (divStandings[team].wins +
-                0.5 * divStandings[team].ties) /
-            (divStandings[team].wins +
-                divStandings[team].losses +
-                divStandings[team].ties || 1)
-    }));
-
-    // Sort by win%, then run diff, then runs for, then team name
-    standingsArray.sort((a, b) => {
-        if (b.winPct !== a.winPct) return b.winPct - a.winPct;
-        if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
-        if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
-        return a.team.localeCompare(b.team);
-    });
-
-    pageRoot.innerHTML = `
-        <section class="card">
-            <div class="card-header"><div class="card-title">Standings</div></div>
-
-            <div style="padding:16px;">
-                <label><strong>Division:</strong>
-                    <select onchange="selectedStandingsDivision=this.value; renderStandings()">
-                        ${SCORING_DIVISIONS.map(
-                            d =>
-                                `<option value="${d}" ${
-                                    d === selectedStandingsDivision ? "selected" : ""
-                                }>${d}</option>`
-                        ).join("")}
-                    </select>
-                </label>
-            </div>
-
-            <ul class="standings-list">
-                ${
-                    standingsArray.length === 0
-                        ? `<li>No standings yet.</li>`
-                        : standingsArray
-                                .map(
-                                    s => `
-                    <li>
-                        <span>${s.team}</span>
-                        <span class="record">${s.wins}-${s.losses}</span>
-                    </li>`
-                                )
-                                .join("")
-                }
-            </ul>
-        </section>
-    `;
-
-    applyPageTransition();
+  // Ensure data exists
+  if (!standingsData || Object.keys(standingsData).length === 0) {
     hideSpinner();
+    pageRoot.innerHTML = `
+      <section class="card">
+        <div class="card-header"><div class="card-title">Standings</div></div>
+        <p style="padding:16px;">No standings available yet.</p>
+      </section>
+    `;
+    return;
+  }
+
+  const division = selectedStandingsDivision;
+  const divStandings = standingsData[division] || {};
+
+  // Convert object → array
+  const standingsArray = Object.keys(divStandings).map(team => ({
+    team,
+    ...divStandings[team],
+    runDiff: divStandings[team].runsFor - divStandings[team].runsAgainst,
+    winPct:
+      (divStandings[team].wins +
+        0.5 * divStandings[team].ties) /
+      (divStandings[team].wins +
+        divStandings[team].losses +
+        divStandings[team].ties || 1)
+  }));
+
+  // Sort by win%, then run diff, then runs for, then team name
+  standingsArray.sort((a, b) => {
+    if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+    if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
+    if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
+    return a.team.localeCompare(b.team);
+  });
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header"><div class="card-title">Standings</div></div>
+
+      <div style="padding:16px;">
+        <label><strong>Division:</strong>
+          <select onchange="selectedStandingsDivision=this.value; renderStandings()">
+            ${SCORING_DIVISIONS.map(
+              d =>
+                `<option value="${d}" ${
+                  d === selectedStandingsDivision ? "selected" : ""
+                }>${d}</option>`
+            ).join("")}
+          </select>
+        </label>
+      </div>
+
+      <ul class="standings-list">
+        ${
+          standingsArray.length === 0
+            ? `<li>No standings yet.</li>`
+            : standingsArray
+                .map(
+                  s => `
+          <li>
+            <span>${s.team}</span>
+            <span class="record">${s.wins}-${s.losses}</span>
+          </li>`
+                )
+                .join("")
+        }
+      </ul>
+    </section>
+  `;
+
+  applyPageTransition();
+  hideSpinner();
 }
 
 function loginCoach() {
@@ -757,30 +953,31 @@ function renderResources() {
   `;
   applyPageTransition();
 }
+
 function renderCoachScoreForm() {
-    const root = document.getElementById("page-root");
+  const root = document.getElementById("page-root");
 
-    root.innerHTML = `
+  root.innerHTML = `
 <section class="card">
-    <div class="card-header">
-        <div class="card-title">Enter Final Score</div>
-    </div>
+  <div class="card-header">
+    <div class="card-title">Enter Final Score</div>
+  </div>
 
-    <div style="padding:16px;">
-        <p>You are logged in as <strong>${loggedInCoach}</strong>.</p>
+  <div style="padding:16px;">
+    <p>You are logged in as <strong>${loggedInCoach}</strong>.</p>
 
-        <p>Tap below to open the score submission form:</p>
+    <p>Tap below to open the score submission form:</p>
 
-        <a class="form-button"
-           href="https://docs.google.com/forms/d/e/1FAIpQLSdCWC1qhvh3YHTqbHZTFbl6Wkfpwr3_1WWk5-3skq8Oh6UxhA/viewform?usp=header"
-           target="_blank">
-            Open Score Submission Form
-        </a>
-    </div>
+    <a class="form-button"
+       href="https://docs.google.com/forms/d/e/1FAIpQLSdCWC1qhvh3YHTqbHZTFbl6Wkfpwr3_1WWk5-3skq8Oh6UxhA/viewform?usp=header"
+       target="_blank">
+      Open Score Submission Form
+    </a>
+  </div>
 </section>
 `;
 
-    applyPageTransition();
+  applyPageTransition();
 }
 
 // ========================
@@ -816,9 +1013,9 @@ function renderAdmin() {
 // MORE
 // ========================
 function renderMore() {
-    const root = document.getElementById("page-root");
+  const root = document.getElementById("page-root");
 
-    root.innerHTML = `
+  root.innerHTML = `
       <div class="more-grid">
 
         <div class="more-card" data-target="teams">
@@ -839,25 +1036,24 @@ function renderMore() {
       </div>
     `;
 
-    // Add click handlers
-    document.querySelectorAll(".more-card").forEach(card => {
-        card.addEventListener("click", () => {
-            const target = card.getAttribute("data-target");
+  // Add click handlers
+  document.querySelectorAll(".more-card").forEach(card => {
+    card.addEventListener("click", () => {
+      const target = card.getAttribute("data-target");
 
-            if (target === "teams") renderTeams();
-            if (target === "resources") renderResources();
-            if (target === "enter-score") renderLogin();
+      if (target === "teams") renderTeams();
+      if (target === "resources") renderResources();
+      if (target === "enter-score") renderLogin();
 
-            applyPageTransition();
-        });
+      applyPageTransition();
     });
+  });
 }
 
-
 function renderLogin() {
-    const isLoggedIn = !!loggedInCoach;
+  const isLoggedIn = !!loggedInCoach;
 
-    pageRoot.innerHTML = `
+  pageRoot.innerHTML = `
         <section class="card">
             <div class="card-header">
                 <div class="card-title">Division Login</div>
@@ -866,7 +1062,7 @@ function renderLogin() {
             <div style="padding:16px;">
 
                 ${
-                    isLoggedIn
+                  isLoggedIn
                     ? `
                         <p>
                             Logged in as
@@ -897,8 +1093,9 @@ function renderLogin() {
         </section>
     `;
 
-    applyPageTransition();
+  applyPageTransition();
 }
+
 // ========================
 // NAVIGATION
 // ========================
@@ -908,11 +1105,12 @@ function setActiveNav(page) {
     btn.classList.toggle("active", btn.dataset.page === page);
   });
 }
+
 function openScoreForm() {
-    window.open(
-        "https://docs.google.com/forms/d/e/1FAIpQLSdCWC1qhvh3YHTqbHZTFbl6Wkfpwr3_1WWk5-3skq8Oh6UxhA/viewform?usp=header",
-        "_blank"
-    );
+  window.open(
+    "https://docs.google.com/forms/d/e/1FAIpQLSdCWC1qhvh3YHTqbHZTFbl6Wkfpwr3_1WWk5-3skq8Oh6UxhA/viewform?usp=header",
+    "_blank"
+  );
 }
 
 function renderPage(page) {
@@ -943,8 +1141,8 @@ function initApp() {
   renderHome();
   loadScheduleFromApi();
   loadScoresAndStandings();
-
 }
+
 // ========================
 // PULL DOWN TO REFRESH (Home Only)
 // ========================
@@ -997,7 +1195,8 @@ document.addEventListener("touchend", async () => {
   isPulling = false;
 });
 
-initApp();
+// IMPORTANT: use auth gate instead of calling initApp() directly
+initAuthAndApp();
 
 /* --------------------------------------------------
    END OF FILE

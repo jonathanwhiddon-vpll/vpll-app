@@ -919,16 +919,19 @@ function openScoreForm() {
 }
 function renderPdfViewer(title, pdfPath) {
   pageRoot.innerHTML = `
-    <section class="card pdf-card">
-      <div class="card-header">
+    <div class="pdf-view">
+
+      <div class="pdf-header-bar">
         <button class="back-button" onclick="renderResources()">← Back</button>
-        <div class="card-title">${title}</div>
+        <div class="pdf-title">${title}</div>
       </div>
 
-      <div class="pdf-container">
-        <iframe src="${pdfPath}"></iframe>
-      </div>
-    </section>
+      <iframe
+        src="${pdfPath}"
+        class="pdf-frame"
+      ></iframe>
+
+    </div>
   `;
 
   applyPageTransition();
@@ -1021,6 +1024,7 @@ initApp();
    END OF FILE
 
 -------------------------------------------------- */
+
 
 
 

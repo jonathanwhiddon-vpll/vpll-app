@@ -975,6 +975,53 @@ document.addEventListener("touchmove", (e) => {
     return;
   }
 });
+let pdfDoc = null;
+let currentPage = 1;
+let totalPages = 1;
+const canvas = document.getElementById("pdfCanvas");
+const ctx = canvas.getContext("2d");
+
+function openPDF(url) {
+  document.getElementById("pdfViewer").style.display = "flex";
+  currentPage = 1;
+
+  pdfjsLib.getDocument(url).promise.then(pdf => {
+    pdfDoc = pdf;
+    totalPages = pdf.numPages;
+    renderPage();
+  });
+}
+
+function renderPage() {
+  pdfDoc.getPage(currentPage).then(page => {
+    const viewport = page.getViewport({ scale: 1.3 });
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+
+    page.render({ canvasContext: ctx, viewport });
+    document.getElementById("pageIndicator").innerText =
+      `Page ${currentPage} of ${totalPages}`;
+  });
+}
+
+function nextPage() {
+  if (currentPage < totalPages) {
+    currentPage++;
+    renderPage();
+  }
+}
+
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    renderPage();
+  }
+}
+
+function closePDF() {
+  document.getElementById("pdfViewer").style.display = "none";
+  pdfDoc = null;
+}
 
 document.addEventListener("touchend", async () => {
   if (!isPulling) return;
@@ -1004,6 +1051,7 @@ initApp();
    END OF FILE
 
 -------------------------------------------------- */
+
 
 
 

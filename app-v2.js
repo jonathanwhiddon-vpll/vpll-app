@@ -925,10 +925,9 @@ function renderPdfViewer(title, pdfPath) {
         <div class="card-title">${title}</div>
       </div>
 
-      <iframe
-        src="${pdfPath}"
-        style="width:100%; height:75vh; border:none;"
-      ></iframe>
+      <div class="pdf-container">
+  <iframe src="${pdfPath}"></iframe>
+</div>
     </section>
   `;
 
@@ -1023,5 +1022,6 @@ initApp();
    END OF FILE
 
 -------------------------------------------------- */
+
 
 

@@ -743,23 +743,19 @@ function loginCoach() {
 function renderResources() {
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header">
-        <div class="card-title">Resources</div>
-      </div>
+      <div class="card-header"><div class="card-title">Resources</div></div>
 
       <ul class="roster-list">
-        <li><a href="resources/local_rules.pdf" target="_blank">⚙️ Local League Rules (PDF)</a></li>
-        <li><a href="resources/home_run_club.pdf" target="_blank">💥 Home Run Club (PDF)</a></li>
-        <li><a href="resources/volunteer_list.pdf" target="_blank">🤹 Volunteer List (PDF)</a></li>
-        <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">📘 Rulebook</a></li>
-        <li><a href="resources/aa_rules.pdf" target="_blank">💡 AA Special Rules (PDF)</a></li>
-      </ul>
+  <li><a href="resources/local_rules.pdf" target="_blank">⚙️ Local League Rules (PDF)</a></li>
+  <li><a href="resources/home_run_club.pdf" target="_blank">💥 Home Run Club (PDF)</a></li>
+  <li><a href="resources/volunteer_list.pdf" target="_blank">🙋 Volunteer List (PDF)</a></li>
+  <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">📘 Rulebook</a></li>
+  <li><a href="resources/aa_rules.pdf" target="_blank">💡 AA Special Rules (PDF)</a></li>
+</ul>
     </section>
   `;
-
   applyPageTransition();
 }
-
 function renderCoachScoreForm() {
     const root = document.getElementById("page-root");
 
@@ -917,6 +913,7 @@ function openScoreForm() {
         "_blank"
     );
 }
+
 function renderPage(page) {
   currentPage = page;
   if (page === "home") renderHome();
@@ -976,53 +973,6 @@ document.addEventListener("touchmove", (e) => {
     return;
   }
 });
-let pdfDoc = null;
-let currentPage = 1;
-let totalPages = 1;
-const canvas = document.getElementById("pdfCanvas");
-const ctx = canvas.getContext("2d");
-
-function openPDF(url) {
-  document.getElementById("pdfViewer").style.display = "flex";
-  currentPage = 1;
-
-  pdfjsLib.getDocument(url).promise.then(pdf => {
-    pdfDoc = pdf;
-    totalPages = pdf.numPages;
-    renderPage();
-  });
-}
-
-function renderPage() {
-  pdfDoc.getPage(currentPage).then(page => {
-    const viewport = page.getViewport({ scale: 1.3 });
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-
-    page.render({ canvasContext: ctx, viewport });
-    document.getElementById("pageIndicator").innerText =
-      `Page ${currentPage} of ${totalPages}`;
-  });
-}
-
-function nextPage() {
-  if (currentPage < totalPages) {
-    currentPage++;
-    renderPage();
-  }
-}
-
-function prevPage() {
-  if (currentPage > 1) {
-    currentPage--;
-    renderPage();
-  }
-}
-
-function closePDF() {
-  document.getElementById("pdfViewer").style.display = "none";
-  pdfDoc = null;
-}
 
 document.addEventListener("touchend", async () => {
   if (!isPulling) return;
@@ -1052,15 +1002,3 @@ initApp();
    END OF FILE
 
 -------------------------------------------------- */
-
-
-
-
-
-
-
-
-
-
-
-

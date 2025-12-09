@@ -916,25 +916,6 @@ function openScoreForm() {
         "_blank"
     );
 }
-function renderPdfViewer(title, pdfPath) {
-  pageRoot.innerHTML = `
-    <div class="pdf-view">
-
-      <div class="pdf-header-bar">
-        <button class="back-button" onclick="renderResources()">← Back</button>
-        <div class="pdf-title">${title}</div>
-      </div>
-
-      <iframe
-        src="${pdfPath}"
-        class="pdf-frame"
-      ></iframe>
-
-    </div>
-  `;
-
-  applyPageTransition();
-}
 function renderPage(page) {
   currentPage = page;
   if (page === "home") renderHome();
@@ -1023,6 +1004,7 @@ initApp();
    END OF FILE
 
 -------------------------------------------------- */
+
 
 
 

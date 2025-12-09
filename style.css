@@ -1,7 +1,6 @@
 /* -----------------------------------------
    Villa Park Little League - Clean Theme
-   No notifications, no alert bar, no spinners
-------------------------------------------*/
+------------------------------------------ */
 
 * {
   box-sizing: border-box;
@@ -19,7 +18,7 @@ body {
 
 /* -----------------------------------------
    HEADER
-------------------------------------------*/
+------------------------------------------ */
 header {
   background-color: #0a192f;
   color: white;
@@ -42,8 +41,8 @@ header img {
 }
 
 /* -----------------------------------------
-   MAIN
-------------------------------------------*/
+   MAIN CONTENT
+------------------------------------------ */
 main {
   flex: 1;
   overflow-y: auto;
@@ -51,8 +50,8 @@ main {
 }
 
 /* -----------------------------------------
-   CARDS / SIMPLE UI BLOCKS
-------------------------------------------*/
+   CARDS
+------------------------------------------ */
 .card {
   background: white;
   border-radius: 16px;
@@ -66,7 +65,6 @@ main {
   color: white;
   padding: 12px 16px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
 }
 
@@ -75,14 +73,9 @@ main {
   font-size: 1.1rem;
 }
 
-.card-subtitle {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.85);
-}
-
 /* -----------------------------------------
    PAGE TRANSITION
-------------------------------------------*/
+------------------------------------------ */
 .page-transition {
   animation: slideUp 0.35s ease forwards;
 }
@@ -100,7 +93,7 @@ main {
 
 /* -----------------------------------------
    HOME BANNER
-------------------------------------------*/
+------------------------------------------ */
 .home-card {
   padding: 0;
   background: white;
@@ -110,48 +103,38 @@ main {
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
 }
 
-.home-banner {
-  width: 100%;
-  object-fit: contain;
-  background-color: #000;
-}
-
 .home-banner img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  display: block;
 }
 
 /* -----------------------------------------
    ANNOUNCEMENTS
-------------------------------------------*/
+------------------------------------------ */
 .announcements {
   padding: 16px;
-  background: white;
 }
 
 .announcements h3 {
   margin: 0 0 10px 0;
   font-size: 1.2rem;
-  color: #0a192f;
   font-weight: 700;
 }
 
 .announcements ul {
   list-style: none;
-  margin: 0;
   padding: 0;
+  margin: 0;
 }
 
 .announcements li {
   font-size: 1rem;
   margin-bottom: 6px;
-  color: #333;
 }
 
 /* -----------------------------------------
    BOTTOM NAVIGATION
-------------------------------------------*/
+------------------------------------------ */
 #bottomNav {
   position: fixed;
   bottom: 0;
@@ -175,174 +158,21 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-family: inherit;
   font-size: 0.75rem;
   color: #444;
-  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 #bottomNav .nav-btn .icon {
   font-size: 1.4rem;
-  line-height: 1.4rem;
-  margin-bottom: 2px;
 }
 
 #bottomNav .nav-btn.active {
   color: #d32f2f;
-  transform: scale(1.1);
-}
-
-#bottomNav .nav-btn.active .icon {
-  color: #d32f2f;
-  transform: scale(1.25);
 }
 
 /* -----------------------------------------
-   RESPONSIVE
-------------------------------------------*/
-@media (max-width: 600px) {
-  header {
-    font-size: 1.1rem;
-  }
-  .card {
-    margin: 12px;
-  }
-  #bottomNav .nav-btn {
-    font-size: 0.9rem;
-  }
-}
-.spinner-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255,255,255,0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.vpll-spinner {
-  width: 80px;
-  height: 80px;
-  animation: spin 1.2s linear infinite;
-  opacity: 0.9;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-.schedule-container {
-  padding: 0 16px 16px 16px;
-}
-
-.schedule-date-header {
-  margin: 20px 0 10px 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #0a192f;
-}
-
-.schedule-date-block {
-  background: #fff;
-  border-radius: 12px;
-  padding: 10px 0;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.schedule-item {
-  padding: 12px 16px;
-  border-bottom: 1px solid #eee;
-}
-
-.schedule-item:last-child {
-  border-bottom: none;
-}
-
-.schedule-time-field {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.95rem;
-  color: #444;
-}
-
-.schedule-teams {
-  margin-top: 4px;
-  font-weight: 600;
-  font-size: 1rem;
-}
-
-.schedule-score {
-  margin-top: 4px;
-  color: #d32f2f;
-  font-weight: 700;
-}
-/* Scroll-To-Today Button */
-.scroll-today-btn {
-  position: fixed;
-  bottom: 90px;
-  right: 20px;
-  background: #0a192f;
-  color: white;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
-  cursor: pointer;
-  z-index: 999;
-  opacity: 0.9;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.scroll-today-btn:hover {
-  opacity: 1;
-  transform: scale(1.05);
-}
-#vpll-announcement-banner {
-  animation: fadeIn 0.4s ease-in-out;
-}
-/* --- GAME TICKER --- */
-.ticker {
-    width: 100%;
-    overflow: hidden;
-    background: #0b3d91;
-    color: white;
-    padding: 6px 0;
-    border-bottom: 2px solid #ffcc00;
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-#tickerContent {
-  overflow: hidden;
-  white-space: nowrap;
-  position: relative;
-}
-
-.ticker-text {
-  display: inline-block;
-  padding-left: 100%;
-  animation: tickerScroll 35s linear infinite;
-}
-
-@keyframes tickerScroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-100%); }
-}
-
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-/* More Page Grid Layout */
+   MORE PAGE GRID
+------------------------------------------ */
 .more-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -361,12 +191,10 @@ main {
   justify-content: center;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.more-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+.more-card-wide {
+  grid-column: span 2;
 }
 
 .more-icon {
@@ -380,10 +208,9 @@ main {
   color: #0a2a66;
 }
 
-/* Wide Version (Enter Final Score) */
-.more-card-wide {
-  grid-column: span 2;
-}
+/* -----------------------------------------
+   BUTTONS
+------------------------------------------ */
 .form-button {
   display: inline-block;
   background: #0a2a66;
@@ -392,63 +219,66 @@ main {
   border-radius: 8px;
   text-decoration: none;
   font-size: 16px;
-  margin-top: 12px;
 }
+
 .back-button {
   background: none;
   border: none;
   color: #0b3b7e;
   font-size: 14px;
   cursor: pointer;
-  padding: 6px 0;
-}
-.pdf-container {
-  height: calc(100svh - 220px);
 }
 
-.pdf-container iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-/* Allow PDF view to use full width */
-.pdf-card {
-  padding-left: 0;
-  padding-right: 0;
-}
-
-/* PDF container sizing */
-.pdf-container {
-  width: 100%;
-  height: calc(100svh - 220px); /* header + bottom nav */
+/* -----------------------------------------
+   FULL SCREEN PDF VIEW (FINAL & CLEAN)
+------------------------------------------ */
+.pdf-view {
+  position: fixed;
+  top: 70px;      /* header height */
+  bottom: 65px;   /* bottom nav height */
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  z-index: 2000;
 }
 
-/* iframe fills container */
-.pdf-container iframe {
+.pdf-header-bar {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: #0a192f;
+  color: white;
+  font-weight: 700;
+}
+
+.pdf-title {
+  flex: 1;
+  text-align: center;
+  margin-right: 40px;
+}
+
+.pdf-frame {
+  flex: 1;
   width: 100%;
-  height: 100%;
   border: none;
   display: block;
 }
-function renderPdfViewer(title, pdfPath) {
-  pageRoot.innerHTML = `
-    <div class="pdf-view">
 
-      <div class="pdf-header-bar">
-        <button class="back-button" onclick="renderResources()">← Back</button>
-        <div class="pdf-title">${title}</div>
-      </div>
-
-      <iframe
-        src="${pdfPath}"
-        class="pdf-frame"
-      ></iframe>
-
-    </div>
-  `;
-
-  applyPageTransition();
+/* -----------------------------------------
+   RESPONSIVE
+------------------------------------------ */
+@media (max-width: 600px) {
+  header {
+    font-size: 1.1rem;
+  }
+  .card {
+    margin: 12px;
+  }
 }
+
+
 
 
 

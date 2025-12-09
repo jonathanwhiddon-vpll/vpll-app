@@ -402,3 +402,13 @@ main {
   cursor: pointer;
   padding: 6px 0;
 }
+.pdf-container {
+  height: calc(100svh - 220px);
+}
+
+.pdf-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+

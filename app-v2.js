@@ -743,21 +743,20 @@ function loginCoach() {
 function renderResources() {
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header"><div class="card-title">Resources</div></div>
+      <div class="card-header">
+        <div class="card-title">Resources</div>
+      </div>
 
       <ul class="roster-list">
-  <li>
-  <a href="#" onclick="renderPdfViewer('Local League Rules', 'resources/local_rules.pdf'); return false;">
-    ⚙️ Local League Rules (PDF)
-  </a>
-</li>
-  <li><a href="resources/home_run_club.pdf" target="_blank">💥 Home Run Club (PDF)</a></li>
-  <li><a href="resources/volunteer_list.pdf" target="_blank">🙋 Volunteer List (PDF)</a></li>
-  <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">📘 Rulebook</a></li>
-  <li><a href="resources/aa_rules.pdf" target="_blank">💡 AA Special Rules (PDF)</a></li>
-</ul>
+        <li><a href="resources/local_rules.pdf" target="_blank">⚙️ Local League Rules (PDF)</a></li>
+        <li><a href="resources/home_run_club.pdf" target="_blank">💥 Home Run Club (PDF)</a></li>
+        <li><a href="resources/volunteer_list.pdf" target="_blank">👥 Volunteer List (PDF)</a></li>
+        <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">📘 Rulebook</a></li>
+        <li><a href="resources/aa_rules.pdf" target="_blank">🏆 AA Special Rules (PDF)</a></li>
+      </ul>
     </section>
   `;
+
   applyPageTransition();
 }
 function renderCoachScoreForm() {
@@ -1024,6 +1023,7 @@ initApp();
    END OF FILE
 
 -------------------------------------------------- */
+
 
 
 

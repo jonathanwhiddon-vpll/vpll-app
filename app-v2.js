@@ -28,6 +28,13 @@ const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 // ========================
 // GLOBAL STATE
 // ========================
+// ========================
+// PDF VIEWER STATE (safe – no behavior yet)
+// ========================
+let pdfDoc = null;
+let pdfPageNum = 1;
+let pdfTotalPages = 0;
+
 let games = [];
 let currentPage = "home";
 let selectedScheduleDivision = "Majors";
@@ -736,6 +743,75 @@ function loginCoach() {
   // GO STRAIGHT TO SCORE FORM
   renderCoachScoreForm();
 }
+// ========================
+// PDF VIEWER PAGE (in-app)
+// ========================
+async function renderPdfPage(pdfUrl, title) {
+  pdfDoc = null;
+  pdfPageNum = 1;
+  pdfTotalPages = 0;
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <button onclick="renderResources()" style="margin-right:8px;">← Back</button>
+        <div class="card-title">${title}</div>
+      </div>
+
+      <div style="text-align:center; padding:8px;">
+        <button onclick="prevPdfPage()">◀ Prev</button>
+        <span id="pdfPageInfo" style="margin:0 12px;">Page 1</span>
+        <button onclick="nextPdfPage()">Next ▶</button>
+      </div>
+
+      <canvas id="pdfCanvas" style="width:100%;"></canvas>
+    </section>
+  `;
+
+  applyPageTransition();
+
+  // Load PDF
+  const loadingTask = pdfjsLib.getDocument(pdfUrl);
+  pdfDoc = await loadingTask.promise;
+  pdfTotalPages = pdfDoc.numPages;
+
+  renderPdfCanvas();
+}
+
+async function renderPdfCanvas() {
+  if (!pdfDoc) return;
+
+  const page = await pdfDoc.getPage(pdfPageNum);
+  const canvas = document.getElementById("pdfCanvas");
+  const context = canvas.getContext("2d");
+
+  const viewport = page.getViewport({ scale: 1 });
+  const scale = canvas.parentElement.clientWidth / viewport.width;
+  const scaledViewport = page.getViewport({ scale });
+
+  canvas.width = scaledViewport.width;
+  canvas.height = scaledViewport.height;
+
+  await page.render({
+    canvasContext: context,
+    viewport: scaledViewport
+  }).promise;
+
+  document.getElementById("pdfPageInfo").textContent =
+    `Page ${pdfPageNum} of ${pdfTotalPages}`;
+}
+
+function prevPdfPage() {
+  if (pdfPageNum <= 1) return;
+  pdfPageNum--;
+  renderPdfCanvas();
+}
+
+function nextPdfPage() {
+  if (pdfPageNum >= pdfTotalPages) return;
+  pdfPageNum++;
+  renderPdfCanvas();
+}
 
 // ========================
 // RESOURCES
@@ -1002,3 +1078,4 @@ initApp();
    END OF FILE
 
 -------------------------------------------------- */
+

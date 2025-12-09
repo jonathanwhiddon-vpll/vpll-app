@@ -4,11 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Villa Park Little League</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-</script>
 
   <!-- CSS -->
 <link rel="stylesheet" href="style.css?v=5" />
@@ -88,22 +83,5 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-    <!-- PDF Viewer Overlay -->
-<div id="pdfViewer" style="display:none;">
-  <div class="pdf-toolbar">
-    <button onclick="closePDF()">⬅ Back</button>
-    <div class="pdf-controls">
-      <button onclick="prevPage()">◀</button>
-      <span id="pageIndicator">Page 1</span>
-      <button onclick="nextPage()">▶</button>
-    </div>
-  </div>
-
-  <canvas id="pdfCanvas"></canvas>
-</div>
-
 </body>
-
 </html>
-
-

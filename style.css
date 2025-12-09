@@ -474,33 +474,3 @@ main {
     font-size: 0.9rem;
   }
 }
-#pdfViewer {
-  position: fixed;
-  inset: 0;
-  background: #fff;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-}
-
-.pdf-toolbar {
-  background: #0a2a66;
-  color: #fff;
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.pdf-toolbar button {
-  background: #f4b41a;
-  border: none;
-  padding: 6px 10px;
-  font-weight: bold;
-  border-radius: 4px;
-}
-
-#pdfCanvas {
-  width: 100%;
-  height: auto;
-}

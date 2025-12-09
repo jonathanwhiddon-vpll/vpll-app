@@ -83,5 +83,20 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+    <!-- PDF Viewer Overlay -->
+<div id="pdfViewer" style="display:none;">
+  <div class="pdf-toolbar">
+    <button onclick="closePDF()">⬅ Back</button>
+    <div class="pdf-controls">
+      <button onclick="prevPage()">◀</button>
+      <span id="pageIndicator">Page 1</span>
+      <button onclick="nextPage()">▶</button>
+    </div>
+  </div>
+
+  <canvas id="pdfCanvas"></canvas>
+</div>
+
 </body>
+
 </html>

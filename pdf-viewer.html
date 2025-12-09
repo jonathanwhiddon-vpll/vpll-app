@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>PDF Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- PDF.js -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #0a192f;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      background: #0a192f;
+      color: white;
+    }
+
+    .topbar button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 16px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+
+    .title {
+      flex: 1;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    #viewerContainer {
+      flex: 1;
+      overflow: hidden;
+      background: #525659;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="topbar">
+    <button onclick="history.back()">←</button>
+    <div class="title" id="title">Document</div>
+  </div>
+
+  <iframe id="pdfFrame"></iframe>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const pdf = params.get("pdf");
+    const title = params.get("title");
+
+    if (title) document.getElementById("title").textContent = title;
+    if (pdf) {
+      document.getElementById("pdfFrame").src =
+        "https://mozilla.github.io/pdf.js/web/viewer.html?file=" +
+        encodeURIComponent(pdf);
+    }
+  </script>
+
+</body>
+</html>

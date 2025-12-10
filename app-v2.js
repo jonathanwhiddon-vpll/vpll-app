@@ -65,11 +65,13 @@ const coachPins = {
 
 let scoreOverrides = JSON.parse(localStorage.getItem("vpll_score_overrides") || "{}");
 
-const pageRoot = document.getElementById("page-root");
-
 // ========================
 // HELPERS
 // ========================
+function getPageRoot() {
+  return document.getElementById("page-root");
+}
+
 function normalizeScore(value) {
   if (value === "" || value == null) return null;
   const n = Number(value);
@@ -397,7 +399,12 @@ async function renderHome() {
   }
 
   // Build final home page HTML
-  pageRoot.innerHTML = `
+   const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;`
     <section class="card home-card">
       <div class="home-banner">
         <img src="home_banner.jpg" alt="League Banner">
@@ -415,7 +422,13 @@ renderTicker();
 // TEAMS
 // ========================
 function renderTeams() {
-  pageRoot.innerHTML = `
+  const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+`
     <section class="card">
       <div class="card-header"><div class="card-title">Teams</div></div>
       <ul class="roster-list">
@@ -442,7 +455,13 @@ function renderTeamsByDivision(div) {
     }
   });
 
-  pageRoot.innerHTML = `
+ const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+ `
     <section class="card">
       <div class="card-header"><div class="card-title">${div}</div></div>
       <ul class="roster-list">
@@ -469,7 +488,13 @@ function renderTeamSchedule(div, team) {
       g => g.division === div && (g.home === team || g.away === team)
     );
 
-    pageRoot.innerHTML = `
+    const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+
       <section class="card">
         <div class="card-header">
           <div class="card-title">${team}</div>
@@ -530,7 +555,13 @@ function renderSchedule() {
       gamesByDate[g.date].push(g);
     });
 
-    pageRoot.innerHTML = `
+   const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+
       <section class="card">
         <div class="card-header"><div class="card-title">Schedule</div></div>
 
@@ -644,7 +675,13 @@ function renderStandings() {
     // Ensure data exists
     if (!standingsData || Object.keys(standingsData).length === 0) {
         hideSpinner();
-        pageRoot.innerHTML = `
+        const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+
             <section class="card">
                 <div class="card-header"><div class="card-title">Standings</div></div>
                 <p style="padding:16px;">No standings available yet.</p>
@@ -677,7 +714,13 @@ function renderStandings() {
         return a.team.localeCompare(b.team);
     });
 
-    pageRoot.innerHTML = `
+   const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+
         <section class="card">
             <div class="card-header"><div class="card-title">Standings</div></div>
 
@@ -753,7 +796,13 @@ async function renderPdfPage(pdfUrl, title) {
   pdfPageNum = 1;
   pdfTotalPages = 0;
 
-  pageRoot.innerHTML = `
+  const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+
     <section class="card">
       <div class="card-header">
         <button onclick="renderResources()" style="margin-right:8px;">← Back</button>
@@ -821,7 +870,13 @@ function nextPdfPage() {
 // RESOURCES
 // ========================
 function renderResources() {
-  pageRoot.innerHTML = `
+ const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+
     <section class="card">
       <div class="card-header"><div class="card-title">Resources</div></div>
 
@@ -883,7 +938,13 @@ function renderCoachScoreForm() {
 // ========================
 function renderAdmin() {
   if (!isAdmin) {
-    pageRoot.innerHTML = `
+    const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+
       <section class="card">
         <div class="card-header"><div class="card-title">Admin</div></div>
         <p style="padding:16px;">Admin only. Log in as Admin on Messages tab.</p>
@@ -892,7 +953,13 @@ function renderAdmin() {
     return applyPageTransition();
   }
 
-  pageRoot.innerHTML = `
+  const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+
     <section class="card">
       <div class="card-header"><div class="card-title">Admin Tools</div></div>
       <p style="padding:16px;">
@@ -913,7 +980,13 @@ function renderAdmin() {
 function renderMore() {
     const root = document.getElementById("page-root");
 
-    root.innerHTML = `
+    const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+
       <div class="more-grid">
 
         <div class="more-card" data-target="teams">
@@ -952,7 +1025,13 @@ function renderMore() {
 function renderLogin() {
     const isLoggedIn = !!loggedInCoach;
 
-    pageRoot.innerHTML = `
+    const pageRoot = getPageRoot();
+if (!pageRoot) return;
+
+pageRoot.innerHTML = `
+  ...
+`;
+
         <section class="card">
             <div class="card-header">
                 <div class="card-title">Division Login</div>
@@ -1100,6 +1179,7 @@ document.addEventListener("DOMContentLoaded", () => {
    END OF FILE
 
 -------------------------------------------------- */
+
 
 
 

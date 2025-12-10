@@ -34,6 +34,8 @@ const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 let pdfDoc = null;
 let pdfPageNum = 1;
 let pdfTotalPages = 0;
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 let games = [];
 let currentPage = "home";
@@ -1082,5 +1084,6 @@ initApp();
    END OF FILE
 
 -------------------------------------------------- */
+
 
 

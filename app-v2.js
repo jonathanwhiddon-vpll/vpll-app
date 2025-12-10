@@ -831,10 +831,22 @@ function renderResources() {
     ⚙️ Local League Rules (PDF)
   </a>
 </li>
-  <li><a href="resources/home_run_club.pdf" target="_blank">💥 Home Run Club (PDF)</a></li>
-  <li><a href="resources/volunteer_list.pdf" target="_blank">🙋 Volunteer List (PDF)</a></li>
+  <li>
+  <a href="#" onclick="renderPdfPage('resources/home_run_club.pdf','Home Run Club'); return false;">
+    💥 Home Run Club (PDF)
+  </a>
+</li>
+  <li>
+  <a href="#" onclick="renderPdfPage('resources/volunteer_list.pdf','Volunteer List'); return false;">
+    🙋 Volunteer List (PDF)
+  </a>
+</li>
   <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">📘 Rulebook</a></li>
-  <li><a href="resources/aa_rules.pdf" target="_blank">💡 AA Special Rules (PDF)</a></li>
+  <li>
+  <a href="#" onclick="renderPdfPage('resources/aa_rules.pdf','AA Special Rules'); return false;">
+    💡 AA Special Rules (PDF)
+  </a>
+</li>
 </ul>
     </section>
   `;
@@ -1086,6 +1098,7 @@ initApp();
    END OF FILE
 
 -------------------------------------------------- */
+
 
 
 

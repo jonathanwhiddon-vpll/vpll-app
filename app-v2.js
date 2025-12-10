@@ -848,7 +848,7 @@ async function renderPdfCanvas() {
     document.getElementById("page-root")?.clientWidth ||
     document.body.clientWidth;
 
-  const scale = (containerWidth / viewport.width) * 1.15;
+  const scale = (containerWidth / viewport.width) * 1.4;
   const scaledViewport = page.getViewport({ scale });
 
   canvas.width = scaledViewport.width;
@@ -1187,6 +1187,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

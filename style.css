@@ -85,6 +85,9 @@ main {
 /* -----------------------------------------
    PAGE TRANSITION
 ------------------------------------------ */
+#page-root {
+  opacity: 1;
+}
 
 .page-transition {
   animation: slideUp 0.35s ease forwards;
@@ -474,3 +477,4 @@ main {
     font-size: 0.9rem;
   }
 }
+

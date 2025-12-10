@@ -35,6 +35,7 @@ let games = [];
 let currentPage = "home";
 let selectedScheduleDivision = "Majors";
 let selectedStandingsDivision = "Majors";
+let isFirstRender = true;
 
 let loggedInCoach = null;
 let isAdmin = false;
@@ -99,6 +100,14 @@ function applyPageTransition() {
   const root = getPageRoot();
   if (!root) return;
 
+  // ✅ Do NOT animate on first render (fix blank screen)
+  if (isFirstRender) {
+    root.style.opacity = 1;
+    isFirstRender = false;
+    return;
+  }
+
+  // Normal fade behavior for navigation
   root.style.opacity = 0;
   root.style.transition = "opacity 0.35s ease";
 
@@ -108,6 +117,7 @@ function applyPageTransition() {
     }, 50);
   });
 }
+
 
 // ========================
 // LOAD SCHEDULE FROM CSV
@@ -1176,6 +1186,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

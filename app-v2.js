@@ -3,23 +3,26 @@
    - Loads schedule from Google Sheets CSV
    - Coach & Admin login
    - Score entry for Majors / AAA / AA
-   - Standings computed from scores
-   - Messages + Admin pages
-   - No push notifications, no alert bar
+   - Standings from Google Form
+   - Announcements
+   - In-app PDF viewer for Resources
+   - Pull-down refresh on Home
 -------------------------------------------------- */
 
 // ========================
 // CONFIG
 // ========================
 function showSpinner() {
-  document.getElementById("loadingSpinner").style.display = "flex";
+  const el = document.getElementById("loadingSpinner");
+  if (el) el.style.display = "flex";
 }
 
 function hideSpinner() {
-  document.getElementById("loadingSpinner").style.display = "none";
+  const el = document.getElementById("loadingSpinner");
+  if (el) el.style.display = "none";
 }
 
-// This no longer matters since we're using CSV
+// (Kept for future use, not used with CSV)
 const API_BASE_URL = "/schedule.json";
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
@@ -28,15 +31,6 @@ const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 // ========================
 // GLOBAL STATE
 // ========================
-// ========================
-// PDF VIEWER STATE (safe – no behavior yet)
-// ========================
-let pdfDoc = null;
-let pdfPageNum = 1;
-let pdfTotalPages = 0;
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
 let games = [];
 let currentPage = "home";
 let selectedScheduleDivision = "Majors";
@@ -45,25 +39,28 @@ let selectedStandingsDivision = "Majors";
 let loggedInCoach = null;
 let isAdmin = false;
 const ADMIN_PIN = "0709";
-let standingsData = {};   // <— NEW
-let tickerData = [];      // <— NEW
 
+let standingsData = {};
+let tickerData = [];
 
-// INITIAL standings layout
-const INITIAL_STANDINGS = {
-  "Majors": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"],
-  "AAA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
-  "AA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"]
-};
-
-// Division-level login (simple)
 const coachPins = {
-    "Majors": "1111",
-    "AAA": "2222",
-    "AA": "3333"
+  Majors: "1111",
+  AAA: "2222",
+  AA: "3333"
 };
 
-let scoreOverrides = JSON.parse(localStorage.getItem("vpll_score_overrides") || "{}");
+let scoreOverrides = JSON.parse(
+  localStorage.getItem("vpll_score_overrides") || "{}"
+);
+
+// PDF viewer state
+let pdfDoc = null;
+let pdfPageNum = 1;
+let pdfTotalPages = 0;
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 // ========================
 // HELPERS
@@ -78,18 +75,10 @@ function normalizeScore(value) {
   return Number.isNaN(n) ? null : n;
 }
 
-function normalizeField(value) {
-  return value == null ? "" : value.toString();
-}
-
 function makeGameKey(game) {
-  return [
-    game.division, game.date, game.time, game.home, game.away
-  ].map(s => s.toString().trim()).join("|");
-}
-
-function saveMessages() {
-  localStorage.setItem("vpll_messages", JSON.stringify(messages));
+  return [game.division, game.date, game.time, game.home, game.away]
+    .map(s => s.toString().trim())
+    .join("|");
 }
 
 function saveScoreOverrides() {
@@ -107,13 +96,12 @@ function applyScoreOverrides() {
 }
 
 function applyPageTransition() {
-  const root = document.getElementById("page-root");
+  const root = getPageRoot();
+  if (!root) return;
 
-  // Start fade-out
   root.style.opacity = 0;
   root.style.transition = "opacity 0.35s ease";
 
-  // Wait a tiny bit, then fade back in
   requestAnimationFrame(() => {
     setTimeout(() => {
       root.style.opacity = 1;
@@ -121,175 +109,187 @@ function applyPageTransition() {
   });
 }
 
-
 // ========================
 // LOAD SCHEDULE FROM CSV
 // ========================
-// CSV links for each division
-// ===========================
-// LOAD SCHEDULE FROM MULTIPLE DIVISION CSVs
-// ===========================
 const CSV_URLS = {
-    "Majors": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=0&single=true&output=csv",
-    "AAA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1857914653&single=true&output=csv",
-    "AA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1006784456&single=true&output=csv",
-    "Single A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1852143804&single=true&output=csv",
-    "Coach Pitch": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=359750423&single=true&output=csv",
-    "T-Ball": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=860483387&single=true&output=csv"
+  Majors:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=0&single=true&output=csv",
+  AAA:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1857914653&single=true&output=csv",
+  AA:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1006784456&single=true&output=csv",
+  "Single A":
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1852143804&single=true&output=csv",
+  "Coach Pitch":
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=359750423&single=true&output=csv",
+  "T-Ball":
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=860483387&single=true&output=csv"
 };
 
 async function loadScheduleFromApi() {
-    showSpinner();
-    try {
-        let combined = [];
+  showSpinner();
+  try {
+    let combined = [];
 
+    for (const div in CSV_URLS) {
+      const url = CSV_URLS[div];
 
-        for (const div in CSV_URLS) {
-            const url = CSV_URLS[div];
+      const response = await fetch(url, { cache: "no-cache" });
+      const csvText = await response.text();
 
-            const response = await fetch(url, { cache: "no-cache" });
-            const csvText = await response.text();
+      const rows = Papa.parse(csvText, { header: true }).data;
 
-            const rows = Papa.parse(csvText, { header: true }).data;
+      const parsed = rows.map(item => {
+        const division = div;
 
-            const parsed = rows.map(item => {
-                const division = div;
+        const date = item.date || item.Date || "";
+        const time = item.time || item.Time || "";
+        const field = item.field || item.Field || "";
+        const home = item.home || item.Home || "";
+        const away = item.away || item.Away || "";
 
-                const date = item.date || item.Date || "";
-                const time = item.time || item.Time || "";
-                const field = item.field || item.Field || "";
-                const home = item.home || item.Home || "";
-                const away = item.away || item.Away || "";
+        const homeScore = normalizeScore(
+          item["home score"] || item["Home Score"]
+        );
+        const awayScore = normalizeScore(
+          item["away score"] || item["Away Score"]
+        );
 
-                const homeScore = normalizeScore(item["home score"] || item["Home Score"]);
-                const awayScore = normalizeScore(item["away score"] || item["Away Score"]);
+        const game = {
+          division,
+          date,
+          time,
+          field,
+          home,
+          away,
+          homeScore,
+          awayScore
+        };
 
-                const game = {
-                    division,
-                    date,
-                    time,
-                    field,
-                    home,
-                    away,
-                    homeScore,
-                    awayScore,
-                };
+        game.key = makeGameKey(game);
+        return game;
+      });
 
-                game.key = makeGameKey(game);
-                return game;
-            });
-
-            combined = combined.concat(parsed);
-        }
-
-        games = combined;
-        applyScoreOverrides();
-hideSpinner();
-
-        if (currentPage === "schedule") renderSchedule();
-        if (currentPage === "standings") renderStandings();
-        if (currentPage === "home") renderHome();
-
-    } catch (err) {
-        console.error("Error loading schedule CSV:", err);
+      combined = combined.concat(parsed);
     }
+
+    games = combined;
+    applyScoreOverrides();
+
+    if (currentPage === "schedule") renderSchedule();
+    if (currentPage === "standings") renderStandings();
+    if (currentPage === "home") renderHome();
+  } catch (err) {
+    console.error("Error loading schedule CSV:", err);
+  } finally {
+    hideSpinner();
+  }
 }
+
 // ================================
 // FETCH SCORES + STANDINGS (FORM)
 // ================================
 async function fetchScoresAndStandings() {
-    const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1463341365&single=true&output=csv";
+  const url =
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1463341365&single=true&output=csv";
 
-    try {
-        const response = await fetch(url);
-        const csvText = await response.text();
-        const rows = csvText.split("\n").slice(1); // skip header
+  try {
+    const response = await fetch(url);
+    const csvText = await response.text();
+    const rows = csvText.split("\n").slice(1); // skip header
 
-        let games = [];
+    let formGames = [];
 
-        rows.forEach(row => {
-            let cols = row.split(",");
+    rows.forEach(row => {
+      let cols = row.split(",");
+      if (cols.length < 10) return;
 
-            if (cols.length < 10) return; // skip incomplete rows
+      let game = {
+        timestamp: cols[0],
+        division: cols[1],
+        date: cols[3],
+        time: cols[4],
+        field: cols[5],
+        homeTeam: cols[6],
+        awayTeam: cols[7],
+        homeScore: parseInt(cols[8] || "0", 10),
+        awayScore: parseInt(cols[9] || "0", 10),
+        submittedBy: cols[10]
+      };
 
-            let game = {
-    timestamp: cols[0],
-    division: cols[1],
-    date: cols[3],          // Using "Game Time" and "Game Date"
-    time: cols[4],          // adjust if needed
-    field: cols[5],
-    homeTeam: cols[6],
-    awayTeam: cols[7],
-    homeScore: parseInt(cols[8] || "0"),
-    awayScore: parseInt(cols[9] || "0"),
-    submittedBy: cols[10]
-};
+      formGames.push(game);
+    });
 
+    return formGames;
+  } catch (err) {
+    console.error("Error fetching scores/standings:", err);
+    return [];
+  }
+}
 
-            games.push(game);
-        });
+function buildStandings(formGames) {
+  let table = {};
 
-        return games;
+  formGames.forEach(g => {
+    if (!table[g.division]) table[g.division] = {};
 
-    } catch (err) {
-        console.error("Error fetching scores/standings:", err);
-        return [];
+    if (!table[g.division][g.homeTeam]) {
+      table[g.division][g.homeTeam] = {
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        runsFor: 0,
+        runsAgainst: 0
+      };
     }
+    if (!table[g.division][g.awayTeam]) {
+      table[g.division][g.awayTeam] = {
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        runsFor: 0,
+        runsAgainst: 0
+      };
+    }
+
+    table[g.division][g.homeTeam].runsFor += g.homeScore;
+    table[g.division][g.homeTeam].runsAgainst += g.awayScore;
+    table[g.division][g.awayTeam].runsFor += g.awayScore;
+    table[g.division][g.awayTeam].runsAgainst += g.homeScore;
+
+    if (g.homeScore > g.awayScore) {
+      table[g.division][g.homeTeam].wins++;
+      table[g.division][g.awayTeam].losses++;
+    } else if (g.homeScore < g.awayScore) {
+      table[g.division][g.awayTeam].wins++;
+      table[g.division][g.homeTeam].losses++;
+    } else {
+      table[g.division][g.homeTeam].ties++;
+      table[g.division][g.awayTeam].ties++;
+    }
+  });
+
+  return table;
 }
-function buildStandings(games) {
-    let table = {};
 
-    games.forEach(g => {
-        if (!table[g.division]) table[g.division] = {};
-
-        // Ensure home team exists
-        if (!table[g.division][g.homeTeam]) {
-            table[g.division][g.homeTeam] = { wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
-        }
-        // Ensure away team exists
-        if (!table[g.division][g.awayTeam]) {
-            table[g.division][g.awayTeam] = { wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
-        }
-
-        // Add RF/RA
-        table[g.division][g.homeTeam].runsFor += g.homeScore;
-        table[g.division][g.homeTeam].runsAgainst += g.awayScore;
-        table[g.division][g.awayTeam].runsFor += g.awayScore;
-        table[g.division][g.awayTeam].runsAgainst += g.homeScore;
-
-        // Wins / Losses
-        if (g.homeScore > g.awayScore) {
-            table[g.division][g.homeTeam].wins++;
-            table[g.division][g.awayTeam].losses++;
-        } else if (g.homeScore < g.awayScore) {
-            table[g.division][g.awayTeam].wins++;
-            table[g.division][g.homeTeam].losses++;
-        } else {
-            table[g.division][g.homeTeam].ties++;
-            table[g.division][g.awayTeam].ties++;
-        }
-    });
-
-    return table;
-}
 function buildTicker(formGames) {
-    formGames.sort((a, b) => {
-        return new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time);
-    });
+  formGames.sort((a, b) => {
+    return new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time);
+  });
 
-    return formGames.map(g => {
-        return `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`;
-    });
+  return formGames.map(
+    g => `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
+  );
 }
+
 async function loadScoresAndStandings() {
-    let formGames = await fetchScoresAndStandings();
+  const formGames = await fetchScoresAndStandings();
+  standingsData = buildStandings(formGames);
+  tickerData = buildTicker(formGames);
 
-    standingsData = buildStandings(formGames);
-    tickerData = buildTicker(formGames);
-
-    // These functions already exist in your file
-    if (currentPage === "standings") renderStandings();
-    if (currentPage === "home") renderHome();
+  if (currentPage === "standings") renderStandings();
+  if (currentPage === "home") renderHome();
 }
 
 // ========================
@@ -324,13 +324,13 @@ function editScore(gameKey) {
   if (currentPage === "home") renderHome();
 }
 
-
 // ================================
 // LOAD ANNOUNCEMENTS (CSV)
 // ================================
 async function loadAnnouncement() {
   try {
-    const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
+    const url =
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
 
     const resp = await fetch(url);
     if (!resp.ok) throw new Error("Announcement CSV fetch failed");
@@ -339,23 +339,21 @@ async function loadAnnouncement() {
     const lines = csv.trim().split("\n");
     if (lines.length < 2) return [];
 
-    // Parse header
     const header = lines[0].split(",");
-    const annIndex = header.findIndex(h => h.toLowerCase().includes("announcement"));
+    const annIndex = header.findIndex(h =>
+      h.toLowerCase().includes("announcement")
+    );
     if (annIndex < 0) return [];
 
     const announcements = [];
 
-    // Parse each row
     for (let i = 1; i < lines.length; i++) {
-      // Split by comma, but safely (allowing commas inside quotes)
       const row = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
       if (!row) continue;
 
       let msg = row[annIndex] || "";
       msg = msg.trim();
 
-      // Remove wrapping quotes ("message" → message)
       if (msg.startsWith('"') && msg.endsWith('"')) {
         msg = msg.slice(1, -1);
       }
@@ -366,7 +364,6 @@ async function loadAnnouncement() {
     }
 
     return announcements;
-
   } catch (err) {
     console.warn("Error loading announcements:", err);
     return [];
@@ -377,7 +374,6 @@ async function loadAnnouncement() {
 // HOME PAGE
 // ================================
 async function renderHome() {
-
   const announcements = await loadAnnouncement();
   let announcementHTML = "";
 
@@ -398,13 +394,10 @@ async function renderHome() {
     `;
   }
 
-  // Build final home page HTML
-   const pageRoot = getPageRoot();
-if (!pageRoot) return;
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
 
-pageRoot.innerHTML = `
-  ...
-`;`
+  pageRoot.innerHTML = `
     <section class="card home-card">
       <div class="home-banner">
         <img src="home_banner.jpg" alt="League Banner">
@@ -413,8 +406,8 @@ pageRoot.innerHTML = `
       ${announcementHTML}
     </section>
   `;
-renderTicker();
 
+  renderTicker();
   applyPageTransition();
 }
 
@@ -423,12 +416,9 @@ renderTicker();
 // ========================
 function renderTeams() {
   const pageRoot = getPageRoot();
-if (!pageRoot) return;
+  if (!pageRoot) return;
 
-pageRoot.innerHTML = `
-  ...
-`;
-`
+  pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header"><div class="card-title">Teams</div></div>
       <ul class="roster-list">
@@ -455,13 +445,10 @@ function renderTeamsByDivision(div) {
     }
   });
 
- const pageRoot = getPageRoot();
-if (!pageRoot) return;
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
 
-pageRoot.innerHTML = `
-  ...
-`;
- `
+  pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header"><div class="card-title">${div}</div></div>
       <ul class="roster-list">
@@ -478,8 +465,10 @@ pageRoot.innerHTML = `
       </ul>
     </section>
   `;
+
   applyPageTransition();
 }
+
 function renderTeamSchedule(div, team) {
   showSpinner();
 
@@ -489,12 +478,12 @@ function renderTeamSchedule(div, team) {
     );
 
     const pageRoot = getPageRoot();
-if (!pageRoot) return;
+    if (!pageRoot) {
+      hideSpinner();
+      return;
+    }
 
-pageRoot.innerHTML = `
-  ...
-`;
-
+    pageRoot.innerHTML = `
       <section class="card">
         <div class="card-header">
           <div class="card-title">${team}</div>
@@ -507,13 +496,10 @@ pageRoot.innerHTML = `
               ? `<li>No games found.</li>`
               : entries
                   .map(g => {
-                    // NEW: Only scoring divisions have a score value
                     const score = SCORING_DIVISIONS.includes(g.division)
-                      ? (
-                          g.homeScore == null && g.awayScore == null
-                            ? "No score yet"
-                            : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
-                        )
+                      ? g.homeScore == null && g.awayScore == null
+                        ? "No score yet"
+                        : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
                       : "";
 
                     const fieldName = g.field || g.Field || g.FIELD || "";
@@ -537,6 +523,7 @@ pageRoot.innerHTML = `
     hideSpinner();
   }, 120);
 }
+
 // ========================
 // SCHEDULE PAGE
 // ========================
@@ -548,20 +535,19 @@ function renderSchedule() {
       .filter(g => g.division === selectedScheduleDivision)
       .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Group games by date
     const gamesByDate = {};
     list.forEach(g => {
       if (!gamesByDate[g.date]) gamesByDate[g.date] = [];
       gamesByDate[g.date].push(g);
     });
 
-   const pageRoot = getPageRoot();
-if (!pageRoot) return;
+    const pageRoot = getPageRoot();
+    if (!pageRoot) {
+      hideSpinner();
+      return;
+    }
 
-pageRoot.innerHTML = `
-  ...
-`;
-
+    pageRoot.innerHTML = `
       <section class="card">
         <div class="card-header"><div class="card-title">Schedule</div></div>
 
@@ -590,21 +576,27 @@ pageRoot.innerHTML = `
                         <ul class="schedule-list">
                           ${gamesByDate[date]
                             .map(g => {
-                              const score = SCORING_DIVISIONS.includes(g.division)
-                                ? (
-                                    g.homeScore == null && g.awayScore == null
-                                      ? "No score yet"
-                                      : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
-                                  )
+                              const score = SCORING_DIVISIONS.includes(
+                                g.division
+                              )
+                                ? g.homeScore == null && g.awayScore == null
+                                  ? "No score yet"
+                                  : `${g.homeScore ?? "-"} - ${
+                                      g.awayScore ?? "-"
+                                    }`
                                 : "";
 
                               return `
                                 <li class="schedule-item">
                                   <div class="schedule-time-field">
                                     <span class="schedule-time">${g.time}</span>
-                                    <span class="schedule-field">Field: ${g.field || ""}</span>
+                                    <span class="schedule-field">Field: ${
+                                      g.field || ""
+                                    }</span>
                                   </div>
-                                  <div class="schedule-teams">${g.home} vs ${g.away}</div>
+                                  <div class="schedule-teams">${g.home} vs ${
+                                g.away
+                              }</div>
                                   ${
                                     score
                                       ? `<div class="schedule-score">${score}</div>`
@@ -622,33 +614,32 @@ pageRoot.innerHTML = `
         </div>
       </section>
       <button id="scrollTodayBtn" class="scroll-today-btn" onclick="scrollToToday()">📅 Today</button>
-
     `;
 
     applyPageTransition();
     hideSpinner();
   }, 120);
 }
+
 function renderTicker() {
-    const el = document.getElementById("tickerContent");
-    if (!el) return;
+  const el = document.getElementById("tickerContent");
+  if (!el) return;
 
-    // Build ticker content
-    if (!tickerData || tickerData.length === 0) {
-        el.innerHTML = `<span class="ticker-text">⚾ No score submissions yet.</span>`;
-    } else {
-        el.innerHTML = `<span class="ticker-text">${tickerData.join(" • ")}</span>`;
-    }
+  if (!tickerData || tickerData.length === 0) {
+    el.innerHTML = `<span class="ticker-text">⚾ No score submissions yet.</span>`;
+  } else {
+    el.innerHTML = `<span class="ticker-text">${tickerData.join(
+      " • "
+    )}</span>`;
+  }
 
-    // iPhone Safari animation fix (force reflow)
-    const span = el.querySelector(".ticker-text");
-    if (span) {
-        span.style.animation = "none";
-        span.offsetHeight;   // <— forces browser to recalc layout
-        span.style.animation = "";  // <— restart animation cleanly
-    }
+  const span = el.querySelector(".ticker-text");
+  if (span) {
+    span.style.animation = "none";
+    span.offsetHeight;
+    span.style.animation = "";
+  }
 }
-
 
 function scrollToToday() {
   const today = new Date();
@@ -666,104 +657,112 @@ function scrollToToday() {
     }
   }
 
-  // If no future games found, scroll to top
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+// ========================
+// STANDINGS
+// ========================
 function renderStandings() {
-    showSpinner();
+  showSpinner();
 
-    // Ensure data exists
-    if (!standingsData || Object.keys(standingsData).length === 0) {
-        hideSpinner();
-        const pageRoot = getPageRoot();
-if (!pageRoot) return;
-
-pageRoot.innerHTML = `
-  ...
-`;
-
-            <section class="card">
-                <div class="card-header"><div class="card-title">Standings</div></div>
-                <p style="padding:16px;">No standings available yet.</p>
-            </section>
-        `;
-        return;
-    }
-
-    const division = selectedStandingsDivision;
-    const divStandings = standingsData[division] || {};
-
-    // Convert object → array
-    const standingsArray = Object.keys(divStandings).map(team => ({
-        team,
-        ...divStandings[team],
-        runDiff: divStandings[team].runsFor - divStandings[team].runsAgainst,
-        winPct:
-            (divStandings[team].wins +
-                0.5 * divStandings[team].ties) /
-            (divStandings[team].wins +
-                divStandings[team].losses +
-                divStandings[team].ties || 1)
-    }));
-
-    // Sort by win%, then run diff, then runs for, then team name
-    standingsArray.sort((a, b) => {
-        if (b.winPct !== a.winPct) return b.winPct - a.winPct;
-        if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
-        if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
-        return a.team.localeCompare(b.team);
-    });
-
-   const pageRoot = getPageRoot();
-if (!pageRoot) return;
-
-pageRoot.innerHTML = `
-  ...
-`;
-
-        <section class="card">
-            <div class="card-header"><div class="card-title">Standings</div></div>
-
-            <div style="padding:16px;">
-                <label><strong>Division:</strong>
-                    <select onchange="selectedStandingsDivision=this.value; renderStandings()">
-                        ${SCORING_DIVISIONS.map(
-                            d =>
-                                `<option value="${d}" ${
-                                    d === selectedStandingsDivision ? "selected" : ""
-                                }>${d}</option>`
-                        ).join("")}
-                    </select>
-                </label>
-            </div>
-
-            <ul class="standings-list">
-                ${
-                    standingsArray.length === 0
-                        ? `<li>No standings yet.</li>`
-                        : standingsArray
-                                .map(
-                                    s => `
-                    <li>
-                        <span>${s.team}</span>
-                        <span class="record">${s.wins}-${s.losses}</span>
-                    </li>`
-                                )
-                                .join("")
-                }
-            </ul>
-        </section>
-    `;
-
-    applyPageTransition();
+  if (!standingsData || Object.keys(standingsData).length === 0) {
     hideSpinner();
+    const pageRoot = getPageRoot();
+    if (!pageRoot) return;
+
+    pageRoot.innerHTML = `
+      <section class="card">
+        <div class="card-header"><div class="card-title">Standings</div></div>
+        <p style="padding:16px;">No standings available yet.</p>
+      </section>
+    `;
+    applyPageTransition();
+    return;
+  }
+
+  const division = selectedStandingsDivision;
+  const divStandings = standingsData[division] || {};
+
+  const standingsArray = Object.keys(divStandings).map(team => {
+    const s = divStandings[team];
+    const runDiff = s.runsFor - s.runsAgainst;
+    const totalGames = s.wins + s.losses + s.ties || 1;
+    const winPct = (s.wins + 0.5 * s.ties) / totalGames;
+
+    return {
+      team,
+      wins: s.wins,
+      losses: s.losses,
+      ties: s.ties,
+      runsFor: s.runsFor,
+      runsAgainst: s.runsAgainst,
+      runDiff,
+      winPct
+    };
+  });
+
+  standingsArray.sort((a, b) => {
+    if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+    if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
+    if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
+    return a.team.localeCompare(b.team);
+  });
+
+  const pageRoot = getPageRoot();
+  if (!pageRoot) {
+    hideSpinner();
+    return;
+  }
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header"><div class="card-title">Standings</div></div>
+
+      <div style="padding:16px;">
+        <label><strong>Division:</strong>
+          <select onchange="selectedStandingsDivision=this.value; renderStandings()">
+            ${SCORING_DIVISIONS.map(
+              d =>
+                `<option value="${d}" ${
+                  d === selectedStandingsDivision ? "selected" : ""
+                }>${d}</option>`
+            ).join("")}
+          </select>
+        </label>
+      </div>
+
+      <ul class="standings-list">
+        ${
+          standingsArray.length === 0
+            ? `<li>No standings yet.</li>`
+            : standingsArray
+                .map(
+                  s => `
+          <li>
+            <span>${s.team}</span>
+            <span class="record">${s.wins}-${s.losses}</span>
+          </li>`
+                )
+                .join("")
+        }
+      </ul>
+    </section>
+  `;
+
+  applyPageTransition();
+  hideSpinner();
 }
 
+// ========================
+// LOGIN
+// ========================
 function loginCoach() {
-  const name = document.getElementById("coach-name").value.trim();
-  const pin = document.getElementById("coach-pin").value.trim();
+  const nameInput = document.getElementById("coach-name");
+  const pinInput = document.getElementById("coach-pin");
+  const name = (nameInput?.value || "").trim();
+  const pin = (pinInput?.value || "").trim();
 
-  // FIRST: Admin login
   if (name === "Admin" && pin === ADMIN_PIN) {
     loggedInCoach = "Admin";
     isAdmin = true;
@@ -771,7 +770,6 @@ function loginCoach() {
     return;
   }
 
-  // Division login
   if (!coachPins[name]) {
     alert("Unknown division.");
     return;
@@ -784,10 +782,9 @@ function loginCoach() {
 
   loggedInCoach = name;
   isAdmin = false;
-
-  // GO STRAIGHT TO SCORE FORM
   renderCoachScoreForm();
 }
+
 // ========================
 // PDF VIEWER PAGE (in-app)
 // ========================
@@ -797,12 +794,9 @@ async function renderPdfPage(pdfUrl, title) {
   pdfTotalPages = 0;
 
   const pageRoot = getPageRoot();
-if (!pageRoot) return;
+  if (!pageRoot) return;
 
-pageRoot.innerHTML = `
-  ...
-`;
-
+  pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header">
         <button onclick="renderResources()" style="margin-right:8px;">← Back</button>
@@ -815,13 +809,12 @@ pageRoot.innerHTML = `
         <button onclick="nextPdfPage()">Next ▶</button>
       </div>
 
-      <canvas id="pdfCanvas" style="width:100%;"></canvas>
+      <canvas id="pdfCanvas" style="width:100%; margin:12px 0;"></canvas>
     </section>
   `;
 
   applyPageTransition();
 
-  // Load PDF
   const loadingTask = pdfjsLib.getDocument(pdfUrl);
   pdfDoc = await loadingTask.promise;
   pdfTotalPages = pdfDoc.numPages;
@@ -832,16 +825,21 @@ pageRoot.innerHTML = `
 async function renderPdfCanvas() {
   if (!pdfDoc) return;
 
-  const page = await pdfDoc.getPage(pdfPageNum);
   const canvas = document.getElementById("pdfCanvas");
+  if (!canvas) return;
+
   const context = canvas.getContext("2d");
+  const page = await pdfDoc.getPage(pdfPageNum);
 
   const viewport = page.getViewport({ scale: 1 });
+  const containerWidth =
+    canvas.parentElement?.clientWidth ||
+    document.getElementById("page-root")?.clientWidth ||
+    document.body.clientWidth;
 
-// Mobile-friendly scale boost
-const containerWidth = canvas.parentElement?.clientWidth || pageRoot.clientWidth;
-const scale = (containerWidth / viewport.width) * 1.15; // ← text boost
-const scaledViewport = page.getViewport({ scale });
+  const scale = (containerWidth / viewport.width) * 1.15;
+  const scaledViewport = page.getViewport({ scale });
+
   canvas.width = scaledViewport.width;
   canvas.height = scaledViewport.height;
 
@@ -850,8 +848,10 @@ const scaledViewport = page.getViewport({ scale });
     viewport: scaledViewport
   }).promise;
 
-  document.getElementById("pdfPageInfo").textContent =
-    `Page ${pdfPageNum} of ${pdfTotalPages}`;
+  const infoEl = document.getElementById("pdfPageInfo");
+  if (infoEl) {
+    infoEl.textContent = `Page ${pdfPageNum} of ${pdfTotalPages}`;
+  }
 }
 
 function prevPdfPage() {
@@ -867,56 +867,63 @@ function nextPdfPage() {
 }
 
 // ========================
-// RESOURCES
+// RESOURCES PAGE
 // ========================
 function renderResources() {
- const pageRoot = getPageRoot();
-if (!pageRoot) return;
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
 
-pageRoot.innerHTML = `
-  ...
-`;
-
+  pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header"><div class="card-title">Resources</div></div>
 
       <ul class="roster-list">
-  <li>
-  <a href="#" onclick="renderPdfPage('resources/local_rules.pdf','Local League Rules'); return false;">
-    ⚙️ Local League Rules (PDF)
-  </a>
-</li>
-  <li>
-  <a href="#" onclick="renderPdfPage('resources/home_run_club.pdf','Home Run Club'); return false;">
-    💥 Home Run Club (PDF)
-  </a>
-</li>
-  <li>
-  <a href="#" onclick="renderPdfPage('resources/volunteer_list.pdf','Volunteer List'); return false;">
-    🙋 Volunteer List (PDF)
-  </a>
-</li>
-  <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">📘 Rulebook</a></li>
-  <li>
-  <a href="#" onclick="renderPdfPage('resources/aa_rules.pdf','AA Special Rules'); return false;">
-    💡 AA Special Rules (PDF)
-  </a>
-</li>
-</ul>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/local_rules.pdf','Local League Rules'); return false;">
+            ⚙️ Local League Rules (PDF)
+          </a>
+        </li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/home_run_club.pdf','Home Run Club'); return false;">
+            💥 Home Run Club (PDF)
+          </a>
+        </li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/volunteer_list.pdf','Volunteer List'); return false;">
+            🙋 Volunteer List (PDF)
+          </a>
+        </li>
+        <li>
+          <a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">
+            📘 Rulebook
+          </a>
+        </li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/aa_rules.pdf','AA Special Rules'); return false;">
+            💡 AA Special Rules (PDF)
+          </a>
+        </li>
+      </ul>
     </section>
   `;
+
   applyPageTransition();
 }
+
+// ========================
+// COACH SCORE FORM
+// ========================
 function renderCoachScoreForm() {
-    const root = document.getElementById("page-root");
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
 
-    root.innerHTML = `
-<section class="card">
-    <div class="card-header">
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
         <div class="card-title">Enter Final Score</div>
-    </div>
+      </div>
 
-    <div style="padding:16px;">
+      <div style="padding:16px;">
         <p>You are logged in as <strong>${loggedInCoach}</strong>.</p>
 
         <p>Tap below to open the score submission form:</p>
@@ -924,42 +931,34 @@ function renderCoachScoreForm() {
         <a class="form-button"
            href="https://docs.google.com/forms/d/e/1FAIpQLSdCWC1qhvh3YHTqbHZTFbl6Wkfpwr3_1WWk5-3skq8Oh6UxhA/viewform?usp=header"
            target="_blank">
-            Open Score Submission Form
+          Open Score Submission Form
         </a>
-    </div>
-</section>
-`;
+      </div>
+    </section>
+  `;
 
-    applyPageTransition();
+  applyPageTransition();
 }
 
 // ========================
 // ADMIN
 // ========================
 function renderAdmin() {
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
   if (!isAdmin) {
-    const pageRoot = getPageRoot();
-if (!pageRoot) return;
-
-pageRoot.innerHTML = `
-  ...
-`;
-
+    pageRoot.innerHTML = `
       <section class="card">
         <div class="card-header"><div class="card-title">Admin</div></div>
         <p style="padding:16px;">Admin only. Log in as Admin on Messages tab.</p>
       </section>
     `;
-    return applyPageTransition();
+    applyPageTransition();
+    return;
   }
 
-  const pageRoot = getPageRoot();
-if (!pageRoot) return;
-
-pageRoot.innerHTML = `
-  ...
-`;
-
+  pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header"><div class="card-title">Admin Tools</div></div>
       <p style="padding:16px;">
@@ -971,6 +970,7 @@ pageRoot.innerHTML = `
       </p>
     </section>
   `;
+
   applyPageTransition();
 }
 
@@ -978,101 +978,101 @@ pageRoot.innerHTML = `
 // MORE
 // ========================
 function renderMore() {
-    const root = document.getElementById("page-root");
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
 
-    const pageRoot = getPageRoot();
-if (!pageRoot) return;
+  pageRoot.innerHTML = `
+    <div class="more-grid">
 
-pageRoot.innerHTML = `
-  ...
-`;
-
-      <div class="more-grid">
-
-        <div class="more-card" data-target="teams">
-          <div class="more-icon">⚾</div>
-          <div class="more-label">Teams</div>
-        </div>
-
-        <div class="more-card" data-target="resources">
-          <div class="more-icon">📘</div>
-          <div class="more-label">Resources</div>
-        </div>
-
-        <div class="more-card more-card-wide" data-target="enter-score">
-          <div class="more-icon">📋✅</div>
-          <div class="more-label">Enter Final Score</div>
-        </div>
-
+      <div class="more-card" data-target="teams">
+        <div class="more-icon">⚾</div>
+        <div class="more-label">Teams</div>
       </div>
-    `;
 
-    // Add click handlers
-    document.querySelectorAll(".more-card").forEach(card => {
-        card.addEventListener("click", () => {
-            const target = card.getAttribute("data-target");
+      <div class="more-card" data-target="resources">
+        <div class="more-icon">📘</div>
+        <div class="more-label">Resources</div>
+      </div>
 
-            if (target === "teams") renderTeams();
-            if (target === "resources") renderResources();
-            if (target === "enter-score") renderLogin();
+      <div class="more-card more-card-wide" data-target="enter-score">
+        <div class="more-icon">📋✅</div>
+        <div class="more-label">Enter Final Score</div>
+      </div>
 
-            applyPageTransition();
-        });
+    </div>
+  `;
+
+  document.querySelectorAll(".more-card").forEach(card => {
+    card.addEventListener("click", () => {
+      const target = card.getAttribute("data-target");
+
+      if (target === "teams") renderTeams();
+      if (target === "resources") renderResources();
+      if (target === "enter-score") renderLogin();
+
+      applyPageTransition();
     });
+  });
+
+  applyPageTransition();
 }
 
-
+// ========================
+// LOGIN PAGE (FROM MORE)
+// ========================
 function renderLogin() {
-    const isLoggedIn = !!loggedInCoach;
+  const isLoggedIn = !!loggedInCoach;
 
-    const pageRoot = getPageRoot();
-if (!pageRoot) return;
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
 
-pageRoot.innerHTML = `
-  ...
-`;
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">Division Login</div>
+      </div>
 
-        <section class="card">
-            <div class="card-header">
-                <div class="card-title">Division Login</div>
-            </div>
+      <div style="padding:16px;">
+        ${
+          isLoggedIn
+            ? `
+          <p>
+            Logged in as
+            <strong>${loggedInCoach}</strong>
+            ${isAdmin ? "(Admin)" : ""}
+          </p>
 
-            <div style="padding:16px;">
+          <button onclick="logoutCoach()">Logout</button>
+        `
+            : `
+          <p>Enter your division name and PIN to enter final scores.</p>
 
-                ${
-                    isLoggedIn
-                    ? `
-                        <p>
-                            Logged in as
-                            <strong>${loggedInCoach}</strong>
-                            ${isAdmin ? "(Admin)" : ""}
-                        </p>
+          <label><strong>Division:</strong></label><br>
+          <input id="coach-name" placeholder="Majors, AAA, or AA"><br><br>
 
-                        <button onclick="logoutCoach()">Logout</button>
-                    `
-                    : `
-                        <p>Enter your division name and PIN to enter final scores.</p>
+          <label><strong>PIN:</strong></label><br>
+          <input id="coach-pin" type="password" placeholder="PIN"><br><br>
 
-                        <label><strong>Division:</strong></label><br>
-                        <input id="coach-name" placeholder="Majors, AAA, or AA"><br><br>
+          <button onclick="loginCoach()">Login</button>
 
-                        <label><strong>PIN:</strong></label><br>
-                        <input id="coach-pin" type="password" placeholder="PIN"><br><br>
+          <p style="margin-top:12px; font-size:0.85rem; color:#666;">
+            Admin login: name <strong>Admin</strong>
+          </p>
+        `
+        }
+      </div>
+    </section>
+  `;
 
-                        <button onclick="loginCoach()">Login</button>
-
-                        <p style="margin-top:12px; font-size:0.85rem; color:#666;">
-                            Admin login: name <strong>Admin</strong>
-                        </p>
-                    `
-                }
-
-            </div>
-        </section>
-    `;
-
-    applyPageTransition();
+  applyPageTransition();
 }
+
+function logoutCoach() {
+  loggedInCoach = null;
+  isAdmin = false;
+  renderLogin();
+}
+
 // ========================
 // NAVIGATION
 // ========================
@@ -1082,11 +1082,12 @@ function setActiveNav(page) {
     btn.classList.toggle("active", btn.dataset.page === page);
   });
 }
+
 function openScoreForm() {
-    window.open(
-        "https://docs.google.com/forms/d/e/1FAIpQLSdCWC1qhvh3YHTqbHZTFbl6Wkfpwr3_1WWk5-3skq8Oh6UxhA/viewform?usp=header",
-        "_blank"
-    );
+  window.open(
+    "https://docs.google.com/forms/d/e/1FAIpQLSdCWC1qhvh3YHTqbHZTFbl6Wkfpwr3_1WWk5-3skq8Oh6UxhA/viewform?usp=header",
+    "_blank"
+  );
 }
 
 function renderPage(page) {
@@ -1095,6 +1096,8 @@ function renderPage(page) {
   else if (page === "schedule") renderSchedule();
   else if (page === "standings") renderStandings();
   else if (page === "more") renderMore();
+
+  setActiveNav(page);
 }
 
 function setupNav() {
@@ -1102,7 +1105,6 @@ function setupNav() {
   buttons.forEach(btn => {
     btn.addEventListener("click", () => {
       const page = btn.dataset.page;
-      setActiveNav(page);
       renderPage(page);
     });
   });
@@ -1117,8 +1119,8 @@ function initApp() {
   renderHome();
   loadScheduleFromApi();
   loadScoresAndStandings();
-
 }
+
 // ========================
 // PULL DOWN TO REFRESH (Home Only)
 // ========================
@@ -1126,23 +1128,22 @@ let touchStartY = 0;
 let touchCurrentY = 0;
 let isPulling = false;
 
-const PULL_THRESHOLD = 60; // how far to pull before triggering
+const PULL_THRESHOLD = 60;
 
-document.addEventListener("touchstart", (e) => {
-  if (currentPage !== "home") return; // Home page only
-  if (window.scrollY > 0) return;     // only when scrolled to top
+document.addEventListener("touchstart", e => {
+  if (currentPage !== "home") return;
+  if (window.scrollY > 0) return;
 
   touchStartY = e.touches[0].clientY;
   isPulling = true;
 });
 
-document.addEventListener("touchmove", (e) => {
+document.addEventListener("touchmove", e => {
   if (!isPulling) return;
   if (currentPage !== "home") return;
 
   touchCurrentY = e.touches[0].clientY;
 
-  // If user scrolls upward (negative), cancel
   if (touchCurrentY < touchStartY) {
     isPulling = false;
     return;
@@ -1156,13 +1157,9 @@ document.addEventListener("touchend", async () => {
   const pullDistance = touchCurrentY - touchStartY;
 
   if (pullDistance > PULL_THRESHOLD) {
-    // Trigger refresh
     showSpinner();
 
-    // Reload schedule, home content, etc.
     await loadScheduleFromApi();
-
-    // Re-render home page after data reload
     renderHome();
 
     hideSpinner();
@@ -1171,14 +1168,16 @@ document.addEventListener("touchend", async () => {
   isPulling = false;
 });
 
+// Ensure DOM is ready (fixes blank first load on PWA)
 document.addEventListener("DOMContentLoaded", () => {
   initApp();
 });
 
 /* --------------------------------------------------
    END OF FILE
-
 -------------------------------------------------- */
+
+
 
 
 

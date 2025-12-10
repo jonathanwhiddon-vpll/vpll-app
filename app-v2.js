@@ -1092,12 +1092,15 @@ document.addEventListener("touchend", async () => {
   isPulling = false;
 });
 
-initApp();
+document.addEventListener("DOMContentLoaded", () => {
+  initApp();
+});
 
 /* --------------------------------------------------
    END OF FILE
 
 -------------------------------------------------- */
+
 
 
 

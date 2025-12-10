@@ -95,29 +95,30 @@ function applyScoreOverrides() {
     }
   });
 }
+let firstPaintDone = false;
 
 function applyPageTransition() {
-  const root = getPageRoot();
+  const root = document.getElementById("page-root");
   if (!root) return;
 
-  // ✅ Do NOT animate on first render (fix blank screen)
-  if (isFirstRender) {
-    root.style.opacity = 1;
-    isFirstRender = false;
+  // ✅ First render: DO NOTHING
+  if (!firstPaintDone) {
+    root.style.opacity = "1";
+    root.style.transition = "none";
+    firstPaintDone = true;
     return;
   }
 
-  // Normal fade behavior for navigation
-  root.style.opacity = 0;
+  // ✅ Normal transitions after first paint
   root.style.transition = "opacity 0.35s ease";
+  root.style.opacity = "0";
 
   requestAnimationFrame(() => {
     setTimeout(() => {
-      root.style.opacity = 1;
-    }, 50);
+      root.style.opacity = "1";
+    }, 30);
   });
 }
-
 
 // ========================
 // LOAD SCHEDULE FROM CSV
@@ -1186,6 +1187,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

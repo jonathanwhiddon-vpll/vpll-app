@@ -790,7 +790,7 @@ async function renderPdfCanvas() {
   const viewport = page.getViewport({ scale: 1 });
 
 // Mobile-friendly scale boost
-const containerWidth = canvas.parentElement.clientWidth;
+const containerWidth = canvas.parentElement?.clientWidth || pageRoot.clientWidth;
 const scale = (containerWidth / viewport.width) * 1.15; // ← text boost
 const scaledViewport = page.getViewport({ scale });
   canvas.width = scaledViewport.width;
@@ -1086,6 +1086,7 @@ initApp();
    END OF FILE
 
 -------------------------------------------------- */
+
 
 
 

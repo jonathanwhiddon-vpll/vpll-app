@@ -208,15 +208,18 @@ async function fetchScoresAndStandings() {
   try {
     const response = await fetch(url);
     const csvText = await response.text();
-    const rows = csvText.split("\n").slice(1); // skip header
+    const rows = csvText.split("\n").slice(1); // Skip header row
 
-    let formGames = [];
+    const formGames = [];
 
     rows.forEach(row => {
-      let cols = row.split(",");
+      const cols = row.split(",");
       if (cols.length < 10) return;
 
-      let game = {
+      const homeScoreRaw = cols[8] ? cols[8].trim() : "";
+      const awayScoreRaw = cols[9] ? cols[9].trim() : "";
+
+      const game = {
         timestamp: cols[0],
         division: cols[1],
         date: cols[3],
@@ -224,12 +227,8 @@ async function fetchScoresAndStandings() {
         field: cols[5],
         homeTeam: cols[6],
         awayTeam: cols[7],
-       
-const homeScoreRaw = cols[8] ? cols[8].trim() : "";
-const awayScoreRaw = cols[9] ? cols[9].trim() : "";
-
-homeScore: homeScoreRaw === "" ? null : parseInt(homeScoreRaw, 10),
-awayScore: awayScoreRaw === "" ? null : parseInt(awayScoreRaw, 10),
+        homeScore: homeScoreRaw === "" ? null : parseInt(homeScoreRaw, 10),
+        awayScore: awayScoreRaw === "" ? null : parseInt(awayScoreRaw, 10),
         submittedBy: cols[10]
       };
 
@@ -1212,6 +1211,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

@@ -683,13 +683,6 @@ function renderTicker() {
     void tickerWrap.offsetWidth;
     tickerWrap.style.animation = "";
   }
-}
-  const span = el.querySelector(".ticker-text");
-  if (span) {
-    span.style.animation = "none";
-    span.offsetHeight;
-    span.style.animation = "";
-  }
 
 function scrollToToday() {
   const today = new Date();
@@ -1230,6 +1223,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

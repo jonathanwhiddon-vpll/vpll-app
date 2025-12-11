@@ -653,14 +653,37 @@ function renderTicker() {
   const el = document.getElementById("tickerContent");
   if (!el) return;
 
+  // If no data yet
   if (!tickerData || tickerData.length === 0) {
-    el.innerHTML = `<span class="ticker-text">⚾ No score submissions yet.</span>`;
+    el.innerHTML = `
+      <div class="ticker-item">
+        ⚾ <span class="no-scores">No score submissions yet.</span>
+      </div>
+    `;
   } else {
-    el.innerHTML = `<span class="ticker-text">${tickerData.join(
-      " • "
-    )}</span>`;
+    // Build enhanced ticker entries
+    const formatted = tickerData.map(entry => {
+      // entry format right now: "Majors: Team 3 6 - 7 Team 5"
+      const [division, rest] = entry.split(":");
+      return `
+        <div class="ticker-item">
+          <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
+          <span class="ticker-text-score">⚾ ${rest.trim()}</span>
+        </div>
+      `;
+    }).join("");
+    
+    el.innerHTML = formatted;
   }
 
+  // Restart animation smoothly
+  const tickerWrap = document.getElementById("tickerBar");
+  if (tickerWrap) {
+    tickerWrap.style.animation = "none";
+    void tickerWrap.offsetWidth;
+    tickerWrap.style.animation = "";
+  }
+}
   const span = el.querySelector(".ticker-text");
   if (span) {
     span.style.animation = "none";
@@ -1208,6 +1231,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

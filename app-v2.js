@@ -1121,13 +1121,21 @@ function openScoreForm() {
     "_blank"
   );
 }
-
 function renderPage(page) {
   currentPage = page;
-  if (page === "home") renderHome();
-  else if (page === "schedule") renderSchedule();
-  else if (page === "standings") renderStandings();
-  else if (page === "more") renderMore();
+
+  if (page === "home") {
+    renderHome();              // draw page immediately
+    loadScoresAndStandings();  // fetch latest scores + ticker in background
+  } else if (page === "schedule") {
+    renderSchedule();
+    loadScheduleFromApi();     // refresh schedule CSV
+  } else if (page === "standings") {
+    renderStandings();
+    loadScoresAndStandings();  // refresh standings data
+  } else if (page === "more") {
+    renderMore();
+  }
 
   setActiveNav(page);
 }
@@ -1208,6 +1216,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

@@ -246,12 +246,9 @@ function buildStandings(formGames) {
   let table = {};
 
   formGames.forEach(g => {
-    // ⬇️ Skip games that don't have BOTH scores
+    // Skip games that don't have BOTH scores
     if (g.homeScore == null || g.awayScore == null) return;
 
-    if (!table[g.division]) table[g.division] = {};
-    
-  formGames.forEach(g => {
     if (!table[g.division]) table[g.division] = {};
 
     if (!table[g.division][g.homeTeam]) {
@@ -263,6 +260,7 @@ function buildStandings(formGames) {
         runsAgainst: 0
       };
     }
+
     if (!table[g.division][g.awayTeam]) {
       table[g.division][g.awayTeam] = {
         wins: 0,
@@ -1210,6 +1208,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

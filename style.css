@@ -321,36 +321,66 @@ main {
 }
 
 /* -----------------------------------------
-   GAME TICKER
+   GAME TICKER — Light Blue (C1-A)
 ------------------------------------------ */
 
-.ticker {
+#tickerBar {
   width: 100%;
+  background: #6ec6ff; /* Light sky blue */
+  padding: 10px 0;
   overflow: hidden;
-  background: #0b3d91;
-  color: white;
-  padding: 6px 0;
-  border-bottom: 2px solid #ffcc00;
-  font-size: 14px;
-  font-weight: 600;
   white-space: nowrap;
 }
 
 #tickerContent {
-  overflow: hidden;
-  white-space: nowrap;
-  position: relative;
-}
-
-.ticker-text {
   display: inline-block;
-  padding-left: 100%;
-  animation: tickerScroll 35s linear infinite;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  animation: tickerScroll 18s linear infinite;
 }
 
+.game {
+  margin-right: 40px;
+}
+
+.separator {
+  margin: 0 12px;
+  color: rgba(255,255,255,0.9);
+  font-weight: 700;
+}
+
+/* Ticker scroll animation */
 @keyframes tickerScroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-100%); }
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* -----------------------------------------
+   DIVISION BADGES
+------------------------------------------ */
+
+.ticker-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 6px;
+  display: inline-block;
+  color: white;
+}
+
+.badge-maj {
+  background: #0A2A66; /* VPLL Navy */
+}
+
+.badge-aaa {
+  background: #F4B41A; /* VPLL Gold */
+  color: black;        /* Better contrast on gold */
+}
+
+.badge-aa {
+  background: #4EC5C1; /* Light Aqua */
 }
 
 /* -----------------------------------------
@@ -477,4 +507,5 @@ main {
     font-size: 0.9rem;
   }
 }
+
 

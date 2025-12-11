@@ -250,8 +250,7 @@ function buildStandings(formGames) {
     if (g.homeScore == null || g.awayScore == null) return;
 
     if (!table[g.division]) table[g.division] = {};
-    ...
-
+    
   formGames.forEach(g => {
     if (!table[g.division]) table[g.division] = {};
 
@@ -1211,6 +1210,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

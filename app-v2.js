@@ -661,9 +661,7 @@ function renderTicker() {
       </div>
     `;
   } else {
-    // Build enhanced ticker entries
-    const formatted = tickerData.map(entry => {
-      // entry format right now: "Majors: Team 3 6 - 7 Team 5"
+    el.innerHTML = tickerData.map(entry => {
       const [division, rest] = entry.split(":");
       return `
         <div class="ticker-item">
@@ -672,17 +670,19 @@ function renderTicker() {
         </div>
       `;
     }).join("");
-    
-    el.innerHTML = formatted;
   }
 
-  // Restart animation smoothly
-  const tickerWrap = document.getElementById("tickerBar");
-  if (tickerWrap) {
-    tickerWrap.style.animation = "none";
-    void tickerWrap.offsetWidth;
-    tickerWrap.style.animation = "";
-  }
+  // 🔥 FIX FOR iOS PWA FREEZING TICKER
+  setTimeout(() => {
+    const ticker = document.getElementById("tickerContent");
+
+    if (!ticker) return;
+
+    ticker.style.animation = "none";
+    // Force reflow (required for Safari)
+    void ticker.offsetWidth;
+    ticker.style.animation = "tickerScroll 35s linear infinite";
+  }, 100);
 }
 function scrollToToday() {
   const today = new Date();
@@ -1223,6 +1223,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

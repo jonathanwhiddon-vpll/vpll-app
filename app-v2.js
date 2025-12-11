@@ -1197,13 +1197,9 @@ document.addEventListener("touchend", async () => {
   const pullDistance = touchCurrentY - touchStartY;
 
   if (pullDistance > PULL_THRESHOLD) {
-    showSpinner();
-
-    await loadScheduleFromApi();
-    renderHome();
-
-    hideSpinner();
-  }
+  await Promise.all([loadScheduleFromApi(), loadScoresAndStandings()]);
+  renderHome();
+}
 
   isPulling = false;
 });
@@ -1216,6 +1212,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

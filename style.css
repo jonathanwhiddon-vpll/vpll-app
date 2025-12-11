@@ -507,5 +507,66 @@ main {
     font-size: 0.9rem;
   }
 }
+/* -------- PREMIUM TICKER STYLE (C1-A) -------- */
+
+#tickerBar {
+  width: 100%;
+  overflow: hidden;
+  background: #0b3d91;
+  border-bottom: 2px solid #ffcc00;
+  padding: 4px 0;
+  white-space: nowrap;
+}
+
+#tickerContent {
+  display: inline-flex;
+  gap: 40px;
+  animation: tickerScroll 28s linear infinite;
+}
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: white;
+  font-weight: 600;
+}
+
+/* Division badges */
+.badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.badge-majors {
+  background: #d32f2f;
+}
+.badge-aaa {
+  background: #ff9800;
+}
+.badge-aa {
+  background: #4caf50;
+}
+
+/* Text */
+.ticker-text-score {
+  font-size: 15px;
+  letter-spacing: 0.3px;
+}
+
+.no-scores {
+  opacity: 0.8;
+}
+
+/* Animation */
+@keyframes tickerScroll {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(-100%); }
+}
+
 
 

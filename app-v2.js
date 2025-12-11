@@ -420,8 +420,8 @@ async function renderHome() {
         font-size:16px;
       ">
         <ul>
-          ${announcements.map(a => `<li>${a}</li>`).join("")}
-        </ul>
+          ${announcements.map(a => "<li>" + a + "</li>").join("")}
+       </ul>
       </div>
     `;
   }
@@ -1212,6 +1212,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

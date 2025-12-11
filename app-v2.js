@@ -683,7 +683,7 @@ function renderTicker() {
     void tickerWrap.offsetWidth;
     tickerWrap.style.animation = "";
   }
-
+}
 function scrollToToday() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1223,6 +1223,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

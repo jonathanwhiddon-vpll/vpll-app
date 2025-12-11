@@ -224,8 +224,12 @@ async function fetchScoresAndStandings() {
         field: cols[5],
         homeTeam: cols[6],
         awayTeam: cols[7],
-        homeScore: parseInt(cols[8] || "0", 10),
-        awayScore: parseInt(cols[9] || "0", 10),
+       
+const homeScoreRaw = cols[8] ? cols[8].trim() : "";
+const awayScoreRaw = cols[9] ? cols[9].trim() : "";
+
+homeScore: homeScoreRaw === "" ? null : parseInt(homeScoreRaw, 10),
+awayScore: awayScoreRaw === "" ? null : parseInt(awayScoreRaw, 10),
         submittedBy: cols[10]
       };
 
@@ -241,6 +245,13 @@ async function fetchScoresAndStandings() {
 
 function buildStandings(formGames) {
   let table = {};
+
+  formGames.forEach(g => {
+    // ⬇️ Skip games that don't have BOTH scores
+    if (g.homeScore == null || g.awayScore == null) return;
+
+    if (!table[g.division]) table[g.division] = {};
+    ...
 
   formGames.forEach(g => {
     if (!table[g.division]) table[g.division] = {};
@@ -285,12 +296,22 @@ function buildStandings(formGames) {
 }
 
 function buildTicker(formGames) {
-  formGames.sort((a, b) => {
+  // Only keep games that actually have scores
+  const completed = formGames.filter(
+    g =>
+      g.homeScore != null &&
+      g.awayScore != null &&
+      !Number.isNaN(g.homeScore) &&
+      !Number.isNaN(g.awayScore)
+  );
+
+  completed.sort((a, b) => {
     return new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time);
   });
 
-  return formGames.map(
-    g => `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
+  return completed.map(
+    g =>
+      `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
   );
 }
 
@@ -1187,6 +1208,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

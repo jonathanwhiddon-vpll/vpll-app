@@ -321,42 +321,6 @@ main {
 }
 
 /* -----------------------------------------
-   GAME TICKER — Light Blue (C1-A)
------------------------------------------- */
-
-#tickerBar {
-  width: 100%;
-  background: #6ec6ff; /* Light sky blue */
-  padding: 10px 0;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-#tickerContent {
-  display: inline-block;
-  color: white;
-  font-weight: 600;
-  font-size: 16px;
-  animation: tickerScroll 18s linear infinite;
-}
-
-.game {
-  margin-right: 40px;
-}
-
-.separator {
-  margin: 0 12px;
-  color: rgba(255,255,255,0.9);
-  font-weight: 700;
-}
-
-/* Ticker scroll animation */
-@keyframes tickerScroll {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
-}
-
-/* -----------------------------------------
    DIVISION BADGES
 ------------------------------------------ */
 
@@ -567,6 +531,7 @@ main {
   from { transform: translateX(100%); }
   to   { transform: translateX(-100%); }
 }
+
 
 
 

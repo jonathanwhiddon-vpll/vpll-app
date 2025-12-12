@@ -942,8 +942,8 @@ function renderResources() {
           </a>
         </li>
                 <li>
-          <a href="https://gc.com/team/gHJbVMABagGL" target="_blank" rel="noopener">
-            ⚾ GameChanger (Live Stats & Scores)
+          <a href="https://gc.com" target="_blank" rel="noopener">
+            ⚾ GameChanger (Only opens website, not actual APP)
           </a>
         </li>
         <li>
@@ -1228,6 +1228,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

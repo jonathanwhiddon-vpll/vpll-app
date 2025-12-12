@@ -941,6 +941,11 @@ function renderResources() {
             📘 Rulebook
           </a>
         </li>
+                <li>
+          <a href="https://gc.com" target="_blank" rel="noopener">
+            ⚾ GameChanger (Live Stats & Scores)
+          </a>
+        </li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/aa_rules.pdf','AA Special Rules'); return false;">
             💡 AA Special Rules (PDF)
@@ -1223,6 +1228,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

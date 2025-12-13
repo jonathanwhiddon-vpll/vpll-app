@@ -1234,10 +1234,26 @@ document.addEventListener("touchend", async () => {
 document.addEventListener("DOMContentLoaded", () => {
   initApp();
 });
+// ✅ iOS PWA fix: restart ticker when app becomes visible
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+
+  const ticker = document.getElementById("tickerContent");
+  if (!ticker) return;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      ticker.style.animation = "none";
+      void ticker.offsetWidth; // Safari reflow
+      ticker.style.animation = "tickerScroll 35s linear infinite";
+    });
+  });
+});
 
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

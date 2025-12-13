@@ -653,7 +653,6 @@ function renderTicker() {
   const el = document.getElementById("tickerContent");
   if (!el) return;
 
-  // Build HTML
   if (!tickerData || tickerData.length === 0) {
     el.innerHTML = `
       <div class="ticker-item">
@@ -661,19 +660,18 @@ function renderTicker() {
       </div>
     `;
   } else {
-    el.innerHTML = tickerData
-      .map(entry => {
-        const [division, rest] = entry.split(":");
-        const cls = division.replace(/\s+/g, "").toLowerCase(); // majors / aaa / aa
-        return `
-          <div class="ticker-item">
-            <span class="badge badge-${cls}">${division}</span>
-            <span class="ticker-text-score">⚾ ${rest.trim()}</span>
-          </div>
-        `;
-      })
-      .join("");
+    el.innerHTML = tickerData.map(entry => {
+      const [division, rest] = entry.split(":");
+      const cls = division.replace(/\s+/g, "").toLowerCase();
+      return `
+        <div class="ticker-item">
+          <span class="badge badge-${cls}">${division}</span>
+          <span class="ticker-text-score">⚾ ${rest.trim()}</span>
+        </div>
+      `;
+    }).join("");
   }
+}
 
   // --- Smooth iOS fix WITHOUT visible jump ---
   // Only "reset" if animation looks frozen.
@@ -1240,6 +1238,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

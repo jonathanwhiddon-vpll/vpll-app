@@ -653,6 +653,7 @@ function renderTicker() {
   const el = document.getElementById("tickerContent");
   if (!el) return;
 
+  // If no data yet
   if (!tickerData || tickerData.length === 0) {
     el.innerHTML = `
       <div class="ticker-item">
@@ -662,38 +663,28 @@ function renderTicker() {
   } else {
     el.innerHTML = tickerData.map(entry => {
       const [division, rest] = entry.split(":");
-      const cls = division.replace(/\s+/g, "").toLowerCase();
       return `
         <div class="ticker-item">
-          <span class="badge badge-${cls}">${division}</span>
+          <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
           <span class="ticker-text-score">⚾ ${rest.trim()}</span>
         </div>
       `;
     }).join("");
   }
-}
 
-  // --- Smooth iOS fix WITHOUT visible jump ---
-  // Only "reset" if animation looks frozen.
+  // 🔥 FIX FOR iOS PWA FREEZING TICKER
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const t = document.getElementById("tickerContent");
-      if (!t) return;
+  requestAnimationFrame(() => {
+    const ticker = document.getElementById("tickerContent");
+    if (!ticker) return;
 
-      const cs = window.getComputedStyle(t);
-      const isAnimating = cs.animationName !== "none" && cs.animationPlayState !== "paused";
-
-      // If already animating, do nothing (prevents the jump on Home click)
-      if (isAnimating) return;
-
-      // Otherwise restart (iOS PWA frozen case)
-      t.style.animation = "none";
-      void t.offsetWidth; // Safari reflow
-      t.style.animation = "tickerScroll 35s linear infinite";
-    });
+    ticker.style.animation = "none";
+    void ticker.offsetWidth; // Safari reflow
+    ticker.style.animation = "tickerScroll 35s linear infinite";
   });
-}
+});
 
+}
 function scrollToToday() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1234,61 +1225,7 @@ document.addEventListener("touchend", async () => {
 document.addEventListener("DOMContentLoaded", () => {
   initApp();
 });
-// ✅ iOS PWA fix: restart ticker when app becomes visible
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState !== "visible") return;
-
-  const ticker = document.getElementById("tickerContent");
-  if (!ticker) return;
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      ticker.style.animation = "none";
-      void ticker.offsetWidth; // Safari reflow
-      ticker.style.animation = "tickerScroll 35s linear infinite";
-    });
-  });
-});
 
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -673,16 +673,17 @@ function renderTicker() {
   }
 
   // 🔥 FIX FOR iOS PWA FREEZING TICKER
-  setTimeout(() => {
+  requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
     const ticker = document.getElementById("tickerContent");
-
     if (!ticker) return;
 
     ticker.style.animation = "none";
-    // Force reflow (required for Safari)
-    void ticker.offsetWidth;
+    void ticker.offsetWidth; // Safari reflow
     ticker.style.animation = "tickerScroll 35s linear infinite";
-  }, 100);
+  });
+});
+
 }
 function scrollToToday() {
   const today = new Date();
@@ -1228,6 +1229,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

@@ -653,7 +653,7 @@ function renderTicker() {
   const el = document.getElementById("tickerContent");
   if (!el) return;
 
-  // If no data yet
+  // Build HTML
   if (!tickerData || tickerData.length === 0) {
     el.innerHTML = `
       <div class="ticker-item">
@@ -661,30 +661,41 @@ function renderTicker() {
       </div>
     `;
   } else {
-    el.innerHTML = tickerData.map(entry => {
-      const [division, rest] = entry.split(":");
-      return `
-        <div class="ticker-item">
-          <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
-          <span class="ticker-text-score">⚾ ${rest.trim()}</span>
-        </div>
-      `;
-    }).join("");
+    el.innerHTML = tickerData
+      .map(entry => {
+        const [division, rest] = entry.split(":");
+        const cls = division.replace(/\s+/g, "").toLowerCase(); // majors / aaa / aa
+        return `
+          <div class="ticker-item">
+            <span class="badge badge-${cls}">${division}</span>
+            <span class="ticker-text-score">⚾ ${rest.trim()}</span>
+          </div>
+        `;
+      })
+      .join("");
   }
 
-  // 🔥 FIX FOR iOS PWA FREEZING TICKER
+  // --- Smooth iOS fix WITHOUT visible jump ---
+  // Only "reset" if animation looks frozen.
   requestAnimationFrame(() => {
-  requestAnimationFrame(() => {
-    const ticker = document.getElementById("tickerContent");
-    if (!ticker) return;
+    requestAnimationFrame(() => {
+      const t = document.getElementById("tickerContent");
+      if (!t) return;
 
-    ticker.style.animation = "none";
-    void ticker.offsetWidth; // Safari reflow
-    ticker.style.animation = "tickerScroll 35s linear infinite";
+      const cs = window.getComputedStyle(t);
+      const isAnimating = cs.animationName !== "none" && cs.animationPlayState !== "paused";
+
+      // If already animating, do nothing (prevents the jump on Home click)
+      if (isAnimating) return;
+
+      // Otherwise restart (iOS PWA frozen case)
+      t.style.animation = "none";
+      void t.offsetWidth; // Safari reflow
+      t.style.animation = "tickerScroll 35s linear infinite";
+    });
   });
-});
-
 }
+
 function scrollToToday() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1229,6 +1240,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

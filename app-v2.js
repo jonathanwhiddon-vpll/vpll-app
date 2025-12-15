@@ -435,7 +435,6 @@ async function renderHome() {
     </section>
   `;
 
-  renderTicker();
   applyPageTransition();
 }
 
@@ -1174,6 +1173,7 @@ function setupNav() {
 function initApp() {
   setupNav();
   renderHome();
+  renderTicker(); 
   loadScheduleFromApi();
   loadScoresAndStandings();
 }
@@ -1229,3 +1229,4 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+

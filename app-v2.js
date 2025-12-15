@@ -649,11 +649,15 @@ function renderSchedule() {
   }, 120);
 }
 
-function renderTicker() {
+let tickerInitialized = false;
+
+function renderTicker(forceUpdate = false) {
   const el = document.getElementById("tickerContent");
   if (!el) return;
 
-  // If no data yet
+  // 🚫 Do NOT re-render ticker when returning to Home
+  if (tickerInitialized && !forceUpdate) return;
+
   if (!tickerData || tickerData.length === 0) {
     el.innerHTML = `
       <div class="ticker-item">
@@ -672,19 +676,9 @@ function renderTicker() {
     }).join("");
   }
 
-  // 🔥 FIX FOR iOS PWA FREEZING TICKER
-  requestAnimationFrame(() => {
-  requestAnimationFrame(() => {
-    const ticker = document.getElementById("tickerContent");
-    if (!ticker) return;
-
-    ticker.style.animation = "none";
-    void ticker.offsetWidth; // Safari reflow
-    ticker.style.animation = "tickerScroll 35s linear infinite";
-  });
-});
-
+  tickerInitialized = true;
 }
+
 function scrollToToday() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1229,3 +1223,4 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+

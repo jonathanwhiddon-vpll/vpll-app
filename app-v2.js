@@ -317,9 +317,7 @@ async function loadScoresAndStandings() {
   tickerData = buildTicker(formGames);
 
   if (currentPage === "standings") renderStandings();
-  if (currentPage === "home") {
-  renderHome();
-  renderTicker(true); // ONLY update ticker when data changes
+  if (currentPage === "home") renderHome();
 }
 
 // ========================
@@ -403,7 +401,26 @@ async function loadAnnouncement() {
 // ================================
 // HOME PAGE
 // ================================
+async function renderHome() {
+  const announcements = await loadAnnouncement();
+  let announcementHTML = "";
 
+  if (announcements.length > 0) {
+    announcementHTML = `
+      <div class="announcement-card" style="
+        background:#fff9d9;
+        padding:14px;
+        border-radius:10px;
+        margin-bottom:16px;
+        border:1px solid #f2d57c;
+        font-size:16px;
+      ">
+        <ul>
+          ${announcements.map(a => "<li>" + a + "</li>").join("")}
+       </ul>
+      </div>
+    `;
+  }
 
   const pageRoot = getPageRoot();
   if (!pageRoot) return;
@@ -413,26 +430,12 @@ async function loadAnnouncement() {
       <div class="home-banner">
         <img src="home_banner.jpg" alt="League Banner">
       </div>
-      ${announcementHTML}
-    </section>
-  `;
-
-  applyPageTransition();
-}
-
-  const pageRoot = getPageRoot();
-  if (!pageRoot) return;
-
-  pageRoot.innerHTML = `
-    <section class="card home-card">
-      <div class="home-banner">
-        <img src="home_banner.jpg" alt="League Banner">
-      </div>
 
       ${announcementHTML}
     </section>
   `;
 
+  renderTicker();
   applyPageTransition();
 }
 
@@ -645,30 +648,43 @@ function renderSchedule() {
     hideSpinner();
   }, 120);
 }
+
 function renderTicker() {
   const el = document.getElementById("tickerContent");
   if (!el) return;
 
+  // If no data yet
   if (!tickerData || tickerData.length === 0) {
     el.innerHTML = `
       <div class="ticker-item">
         ⚾ <span class="no-scores">No score submissions yet.</span>
       </div>
     `;
-    return;
+  } else {
+    el.innerHTML = tickerData.map(entry => {
+      const [division, rest] = entry.split(":");
+      return `
+        <div class="ticker-item">
+          <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
+          <span class="ticker-text-score">⚾ ${rest.trim()}</span>
+        </div>
+      `;
+    }).join("");
   }
 
-  el.innerHTML = tickerData.map(entry => {
-    const [division, rest] = entry.split(":");
-    return `
-      <div class="ticker-item">
-        <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
-        <span class="ticker-text-score">⚾ ${rest.trim()}</span>
-      </div>
-    `;
-  }).join("");
-}
+  // 🔥 FIX FOR iOS PWA FREEZING TICKER
+  requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const ticker = document.getElementById("tickerContent");
+    if (!ticker) return;
 
+    ticker.style.animation = "none";
+    void ticker.offsetWidth; // Safari reflow
+    ticker.style.animation = "tickerScroll 35s linear infinite";
+  });
+});
+
+}
 function scrollToToday() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1151,48 +1167,6 @@ function setupNav() {
   });
   setActiveNav("home");
 }
-async function renderHome() {
-  let announcements = [];
-
-  try {
-    announcements = await loadAnnouncement();
-  } catch (err) {
-    console.warn("Announcements failed:", err);
-  }
-
-  let announcementHTML = "";
-
-  if (announcements.length > 0) {
-    announcementHTML = `
-      <div class="announcement-card" style="
-        background:#fff9d9;
-        padding:14px;
-        border-radius:10px;
-        margin-bottom:16px;
-        border:1px solid #f2d57c;
-        font-size:16px;
-      ">
-        <ul>
-          ${announcements.map(a => `<li>${a}</li>`).join("")}
-        </ul>
-      </div>
-    `;
-  }
-
-  const pageRoot = getPageRoot();
-  if (!pageRoot) return;
-
-  pageRoot.innerHTML = `
-    <section class="card home-card">
-      <div class="home-banner">
-        <img src="home_banner.jpg" alt="League Banner">
-      </div>
-      ${announcementHTML}
-    </section>
-  `;
-
-  applyPageTransition();
-}
 
 // ========================
 // INIT
@@ -1255,10 +1229,3 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-
-
-
-
-
-
-

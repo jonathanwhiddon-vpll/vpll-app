@@ -317,7 +317,9 @@ async function loadScoresAndStandings() {
   tickerData = buildTicker(formGames);
 
   if (currentPage === "standings") renderStandings();
-  if (currentPage === "home") renderHome();
+  if (currentPage === "home") {
+  renderHome();
+  renderTicker(true); // ONLY update ticker when data changes
 }
 
 // ========================
@@ -1223,4 +1225,5 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 

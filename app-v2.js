@@ -403,33 +403,7 @@ async function loadAnnouncement() {
 // ================================
 // HOME PAGE
 // ================================
-async function renderHome() {
-  let announcements = [];
 
-  try {
-    announcements = await loadAnnouncement();
-  } catch (err) {
-    console.warn("Announcements failed:", err);
-  }
-
-  let announcementHTML = "";
-
-  if (announcements.length > 0) {
-    announcementHTML = `
-      <div class="announcement-card" style="
-        background:#fff9d9;
-        padding:14px;
-        border-radius:10px;
-        margin-bottom:16px;
-        border:1px solid #f2d57c;
-        font-size:16px;
-      ">
-        <ul>
-          ${announcements.map(a => `<li>${a}</li>`).join("")}
-        </ul>
-      </div>
-    `;
-  }
 
   const pageRoot = getPageRoot();
   if (!pageRoot) return;
@@ -1239,6 +1213,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

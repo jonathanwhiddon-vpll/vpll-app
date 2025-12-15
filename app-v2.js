@@ -404,7 +404,14 @@ async function loadAnnouncement() {
 // HOME PAGE
 // ================================
 async function renderHome() {
-  const announcements = await loadAnnouncement();
+  let announcements = [];
+
+  try {
+    announcements = await loadAnnouncement();
+  } catch (err) {
+    console.warn("Announcements failed:", err);
+  }
+
   let announcementHTML = "";
 
   if (announcements.length > 0) {
@@ -418,11 +425,26 @@ async function renderHome() {
         font-size:16px;
       ">
         <ul>
-          ${announcements.map(a => "<li>" + a + "</li>").join("")}
-       </ul>
+          ${announcements.map(a => `<li>${a}</li>`).join("")}
+        </ul>
       </div>
     `;
   }
+
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
+  pageRoot.innerHTML = `
+    <section class="card home-card">
+      <div class="home-banner">
+        <img src="home_banner.jpg" alt="League Banner">
+      </div>
+      ${announcementHTML}
+    </section>
+  `;
+
+  applyPageTransition();
+}
 
   const pageRoot = getPageRoot();
   if (!pageRoot) return;
@@ -1217,6 +1239,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

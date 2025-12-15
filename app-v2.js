@@ -650,15 +650,9 @@ function renderSchedule() {
     hideSpinner();
   }, 120);
 }
-
-let tickerInitialized = false;
-
-function renderTicker(forceUpdate = false) {
+function renderTicker() {
   const el = document.getElementById("tickerContent");
   if (!el) return;
-
-  // 🚫 Do NOT re-render ticker when returning to Home
-  if (tickerInitialized && !forceUpdate) return;
 
   if (!tickerData || tickerData.length === 0) {
     el.innerHTML = `
@@ -666,19 +660,18 @@ function renderTicker(forceUpdate = false) {
         ⚾ <span class="no-scores">No score submissions yet.</span>
       </div>
     `;
-  } else {
-    el.innerHTML = tickerData.map(entry => {
-      const [division, rest] = entry.split(":");
-      return `
-        <div class="ticker-item">
-          <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
-          <span class="ticker-text-score">⚾ ${rest.trim()}</span>
-        </div>
-      `;
-    }).join("");
+    return;
   }
 
-  tickerInitialized = true;
+  el.innerHTML = tickerData.map(entry => {
+    const [division, rest] = entry.split(":");
+    return `
+      <div class="ticker-item">
+        <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
+        <span class="ticker-text-score">⚾ ${rest.trim()}</span>
+      </div>
+    `;
+  }).join("");
 }
 
 function scrollToToday() {
@@ -1225,5 +1218,6 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 

@@ -437,7 +437,6 @@ async function renderHome() {
     </section>
   `;
 
-  renderTicker();
   applyPageTransition();
 }
 
@@ -1218,6 +1217,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

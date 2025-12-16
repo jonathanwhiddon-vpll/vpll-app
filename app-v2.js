@@ -427,15 +427,18 @@ async function renderHome() {
 
   pageRoot.innerHTML = `
     <section class="card home-card">
-      <div class="home-banner">
-        <img src="home_banner.jpg" alt="League Banner">
-      </div>
+      <div class="home-banner home-slideshow">
+  <img src="home_banner.jpg" class="slide active" alt="League Banner">
+  <img src="home_banner2.jpg" class="slide" alt="League Banner">
+  <img src="home_banner3.jpg" class="slide" alt="League Banner">
+</div>
 
       ${announcementHTML}
     </section>
   `;
 
-  applyPageTransition();
+    applyPageTransition();
+  setTimeout(startHomeSlideshow, 100);
 }
 
 // ========================
@@ -1166,6 +1169,28 @@ function setupNav() {
   });
   setActiveNav("home");
 }
+// ========================
+// HOME SLIDESHOW
+// ========================
+let homeSlideIndex = 0;
+let homeSlideInterval = null;
+
+function startHomeSlideshow() {
+  const slides = document.querySelectorAll(".home-slideshow .slide");
+  if (!slides.length) return;
+
+  clearInterval(homeSlideInterval);
+
+  slides.forEach(s => s.classList.remove("active"));
+  slides[0].classList.add("active");
+  homeSlideIndex = 0;
+
+  homeSlideInterval = setInterval(() => {
+    slides[homeSlideIndex].classList.remove("active");
+    homeSlideIndex = (homeSlideIndex + 1) % slides.length;
+    slides[homeSlideIndex].classList.add("active");
+  }, 4000);
+}
 
 // ========================
 // INIT
@@ -1229,4 +1254,5 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 

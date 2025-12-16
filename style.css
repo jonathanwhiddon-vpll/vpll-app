@@ -122,6 +122,28 @@ main {
   height: auto;
   display: block;
 }
+/* --- HOME SLIDESHOW (safe override) --- */
+
+.home-slideshow {
+  position: relative;
+  width: 100%;
+  height: 220px; /* adjust if you want taller */
+  overflow: hidden;
+}
+
+.home-slideshow img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+
+.home-slideshow img.active {
+  opacity: 1;
+}
 
 /* -----------------------------------------
    ANNOUNCEMENTS
@@ -531,6 +553,7 @@ main {
   from { transform: translateX(100%); }
   to   { transform: translateX(-100%); }
 }
+
 
 
 

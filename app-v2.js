@@ -431,6 +431,7 @@ async function renderHome() {
   <img src="home_banner.jpg" class="slide active" alt="League Banner">
   <img src="home_banner2.jpg" class="slide" alt="League Banner">
   <img src="home_banner3.jpg" class="slide" alt="League Banner">
+  <img src="home_banner4.jpg" class="slide" alt="League Banner">
 </div>
 
       ${announcementHTML}
@@ -1254,5 +1255,6 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 

@@ -927,22 +927,22 @@ function renderResources() {
       <ul class="roster-list">
         <li>
           <a href="#" onclick="renderPdfPage('resources/local_rules.pdf','Local League Rules'); return false;">
-            ⚙️ Local League Rules (PDF)
+            📜 Local League Rules 
           </a>
         </li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/home_run_club.pdf','Home Run Club'); return false;">
-            💥 Home Run Club (PDF)
+            💥 Home Run Club 
           </a>
         </li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/volunteer_list.pdf','Volunteer List'); return false;">
-            🙋 Volunteer List (PDF)
+            🙋 Volunteer List 
           </a>
         </li>
         <li>
           <a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">
-            📘 Rulebook
+            📘 Rulebook (Little League Website)
           </a>
         </li>
                 <li>
@@ -952,22 +952,22 @@ function renderResources() {
         </li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/aa_rules.pdf','AA Special Rules'); return false;">
-            💡 AA Special Rules (PDF)
+            💡 AA Special Rules 
           </a>
         </li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/majors_playoffs.pdf','Majors Playoff Schedule'); return false;">
-            ⚾ Majors Playoff Schedule (PDF)
+            ⚡🏆 Majors Playoff Schedule 
           </a>
         </li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/aaa_playoffs.pdf','AAA Playoff Schedule'); return false;">
-            ⚾ AAA Playoff Schedule (PDF)
+            ⚡🏆 AAA Playoff Schedule 
           </a>
         </li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/aa_playoffs.pdf','AA Playoff Schedule'); return false;">
-            ⚾ AA Playoff Schedule (PDF)
+            ⚡🏆 AA Playoff Schedule 
           </a>
         </li>
       </ul>
@@ -1270,6 +1270,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

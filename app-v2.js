@@ -955,6 +955,21 @@ function renderResources() {
             💡 AA Special Rules (PDF)
           </a>
         </li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/majors_playoffs.pdf','Majors Playoff Schedule'); return false;">
+            ⚾ Majors Playoff Schedule (PDF)
+          </a>
+        </li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/aaa_playoffs.pdf','AAA Playoff Schedule'); return false;">
+            ⚾ AAA Playoff Schedule (PDF)
+          </a>
+        </li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/aa_playoffs.pdf','AA Playoff Schedule'); return false;">
+            ⚾ AA Playoff Schedule (PDF)
+          </a>
+        </li>
       </ul>
     </section>
   `;
@@ -1255,6 +1270,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

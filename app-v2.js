@@ -956,6 +956,11 @@ function renderResources() {
           </a>
         </li>
         <li>
+          <a href="#" onclick="renderPdfPage('resources/vp_fields.jpeg','VPLL Fields Map'); return false;">
+            VPLL Fields Map 
+          </a>
+        </li>
+        <li>
           <a href="#" onclick="renderPdfPage('resources/majors_playoffs.pdf','Majors Playoff Schedule'); return false;">
             ⚡🏆 Majors Playoff Schedule 
           </a>
@@ -1270,6 +1275,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

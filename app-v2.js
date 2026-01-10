@@ -940,11 +940,6 @@ function renderResources() {
             🙋 Volunteer List 
           </a>
         </li>
-        <li>
-          <a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">
-            📘 Rulebook (Little League Website)
-          </a>
-        </li>
                 <li>
           <a href="https://gc.com" target="_blank" rel="noopener">
             ⚾ GameChanger (website only, not actual APP)
@@ -1275,6 +1270,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

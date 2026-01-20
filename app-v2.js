@@ -940,11 +940,6 @@ function renderResources() {
             🙋 Volunteer List 
           </a>
         </li>
-                <li>
-          <a href="https://gc.com" target="_blank" rel="noopener">
-            ⚾ GameChanger (website only, not actual APP)
-          </a>
-        </li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/aa_rules.pdf','AA Special Rules'); return false;">
             💡 AA Special Rules 
@@ -1270,6 +1265,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

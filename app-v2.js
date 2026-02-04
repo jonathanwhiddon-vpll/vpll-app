@@ -950,6 +950,11 @@ function renderResources() {
             VPLL Field Map 
           </a>
         </li>
+         <li>
+          <a href="#" onclick="renderPdfPage('resources/VPLL-field_prep.pdf','VPLL Field Prep'); return false;">
+            VPLL Field Prep
+          </a>
+        </li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/majors_playoffs.pdf','Majors Playoff Schedule'); return false;">
             ⚡🏆 Majors Playoff Schedule 
@@ -1265,6 +1270,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

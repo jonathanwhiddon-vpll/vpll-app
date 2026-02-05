@@ -486,7 +486,8 @@ function renderTeamsByDivision(div) {
         ${[...teamSet]
           .map(
             t => `
-            <li onclick="renderTeamSchedule('${div}','${t}')">
+            <li onclick="renderTeamSchedule(&quot;${div}&quot;,&quot;${t}&quot;)">
+
               <span>${t}</span>
               <span style="font-weight:700; color:#d32f2f;">Schedule</span>
             </li>
@@ -1270,6 +1271,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

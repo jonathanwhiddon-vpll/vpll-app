@@ -1093,12 +1093,11 @@ function renderFieldMap() {
   pageRoot.innerHTML = `
     <div class="page">
       <h2>Field Map</h2>
-<iframe
-  src="resources/field-map.pdf"
-  width="100%"
-  height="600px"
-  style="border:none; border-radius:12px;">
-</iframe>
+
+      <img
+        src="resources/field-map.png"
+        style="width:100%; border-radius:12px;"
+      />
 
       <div style="height:20px;"></div>
 
@@ -1295,6 +1294,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

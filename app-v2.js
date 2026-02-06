@@ -946,11 +946,6 @@ function renderResources() {
             💡 AA Special Rules 
           </a>
         </li>
-        <li>
-          <a href="#" onclick="renderPdfPage('resources/vp_fields.pdf','VPLL Field Map'); return false;">
-            VPLL Field Map 
-          </a>
-        </li>
          <li>
           <a href="#" onclick="renderPdfPage('resources/VPLL-field_prep.pdf','VPLL Field Prep'); return false;">
             VPLL Field Prep
@@ -1301,6 +1296,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

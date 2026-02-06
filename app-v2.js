@@ -1050,25 +1050,31 @@ function renderMore() {
   if (!pageRoot) return;
 
   pageRoot.innerHTML = `
-    <div class="more-grid">
+  <div class="more-grid">
 
-      <div class="more-card" data-target="teams">
-        <div class="more-icon">⚾</div>
-        <div class="more-label">Teams</div>
-      </div>
-
-      <div class="more-card" data-target="resources">
-        <div class="more-icon">📘</div>
-        <div class="more-label">Resources</div>
-      </div>
-
-      <div class="more-card more-card-wide" data-target="enter-score">
-        <div class="more-icon">📋✅</div>
-        <div class="more-label">Enter Final Score</div>
-      </div>
-
+    <div class="more-card" data-target="teams">
+      <div class="more-icon">⚾</div>
+      <div class="more-label">Teams</div>
     </div>
-  `;
+
+    <div class="more-card" data-target="resources">
+      <div class="more-icon">📘</div>
+      <div class="more-label">Resources</div>
+    </div>
+
+    <!-- FIELD MAP -->
+    <div class="more-card" data-target="field-map">
+      <div class="more-icon">📍</div>
+      <div class="more-label">Field Map</div>
+    </div>
+
+    <div class="more-card more-card-wide" data-target="enter-score">
+      <div class="more-icon">📋✅</div>
+      <div class="more-label">Enter Final Score</div>
+    </div>
+
+  </div>
+`;
 
   document.querySelectorAll(".more-card").forEach(card => {
     card.addEventListener("click", () => {
@@ -1076,11 +1082,35 @@ function renderMore() {
 
       if (target === "teams") renderTeams();
       if (target === "resources") renderResources();
+      if (target === "field-map") renderFieldMap();
       if (target === "enter-score") renderLogin();
 
       applyPageTransition();
     });
   });
+
+  applyPageTransition();
+}
+function renderFieldMap() {
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
+  pageRoot.innerHTML = `
+    <div class="page">
+      <h2>Field Map</h2>
+
+      <iframe
+        src="field-map.pdf"
+        width="100%"
+        height="600px"
+        style="border:none; border-radius:12px;">
+      </iframe>
+
+      <div style="height:20px;"></div>
+
+      <button onclick="renderMore()">Back</button>
+    </div>
+  `;
 
   applyPageTransition();
 }
@@ -1271,6 +1301,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

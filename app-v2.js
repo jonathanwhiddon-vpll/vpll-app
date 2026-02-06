@@ -1095,7 +1095,7 @@ function renderFieldMap() {
       <h2>Field Map</h2>
 
       <img
-        src="resources/field-map.PNG"
+        src="resources/field-map.png"
         style="width:100%; border-radius:12px;"
       />
 
@@ -1294,6 +1294,7 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 
 
 

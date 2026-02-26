@@ -487,7 +487,11 @@ function renderTeams() {
 
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header"><div class="card-title">Teams</div></div>
+      <div class="card-header">
+  <button onclick="renderMore()" style="margin-right:8px;">← Back</button>
+  <div class="card-title">Teams</div>
+</div>
+
       <ul class="roster-list">
         ${DIVISIONS.map(
           d => `
@@ -517,7 +521,10 @@ function renderTeamsByDivision(div) {
 
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header"><div class="card-title">${div}</div></div>
+      <div class="card-header">
+  <button onclick="renderTeams()" style="margin-right:8px;">← Back</button>
+  <div class="card-title">${div}</div>
+</div>
       <ul class="roster-list">
         ${[...teamSet]
           .map(
@@ -554,9 +561,12 @@ function renderTeamSchedule(div, team) {
     pageRoot.innerHTML = `
       <section class="card">
         <div class="card-header">
-          <div class="card-title">${team}</div>
-          <div class="card-subtitle">${div}</div>
-        </div>
+  <button onclick="renderTeamsByDivision('${div}')" style="margin-right:8px;">← Back</button>
+  <div>
+    <div class="card-title">${team}</div>
+    <div class="card-subtitle">${div}</div>
+  </div>
+</div>
 
         <ul class="schedule-list">
           ${
@@ -1330,5 +1340,4 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-
 

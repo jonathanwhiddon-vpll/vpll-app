@@ -969,7 +969,10 @@ function renderResources() {
 
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header"><div class="card-title">Resources</div></div>
+      <div class="card-header">
+  <button onclick="renderMore()" style="margin-right:8px;">← Back</button>
+  <div class="card-title">Resources</div>
+</div>
 
       <ul class="roster-list">
         <li>

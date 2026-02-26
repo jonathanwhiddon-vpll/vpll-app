@@ -28,6 +28,8 @@ const API_BASE_URL = "/schedule.json";
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 
+const HITS_HOPS_TICKET_URL = "https://www.vplittleleague.net/Default.aspx?tabid=2752970";
+
 // ========================
 // GLOBAL STATE
 // ========================
@@ -426,19 +428,51 @@ async function renderHome() {
   if (!pageRoot) return;
 
   pageRoot.innerHTML = `
-    <section class="card home-card">
-      <div class="home-banner home-slideshow">
-  <img src="home_banner.jpg" class="slide active" alt="League Banner">
-  <img src="home_banner2.jpg" class="slide" alt="League Banner">
-  <img src="home_banner3.jpg" class="slide" alt="League Banner">
-  <img src="home_banner4.jpg" class="slide" alt="League Banner">
-  <img src="home_banner5.jpg" class="slide" alt="League Banner">
-  <img src="home_banner6.jpg" class="slide" alt="League Banner">
-</div>
+  <section class="card home-card">
+    <div class="home-banner home-slideshow">
+      <img src="home_banner.jpg" class="slide active" alt="League Banner">
+      <img src="home_banner2.jpg" class="slide" alt="League Banner">
+      <img src="home_banner3.jpg" class="slide" alt="League Banner">
+      <img src="home_banner4.jpg" class="slide" alt="League Banner">
+      <img src="home_banner5.jpg" class="slide" alt="League Banner">
+      <img src="home_banner6.jpg" class="slide" alt="League Banner">
+    </div>
 
-      ${announcementHTML}
-    </section>
-  `;
+    ${announcementHTML}
+
+    <!-- Hits & Hops Ticket Button -->
+    <div style="padding: 0 16px 18px 16px;">
+      <a
+        href="${HITS_HOPS_TICKET_URL}"
+        target="_blank"
+        rel="noopener"
+        style="
+          display:block;
+          text-align:center;
+          padding:14px 12px;
+          border-radius:12px;
+          font-weight:800;
+          font-size:16px;
+          text-decoration:none;
+          border:1px solid #f2d57c;
+          background:#fff4c4;
+          color:#0b2a52;
+        "
+      >
+        🍻 Purchase Hits & Hops Tickets
+      </a>
+      <div style="
+        text-align:center;
+        font-size:12px;
+        margin-top:6px;
+        opacity:0.75;
+      ">
+        Opens the league website
+      </div>
+    </div>
+
+  </section>
+`;
 
     applyPageTransition();
   setTimeout(startHomeSlideshow, 100);
@@ -1296,22 +1330,4 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

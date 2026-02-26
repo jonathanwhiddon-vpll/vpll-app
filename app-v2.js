@@ -467,7 +467,7 @@ async function renderHome() {
         margin-top:6px;
         opacity:0.75;
       ">
-        Opens the league website
+        Support VPLL 🎉
       </div>
     </div>
 
@@ -1330,4 +1330,5 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 

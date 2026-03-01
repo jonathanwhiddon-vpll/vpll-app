@@ -544,25 +544,23 @@ async function renderHome() {
     </div>
 <!-- Snack Bar Menu Button -->
 <div style="padding: 0 16px 18px 16px;">
-  <a
-    href="${SNACK_BAR_MENU_URL}"
-    target="_blank"
-    rel="noopener"
+  <button
+    onclick="renderSnackBarMenu()"
     style="
       display:block;
+      width:100%;
       text-align:center;
       padding:14px 12px;
       border-radius:12px;
       font-weight:800;
       font-size:16px;
-      text-decoration:none;
       border:1px solid #c8e6c9;
       background:#e8f5e9;
       color:#0b2a52;
     "
   >
     🍿 View Snack Bar Menu
-  </a>
+  </button>
 </div>
   </section>
 `;
@@ -570,7 +568,29 @@ async function renderHome() {
     applyPageTransition();
   setTimeout(startHomeSlideshow, 100);
 }
+function renderSnackBarMenu() {
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
 
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <button onclick="renderHome()" style="margin-right:8px;">← Back</button>
+        <div class="card-title">Snack Bar Menu</div>
+      </div>
+
+      <div style="padding:12px;">
+        <img
+          src="resources/snack-bar-menu.jpg"
+          style="width:100%; border-radius:12px;"
+          alt="Snack Bar Menu"
+        />
+      </div>
+    </section>
+  `;
+
+  applyPageTransition();
+}
 // ========================
 // TEAMS
 // ========================

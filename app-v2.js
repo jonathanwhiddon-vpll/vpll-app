@@ -29,7 +29,7 @@ const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 
 const HITS_HOPS_TICKET_URL = "https://www.vplittleleague.net/Default.aspx?tabid=2752970";
-
+const SNACK_BAR_MENU_URL = "resources/snack-bar-menu.jpg";
 // ========================
 // GLOBAL STATE
 // ========================
@@ -542,7 +542,28 @@ async function renderHome() {
         Support VPLL 🎉
       </div>
     </div>
-
+<!-- Snack Bar Menu Button -->
+<div style="padding: 0 16px 18px 16px;">
+  <a
+    href="${SNACK_BAR_MENU_URL}"
+    target="_blank"
+    rel="noopener"
+    style="
+      display:block;
+      text-align:center;
+      padding:14px 12px;
+      border-radius:12px;
+      font-weight:800;
+      font-size:16px;
+      text-decoration:none;
+      border:1px solid #c8e6c9;
+      background:#e8f5e9;
+      color:#0b2a52;
+    "
+  >
+    🍿 View Snack Bar Menu
+  </a>
+</div>
   </section>
 `;
 
@@ -1415,4 +1436,3 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-

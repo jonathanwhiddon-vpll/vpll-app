@@ -1,3 +1,6 @@
+good 2/28
+
+
 /* --------------------------------------------------
    Villa Park Little League - app-v2.js (CSV Version)
    - Loads schedule from Google Sheets CSV
@@ -107,20 +110,31 @@ function applyFormScoresToGames(formGames) {
 
   const map = new Map();
 
-  // Map by Division + GameID
   formGames.forEach(fg => {
     if (fg.homeScore == null || fg.awayScore == null) return;
-    if (!fg.gameId) return;
 
-    const key = `${(fg.division || "").trim()}|${fg.gameId}`;
+    const key = makeKey({
+      division: fg.division,
+      date: fg.date,
+      time: fg.time,
+      home: fg.homeTeam,
+      away: fg.awayTeam
+    });
+
     map.set(key, fg);
   });
 
   games.forEach(g => {
     if (!SCORING_DIVISIONS.includes(g.division)) return;
-    if (!g.gameId) return;
 
-    const key = `${(g.division || "").trim()}|${g.gameId}`;
+    const key = makeKey({
+      division: g.division,
+      date: g.date,
+      time: g.time,
+      home: g.home,
+      away: g.away
+    });
+
     const fg = map.get(key);
     if (!fg) return;
 
@@ -230,7 +244,6 @@ async function loadScheduleFromApi() {
           date,
           time,
           field,
-          gameId, 
           home,
           away,
           homeScore,
@@ -281,7 +294,6 @@ async function fetchScoresAndStandings() {
       const game = {
         timestamp: cols[0],
         division: cols[1],
-        gameId: parseInt(cols[2], 10),
         date: cols[3],
         time: cols[4],
         field: cols[5],

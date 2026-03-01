@@ -71,7 +71,74 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 function getPageRoot() {
   return document.getElementById("page-root");
 }
+function norm(s) {
+  return (s || "").toString().trim().replace(/\s+/g, " ").toLowerCase();
+}
 
+function normDate(s) {
+  const t = (s || "").toString().trim();
+  const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return norm(t);
+  const mm = m[1].padStart(2, "0");
+  const dd = m[2].padStart(2, "0");
+  return `${mm}/${dd}/${m[3]}`;
+}
+
+function normTime(s) {
+  let t = (s || "").toString().trim().toLowerCase();
+  t = t.replace(/\s+/g, "");
+  t = t.replace(/\./g, "");
+  t = t.replace(/^(\d{1,2}):00(am|pm)$/, "$1$2");
+  return t;
+}
+
+function makeKey({ division, date, time, home, away }) {
+  return [
+    norm(division),
+    normDate(date),
+    normTime(time),
+    norm(home),
+    norm(away)
+  ].join("|");
+}
+
+function applyFormScoresToGames(formGames) {
+  if (!Array.isArray(formGames) || !Array.isArray(games)) return;
+
+  const map = new Map();
+
+  formGames.forEach(fg => {
+    if (fg.homeScore == null || fg.awayScore == null) return;
+
+    const key = makeKey({
+      division: fg.division,
+      date: fg.date,
+      time: fg.time,
+      home: fg.homeTeam,
+      away: fg.awayTeam
+    });
+
+    map.set(key, fg);
+  });
+
+  games.forEach(g => {
+    if (!SCORING_DIVISIONS.includes(g.division)) return;
+
+    const key = makeKey({
+      division: g.division,
+      date: g.date,
+      time: g.time,
+      home: g.home,
+      away: g.away
+    });
+
+    const fg = map.get(key);
+    if (!fg) return;
+
+    g.homeScore = fg.homeScore;
+    g.awayScore = fg.awayScore;
+  });
+}
 function normalizeScore(value) {
   if (value === "" || value == null) return null;
   const n = Number(value);
@@ -315,10 +382,14 @@ function buildTicker(formGames) {
 
 async function loadScoresAndStandings() {
   const formGames = await fetchScoresAndStandings();
+
   standingsData = buildStandings(formGames);
   tickerData = buildTicker(formGames);
   renderTicker();
 
+  applyFormScoresToGames(formGames);
+
+  if (currentPage === "schedule") renderSchedule();
   if (currentPage === "standings") renderStandings();
   if (currentPage === "home") renderHome();
 }

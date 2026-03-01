@@ -700,28 +700,43 @@ function renderSchedule() {
   }, 120);
 }
 
+let lastTickerHTML = "";
+
 function renderTicker() {
   const el = document.getElementById("tickerContent");
   if (!el) return;
 
-  // If no data yet
+  let html;
+
   if (!tickerData || tickerData.length === 0) {
-    el.innerHTML = `
+    html = `
       <div class="ticker-item">
         ⚾ <span class="no-scores">No score submissions yet.</span>
       </div>
     `;
   } else {
-    el.innerHTML = tickerData.map(entry => {
+    html = tickerData.map(entry => {
       const [division, rest] = entry.split(":");
       return `
         <div class="ticker-item">
-          <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
-          <span class="ticker-text-score">⚾ ${rest.trim()}</span>
+          <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">
+            ${division}
+          </span>
+          <span class="ticker-text-score">
+            ⚾ ${rest.trim()}
+          </span>
         </div>
       `;
     }).join("");
   }
+
+  // ✅ If content didn’t change, do nothing
+  if (html === lastTickerHTML) return;
+  lastTickerHTML = html;
+
+  // Only update DOM when needed
+  el.innerHTML = html;
+}
 
   // 🔥 FIX FOR iOS PWA FREEZING TICKER
   requestAnimationFrame(() => {

@@ -317,6 +317,7 @@ async function loadScoresAndStandings() {
   const formGames = await fetchScoresAndStandings();
   standingsData = buildStandings(formGames);
   tickerData = buildTicker(formGames);
+  renderTicker();
 
   if (currentPage === "standings") renderStandings();
   if (currentPage === "home") renderHome();
@@ -1343,4 +1344,3 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-

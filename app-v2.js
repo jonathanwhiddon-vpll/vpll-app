@@ -45,7 +45,7 @@ const ADMIN_PIN = "0709";
 
 let standingsData = {};
 let tickerData = [];
-let lastTickerHTML = "";
+
 const coachPins = {
   Majors: "1111",
   AAA: "2222",
@@ -701,21 +701,18 @@ function renderSchedule() {
 }
 
 function renderTicker() {
-  const content = document.getElementById("tickerContent");
-  const clone = document.getElementById("tickerClone");
-  const track = document.getElementById("tickerTrack");
-  if (!content || !clone || !track) return;
+  const el = document.getElementById("tickerContent");
+  if (!el) return;
 
-  let html = "";
-
+  // If no data yet
   if (!tickerData || tickerData.length === 0) {
-    html = `
+    el.innerHTML = `
       <div class="ticker-item">
         ⚾ <span class="no-scores">No score submissions yet.</span>
       </div>
     `;
   } else {
-    html = tickerData.map(entry => {
+    el.innerHTML = tickerData.map(entry => {
       const [division, rest] = entry.split(":");
       return `
         <div class="ticker-item">
@@ -726,20 +723,18 @@ function renderTicker() {
     }).join("");
   }
 
-  // ✅ If the content didn't change, don't reset the animation
-  if (html === lastTickerHTML) return;
-  lastTickerHTML = html;
-
-  // ✅ Fill both copies (for your continuous ticker HTML)
-  content.innerHTML = html;
-  clone.innerHTML = html;
-
-  // ✅ iOS “kick” — restart the TRACK only when content changes
+  // 🔥 FIX FOR iOS PWA FREEZING TICKER
   requestAnimationFrame(() => {
-    track.style.animation = "none";
-    void track.offsetWidth; // Safari reflow
-    track.style.animation = "tickerScroll 28s linear infinite";
+  requestAnimationFrame(() => {
+    const ticker = document.getElementById("tickerContent");
+    if (!ticker) return;
+
+    ticker.style.animation = "none";
+    void ticker.offsetWidth; // Safari reflow
+    ticker.style.animation = "tickerScroll 35s linear infinite";
   });
+});
+
 }
 function scrollToToday() {
   const today = new Date();

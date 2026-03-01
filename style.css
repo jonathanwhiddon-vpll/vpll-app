@@ -507,7 +507,7 @@ main {
 #tickerContent {
   display: inline-flex;
   gap: 40px;
-  animation: tickerScroll 40s linear infinite;
+  animation: tickerScroll 59s linear infinite;
 }
 
 .ticker-item {
@@ -553,6 +553,7 @@ main {
   from { transform: translateX(100%); }
   to   { transform: translateX(-100%); }
 }
+
 
 
 

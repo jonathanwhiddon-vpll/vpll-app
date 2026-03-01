@@ -1,6 +1,3 @@
-good 2/28
-
-
 /* --------------------------------------------------
    Villa Park Little League - app-v2.js (CSV Version)
    - Loads schedule from Google Sheets CSV
@@ -1418,3 +1415,4 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+

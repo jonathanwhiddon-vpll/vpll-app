@@ -547,6 +547,11 @@ main {
 .no-scores {
   opacity: 0.8;
 }
+/* Animation */
+@keyframes tickerScroll {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(-100%); }
+}
 
 
 

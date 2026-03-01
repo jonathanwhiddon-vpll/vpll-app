@@ -495,6 +495,8 @@ main {
 }
 /* -------- PREMIUM TICKER STYLE (C1-A) -------- */
 
+/* -------- CONTINUOUS TICKER -------- */
+
 #tickerBar {
   width: 100%;
   overflow: hidden;
@@ -504,19 +506,23 @@ main {
   white-space: nowrap;
 }
 
-#tickerContent {
+.ticker-track {
   display: inline-flex;
+  width: max-content;
   gap: 40px;
   animation: tickerScroll 28s linear infinite;
+  will-change: transform;
 }
 
-.ticker-item {
+.ticker-content {
   display: inline-flex;
+  gap: 40px;
   align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  color: white;
-  font-weight: 600;
+}
+
+@keyframes tickerScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
 
 /* Division badges */
@@ -547,13 +553,6 @@ main {
 .no-scores {
   opacity: 0.8;
 }
-/* Animation */
-@keyframes tickerScroll {
-  from { transform: translateX(100%); }
-  to   { transform: translateX(-100%); }
-}
-
-
 
 
 

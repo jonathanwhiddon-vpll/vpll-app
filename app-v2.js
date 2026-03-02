@@ -45,6 +45,8 @@ const ADMIN_PIN = "0709";
 
 let standingsData = {};
 let tickerData = [];
+let lastScoresFetchMs = 0;
+let lastTickerHTML = "";
 
 const coachPins = {
   Majors: "1111",
@@ -382,6 +384,7 @@ function buildTicker(formGames) {
 
 async function loadScoresAndStandings() {
   const formGames = await fetchScoresAndStandings();
+  lastScoresFetchMs = Date.now();
 
   standingsData = buildStandings(formGames);
   tickerData = buildTicker(formGames);
@@ -812,28 +815,50 @@ function renderSchedule() {
   }, 120);
 }
 
-function renderTicker() {
+function renderTicker(forceRestart = false) {
   const el = document.getElementById("tickerContent");
   if (!el) return;
 
-  // If no data yet
+  // Build HTML
+  let html = "";
   if (!tickerData || tickerData.length === 0) {
-    el.innerHTML = `
+    html = `
       <div class="ticker-item">
         ⚾ <span class="no-scores">No score submissions yet.</span>
       </div>
     `;
   } else {
-    el.innerHTML = tickerData.map(entry => {
-      const [division, rest] = entry.split(":");
-      return `
-        <div class="ticker-item">
-          <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
-          <span class="ticker-text-score">⚾ ${rest.trim()}</span>
-        </div>
-      `;
-    }).join("");
+    html = tickerData
+      .map(entry => {
+        const [division, rest] = entry.split(":");
+        return `
+          <div class="ticker-item">
+            <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
+            <span class="ticker-text-score">⚾ ${rest.trim()}</span>
+          </div>
+        `;
+      })
+      .join("");
   }
+
+  const changed = html !== lastTickerHTML;
+
+  // If nothing changed, do NOT reset animation (prevents the “restart” feel)
+  if (!changed && !forceRestart) return;
+
+  lastTickerHTML = html;
+  el.innerHTML = html;
+
+  // Restart animation ONLY when content changes (or forced)
+  requestAnimationFrame(() => {
+    const ticker = document.getElementById("tickerContent");
+    if (!ticker) return;
+
+    ticker.style.animation = "none";
+    void ticker.offsetWidth; // Safari reflow
+    ticker.style.animation = ""; // revert to CSS-controlled animation
+  });
+}
 
   // 🔥 FIX FOR iOS PWA FREEZING TICKER
   requestAnimationFrame(() => {
@@ -843,7 +868,7 @@ function renderTicker() {
 
     ticker.style.animation = "none";
     void ticker.offsetWidth; // Safari reflow
-    ticker.style.animation = "tickerScroll 35s linear infinite";
+    ticker.style.animation = "";
   });
 });
 
@@ -1345,15 +1370,32 @@ function openScoreForm() {
 function renderPage(page) {
   currentPage = page;
 
+  const STALE_MS = 60 * 1000; // 1 minute (adjust if you want)
+
   if (page === "home") {
-    renderHome();              // draw page immediately
-    loadScoresAndStandings();  // fetch latest scores + ticker in background
+    renderHome();
+    // ✅ only refresh if stale
+    if (!lastScoresFetchMs || Date.now() - lastScoresFetchMs > STALE_MS) {
+      loadScoresAndStandings();
+    } else {
+      renderTicker(false);
+    }
   } else if (page === "schedule") {
     renderSchedule();
-    loadScheduleFromApi();     // refresh schedule CSV
+    loadScheduleFromApi();
   } else if (page === "standings") {
     renderStandings();
-    loadScoresAndStandings();  // refresh standings data
+    // ✅ only refresh if stale OR standings empty
+    if (
+      !lastScoresFetchMs ||
+      Date.now() - lastScoresFetchMs > STALE_MS ||
+      !standingsData ||
+      Object.keys(standingsData).length === 0
+    ) {
+      loadScoresAndStandings();
+    } else {
+      renderTicker(false);
+    }
   } else if (page === "more") {
     renderMore();
   }

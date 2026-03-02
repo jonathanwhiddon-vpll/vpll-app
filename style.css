@@ -493,15 +493,10 @@ main {
     font-size: 0.9rem;
   }
 }
-:root{
-  /* 👇 change this anytime (60s, 80s, 120s...) */
-  --ticker-duration: 90s;
-}
-
 /* -------- PREMIUM TICKER STYLE (C1-A) -------- */
 
 #tickerBar {
-  width: 100%
+  width: 100%;
   overflow: hidden;
   background: #0b3d91;
   border-bottom: 2px solid #ffcc00;
@@ -512,15 +507,7 @@ main {
 #tickerContent {
   display: inline-flex;
   gap: 40px;
-
-  /* ✅ one single source of truth for speed */
-  animation: tickerScroll var(--ticker-duration) linear infinite;
-
-  /* ✅ makes it “already in motion” (no long wait at the start) */
-  animation-delay: -6s;
-
-  /* ✅ helps mobile Safari */
-  will-change: transform;
+  animation: tickerScroll 24s linear infinite;
 }
 
 .ticker-item {

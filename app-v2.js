@@ -84,6 +84,23 @@ function restartTickerAnimation() {
   void ticker.offsetWidth; // force reflow
   ticker.style.animation = ""; // return to CSS animation
 }
+function ensureTickerRunning() {
+  const ticker = document.getElementById("tickerContent");
+  if (!ticker) return;
+
+  const anims = ticker.getAnimations ? ticker.getAnimations() : [];
+  if (anims.length) {
+    anims.forEach(a => {
+      try { a.play(); } catch (e) {}
+    });
+    return;
+  }
+
+  const state = getComputedStyle(ticker).animationPlayState;
+  if (state === "paused") {
+    ticker.style.animationPlayState = "running";
+  }
+}
 function normDate(s) {
   const t = (s || "").toString().trim();
   const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
@@ -1397,7 +1414,7 @@ function renderPage(page) {
   setActiveNav(page);
 }
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) restartTickerAnimation();
+ if (!document.hidden) ensureTickerRunning();
 });
 function setupNav() {
   const buttons = document.querySelectorAll("#bottomNav .nav-btn");
@@ -1405,7 +1422,7 @@ function setupNav() {
     btn.addEventListener("click", () => {
   const page = btn.dataset.page;
   renderPage(page);
-  restartTickerAnimation(); // ✅ keeps it moving across tab switches
+  ensureTickerRunning();
 });
   });
   setActiveNav("home");

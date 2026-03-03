@@ -45,6 +45,8 @@ const ADMIN_PIN = "0709";
 
 let standingsData = {};
 let tickerData = [];
+let lastScoresFetchMs = 0;
+let lastTickerHTML = "";
 
 const coachPins = {
   Majors: "1111",
@@ -74,7 +76,14 @@ function getPageRoot() {
 function norm(s) {
   return (s || "").toString().trim().replace(/\s+/g, " ").toLowerCase();
 }
+function restartTickerAnimation() {
+  const ticker = document.getElementById("tickerContent");
+  if (!ticker) return;
 
+  ticker.style.animation = "none";
+  void ticker.offsetWidth; // force reflow
+  ticker.style.animation = ""; // return to CSS animation
+}
 function normDate(s) {
   const t = (s || "").toString().trim();
   const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
@@ -382,6 +391,7 @@ function buildTicker(formGames) {
 
 async function loadScoresAndStandings() {
   const formGames = await fetchScoresAndStandings();
+  lastScoresFetchMs = Date.now();
 
   standingsData = buildStandings(formGames);
   tickerData = buildTicker(formGames);
@@ -812,42 +822,51 @@ function renderSchedule() {
   }, 120);
 }
 
-function renderTicker() {
+function renderTicker(forceRestart = false) {
   const el = document.getElementById("tickerContent");
   if (!el) return;
 
-  // If no data yet
+  // Build HTML
+  let html = "";
   if (!tickerData || tickerData.length === 0) {
-    el.innerHTML = `
+    html = `
       <div class="ticker-item">
         ⚾ <span class="no-scores">No score submissions yet.</span>
       </div>
     `;
   } else {
-    el.innerHTML = tickerData.map(entry => {
-      const [division, rest] = entry.split(":");
-      return `
-        <div class="ticker-item">
-          <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
-          <span class="ticker-text-score">⚾ ${rest.trim()}</span>
-        </div>
-      `;
-    }).join("");
+    html = tickerData
+      .map(entry => {
+        const [division, rest] = entry.split(":");
+        return `
+          <div class="ticker-item">
+            <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
+            <span class="ticker-text-score">⚾ ${rest.trim()}</span>
+          </div>
+        `;
+      })
+      .join("");
   }
 
-  // 🔥 FIX FOR iOS PWA FREEZING TICKER
-  requestAnimationFrame(() => {
+  const changed = html !== lastTickerHTML;
+
+  // If nothing changed, do NOT reset animation (prevents the “restart” feel)
+  if (!changed && !forceRestart) return;
+
+  lastTickerHTML = html;
+  el.innerHTML = html;
+
+  // Restart animation ONLY when content changes (or forced)
   requestAnimationFrame(() => {
     const ticker = document.getElementById("tickerContent");
     if (!ticker) return;
 
     ticker.style.animation = "none";
     void ticker.offsetWidth; // Safari reflow
-    ticker.style.animation = "tickerScroll 35s linear infinite";
+    ticker.style.animation = ""; // revert to CSS-controlled animation
   });
-});
-
 }
+
 function scrollToToday() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1345,29 +1364,49 @@ function openScoreForm() {
 function renderPage(page) {
   currentPage = page;
 
+  const STALE_MS = 60 * 1000; // 1 minute (adjust if you want)
+
   if (page === "home") {
-    renderHome();              // draw page immediately
-    loadScoresAndStandings();  // fetch latest scores + ticker in background
+    renderHome();
+    // ✅ only refresh if stale
+    if (!lastScoresFetchMs || Date.now() - lastScoresFetchMs > STALE_MS) {
+      loadScoresAndStandings();
+    } else {
+      renderTicker(false);
+    }
   } else if (page === "schedule") {
     renderSchedule();
-    loadScheduleFromApi();     // refresh schedule CSV
+    loadScheduleFromApi();
   } else if (page === "standings") {
     renderStandings();
-    loadScoresAndStandings();  // refresh standings data
+    // ✅ only refresh if stale OR standings empty
+    if (
+      !lastScoresFetchMs ||
+      Date.now() - lastScoresFetchMs > STALE_MS ||
+      !standingsData ||
+      Object.keys(standingsData).length === 0
+    ) {
+      loadScoresAndStandings();
+    } else {
+      renderTicker(false);
+    }
   } else if (page === "more") {
     renderMore();
   }
 
   setActiveNav(page);
 }
-
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) restartTickerAnimation();
+});
 function setupNav() {
   const buttons = document.querySelectorAll("#bottomNav .nav-btn");
   buttons.forEach(btn => {
     btn.addEventListener("click", () => {
-      const page = btn.dataset.page;
-      renderPage(page);
-    });
+  const page = btn.dataset.page;
+  renderPage(page);
+  restartTickerAnimation(); // ✅ keeps it moving across tab switches
+});
   });
   setActiveNav("home");
 }

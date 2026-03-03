@@ -872,7 +872,15 @@ function renderTicker(forceRestart = false) {
 
   lastTickerHTML = html;
   el.innerHTML = html;
+// Restart animation when content changes
+requestAnimationFrame(() => {
+  const ticker = document.getElementById("tickerContent");
+  if (!ticker) return;
 
+  ticker.style.animation = "none";
+  void ticker.offsetWidth; // Safari reflow trick
+  ticker.style.animation = "";
+});
   // Restart animation ONLY when content changes (or forced)
   requestAnimationFrame(() => {
     const ticker = document.getElementById("tickerContent");
@@ -1339,8 +1347,7 @@ function renderLogin() {
           <label><strong>Division:</strong></label><br>
           <input id="coach-name" placeholder="Majors, AAA, or AA"><br><br>
 
-          <label><strong>PIN:</strong></label><br>
-          <input id="coach-pin" type="password" placeholder="PIN"><br><br>
+          <label><strong>PIN:</strong></label><br>          <input id="coach-pin" type="password" placeholder="PIN"><br><br>
 
           <button onclick="loginCoach()">Login</button>
 

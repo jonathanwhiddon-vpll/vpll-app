@@ -47,6 +47,8 @@ let standingsData = {};
 let tickerData = [];
 let lastScoresFetchMs = 0;
 let lastTickerHTML = "";
+const TICKER_LOOKBACK_DAYS = 5;  // show last 5 days
+const TICKER_MAX_ITEMS = 25;     // cap ticker length
 
 const coachPins = {
   Majors: "1111",
@@ -386,23 +388,52 @@ function buildStandings(formGames) {
   return table;
 }
 
+function parseMMDDYYYY(dateStr) {
+  // Handles "M/D/YYYY" or "MM/DD/YYYY"
+  const m = (dateStr || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const mm = parseInt(m[1], 10) - 1;
+  const dd = parseInt(m[2], 10);
+  const yy = parseInt(m[3], 10);
+  const d = new Date(yy, mm, dd);
+  return isNaN(d.getTime()) ? null : d;
+}
+function parseMMDDYYYY(dateStr) {
+  const m = (dateStr || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const mm = parseInt(m[1], 10) - 1;
+  const dd = parseInt(m[2], 10);
+  const yy = parseInt(m[3], 10);
+  const d = new Date(yy, mm, dd);
+  return isNaN(d.getTime()) ? null : d;
+}
 function buildTicker(formGames) {
-  // Only keep games that actually have scores
-  const completed = formGames.filter(
-    g =>
-      g.homeScore != null &&
-      g.awayScore != null &&
-      !Number.isNaN(g.homeScore) &&
-      !Number.isNaN(g.awayScore)
-  );
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  completed.sort((a, b) => {
-    return new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time);
-  });
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() - TICKER_LOOKBACK_DAYS);
 
-  return completed.map(
-    g =>
-      `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
+  // Only keep games that actually have scores AND are within lookback window
+  const completedRecent = (formGames || [])
+    .filter(g => {
+      if (g.homeScore == null || g.awayScore == null) return false;
+      if (Number.isNaN(g.homeScore) || Number.isNaN(g.awayScore)) return false;
+
+      const gd = parseMMDDYYYY(g.date);
+      if (!gd) return false;
+      gd.setHours(0, 0, 0, 0);
+
+      return gd >= cutoff && gd <= today;
+    })
+    .sort((a, b) => {
+      // keep your “newest first” behavior
+      return new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time);
+    })
+    .slice(0, TICKER_MAX_ITEMS);
+
+  return completedRecent.map(
+    g => `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
   );
 }
 
@@ -881,15 +912,7 @@ requestAnimationFrame(() => {
   void ticker.offsetWidth; // Safari reflow trick
   ticker.style.animation = "";
 });
-  // Restart animation ONLY when content changes (or forced)
-  requestAnimationFrame(() => {
-    const ticker = document.getElementById("tickerContent");
-    if (!ticker) return;
-
-    ticker.style.animation = "none";
-    void ticker.offsetWidth; // Safari reflow
-    ticker.style.animation = ""; // revert to CSS-controlled animation
-  });
+  
 }
 
 function scrollToToday() {
@@ -1427,10 +1450,10 @@ function setupNav() {
   const buttons = document.querySelectorAll("#bottomNav .nav-btn");
   buttons.forEach(btn => {
     btn.addEventListener("click", () => {
-  const page = btn.dataset.page;
-  renderPage(page);
-  ensureTickerRunning();
-});
+      const page = btn.dataset.page;
+      renderPage(page);
+      ensureTickerRunning();
+    });
   });
   setActiveNav("home");
 }

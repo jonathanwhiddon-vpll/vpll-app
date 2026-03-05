@@ -495,7 +495,7 @@ main {
 }
 :root{
   /* 👇 change this anytime (60s, 80s, 120s...) */
-  --ticker-duration: 90s;
+  --ticker-duration: 50s;
 }
 
 /* -------- PREMIUM TICKER STYLE (C1-A) -------- */
@@ -570,6 +570,7 @@ main {
     transform: translateX(-50%);
   }
 }
+
 
 
 

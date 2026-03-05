@@ -47,7 +47,7 @@ let standingsData = {};
 let tickerData = [];
 let lastScoresFetchMs = 0;
 let lastTickerHTML = "";
-const TICKER_LOOKBACK_DAYS = 6;  // show last 6 days
+const TICKER_LOOKBACK_DAYS = 2;  // show last 2 days
 const TICKER_MAX_ITEMS = 25;     // cap ticker length
 
 const coachPins = {
@@ -1443,9 +1443,20 @@ function renderPage(page) {
 
   setActiveNav(page);
 }
-document.addEventListener("visibilitychange", () => {
- if (!document.hidden) ensureTickerRunning();
-});
+
+// refresh scores if stale (and refresh UI when returning to app)
+function refreshIfStale() {
+  const STALE_MS = 60 * 1000;
+
+  if (!lastScoresFetchMs || (Date.now() - lastScoresFetchMs > STALE_MS)) {
+    loadScoresAndStandings(); // fetch + rebuild data + ticker
+  } else {
+    // data is fresh — re-render current page so UI updates on iOS PWA
+    renderPage(currentPage || "home");
+    ensureTickerRunning();
+  }
+}
+
 function setupNav() {
   const buttons = document.querySelectorAll("#bottomNav .nav-btn");
   buttons.forEach(btn => {
@@ -1457,6 +1468,18 @@ function setupNav() {
   });
   setActiveNav("home");
 }
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    ensureTickerRunning();
+    refreshIfStale();
+  }
+});
+// Fires when returning to the app (iOS PWA friendly)
+
+window.addEventListener("focus", refreshIfStale);
+window.addEventListener("pageshow", refreshIfStale);
+// Also fires when the app is foregrounded / resumed (especially iOS)
+
 // ========================
 // HOME SLIDESHOW
 // ========================
@@ -1492,7 +1515,8 @@ function initApp() {
 }
 
 // ========================
-// PULL DOWN TO REFRESH (Home Only)
+// ========================
+// PULL DOWN TO REFRESH (Home Only) - iOS PWA FRIENDLY
 // ========================
 let touchStartY = 0;
 let touchCurrentY = 0;
@@ -1500,25 +1524,55 @@ let isPulling = false;
 
 const PULL_THRESHOLD = 60;
 
-document.addEventListener("touchstart", e => {
-  if (currentPage !== "home") return;
-  if (window.scrollY > 0) return;
+function getMainScrollEl() {
+  return document.querySelector("main") || document.scrollingElement || document.documentElement;
+}
 
-  touchStartY = e.touches[0].clientY;
-  isPulling = true;
-});
+function onPullRefresh() {
+  // always do the refresh (don’t rely on stale logic here)
+  return Promise.all([loadScheduleFromApi(), loadScoresAndStandings()])
+    .then(() => {
+      renderHome();
+      renderTicker(false); // keep ticker in sync too
+      ensureTickerRunning();
+    })
+    .catch(err => console.error("Pull refresh error:", err));
+}
 
-document.addEventListener("touchmove", e => {
-  if (!isPulling) return;
-  if (currentPage !== "home") return;
+document.addEventListener(
+  "touchstart",
+  (e) => {
+    if (currentPage !== "home") return;
 
-  touchCurrentY = e.touches[0].clientY;
+    const main = getMainScrollEl();
+    if (!main) return;
 
-  if (touchCurrentY < touchStartY) {
-    isPulling = false;
-    return;
-  }
-});
+    // Only start pull if we're at the very top of the scroll container
+    const scrollTop = typeof main.scrollTop === "number" ? main.scrollTop : window.scrollY;
+if (scrollTop > 0) return;
+
+    touchStartY = e.touches[0].clientY;
+    touchCurrentY = touchStartY;
+    isPulling = true;
+  },
+  { passive: true }
+);
+
+document.addEventListener(
+  "touchmove",
+  (e) => {
+    if (!isPulling) return;
+    if (currentPage !== "home") return;
+
+    touchCurrentY = e.touches[0].clientY;
+
+    // If user scrolls up instead of pulling down, cancel
+    if (touchCurrentY < touchStartY) {
+      isPulling = false;
+    }
+  },
+  { passive: true }
+);
 
 document.addEventListener("touchend", async () => {
   if (!isPulling) return;
@@ -1527,10 +1581,13 @@ document.addEventListener("touchend", async () => {
   const pullDistance = touchCurrentY - touchStartY;
 
   if (pullDistance > PULL_THRESHOLD) {
-  await Promise.all([loadScheduleFromApi(), loadScoresAndStandings()]);
-  renderHome();
-}
+    await onPullRefresh();
+  }
 
+  isPulling = false;
+});
+
+document.addEventListener("touchcancel", () => {
   isPulling = false;
 });
 
@@ -1542,6 +1599,3 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-
-
-

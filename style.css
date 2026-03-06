@@ -513,7 +513,7 @@ main {
   display: inline-block;
   white-space: nowrap;
   /* ✅ one single source of truth for speed */
-  animation: tickerScroll var(--ticker-duration) linear infinite;
+  animation: tickerScroll 90s linear infinite;
 
   /* ✅ makes it “already in motion” (no long wait at the start) */
   animation-delay: -6s;
@@ -568,14 +568,6 @@ main {
     transform: translateX(-50%);
   }
 }
-
-
-
-
-
-
-
-
 
 
 

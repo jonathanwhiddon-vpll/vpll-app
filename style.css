@@ -511,7 +511,7 @@ main {
 
 #tickerContent {
   display: inline-block;
-
+  white-space: nowrap;
   /* ✅ one single source of truth for speed */
   animation: tickerScroll var(--ticker-duration) linear infinite;
 
@@ -568,6 +568,7 @@ main {
     transform: translateX(-50%);
   }
 }
+
 
 
 

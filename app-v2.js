@@ -47,7 +47,7 @@ let standingsData = {};
 let tickerData = [];
 let lastScoresFetchMs = 0;
 let lastTickerHTML = "";
-const TICKER_LOOKBACK_DAYS = 5;  // show last 5 days
+const TICKER_LOOKBACK_DAYS = 7;  // show last 7 days
 const TICKER_MAX_ITEMS = 25;     // cap ticker length
 
 const coachPins = {
@@ -1599,3 +1599,4 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+

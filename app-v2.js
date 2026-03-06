@@ -47,7 +47,7 @@ let standingsData = {};
 let tickerData = [];
 let lastScoresFetchMs = 0;
 let lastTickerHTML = "";
-const TICKER_LOOKBACK_DAYS = 7;  // show last 7 days
+const TICKER_LOOKBACK_DAYS = 2;  // show last 2 days
 const TICKER_MAX_ITEMS = 25;     // cap ticker length
 
 const coachPins = {
@@ -492,7 +492,7 @@ async function loadAnnouncement() {
     const url =
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
 
-    const resp = await fetch(url);
+    const resp = await fetch(url, { cache: "no-store" });
     if (!resp.ok) throw new Error("Announcement CSV fetch failed");
 
     const csv = await resp.text();

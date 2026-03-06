@@ -433,8 +433,8 @@ function buildTicker(formGames) {
     ;
 
   return completedRecent.map(
-    g => `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
-  );
+  g => `${g.date} • ${g.division} • Final: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
+);
 }
 
 async function loadScoresAndStandings() {
@@ -1599,4 +1599,3 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-

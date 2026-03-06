@@ -47,7 +47,7 @@ let standingsData = {};
 let tickerData = [];
 let lastScoresFetchMs = 0;
 let lastTickerHTML = "";
-const TICKER_LOOKBACK_DAYS = 6;  // show last 6 days
+const TICKER_LOOKBACK_DAYS = 5;  // show last 5 days
 const TICKER_MAX_ITEMS = 25;     // cap ticker length
 
 const coachPins = {
@@ -430,7 +430,7 @@ function buildTicker(formGames) {
       // keep your “newest first” behavior
       return new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time);
     })
-    .slice(0, TICKER_MAX_ITEMS);
+    ;
 
   return completedRecent.map(
     g => `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
@@ -902,7 +902,7 @@ function renderTicker(forceRestart = false) {
   if (!changed && !forceRestart) return;
 
   lastTickerHTML = html;
-  el.innerHTML = html;
+  el.innerHTML = html + html;
 // Restart animation when content changes
 requestAnimationFrame(() => {
   const ticker = document.getElementById("tickerContent");
@@ -1599,4 +1599,3 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-

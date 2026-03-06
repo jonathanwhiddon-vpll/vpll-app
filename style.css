@@ -510,8 +510,7 @@ main {
 }
 
 #tickerContent {
-  display: inline-flex;
-  gap: 40px;
+  display: inline-block;
 
   /* ✅ one single source of truth for speed */
   animation: tickerScroll var(--ticker-duration) linear infinite;
@@ -524,9 +523,8 @@ main {
 }
 
 .ticker-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  display: inline-block;
+  margin-right: 40px;
   font-size: 15px;
   color: white;
   font-weight: 600;
@@ -570,7 +568,6 @@ main {
     transform: translateX(-50%);
   }
 }
-
 
 
 

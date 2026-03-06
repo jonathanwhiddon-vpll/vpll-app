@@ -501,7 +501,7 @@ main {
 /* -------- PREMIUM TICKER STYLE (C1-A) -------- */
 
 #tickerBar {
-  width: 100%:
+  width: 100%;
   overflow: hidden;
   background: #0b3d91;
   border-bottom: 2px solid #ffcc00;
@@ -570,6 +570,7 @@ main {
     transform: translateX(-50%);
   }
 }
+
 
 
 

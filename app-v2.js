@@ -917,15 +917,15 @@ requestAnimationFrame(() => {
 
 function scrollToToday() {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(0,0,0,0);
 
   const dateHeaders = document.querySelectorAll(".schedule-date-header");
 
   for (const header of dateHeaders) {
     const dateText = header.textContent.replace("📅 ", "").trim();
-    const parsed = new Date(dateText);
+    const parsed = parseMMDDYYYY(dateText);   // use your existing parser
 
-    if (!isNaN(parsed) && parsed >= today) {
+    if (parsed && parsed >= today) {
       header.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -1599,5 +1599,4 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-
 

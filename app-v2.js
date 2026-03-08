@@ -389,24 +389,22 @@ function buildStandings(formGames) {
 }
 
 function parseMMDDYYYY(dateStr) {
-  // Handles "M/D/YYYY" or "MM/DD/YYYY" 
-  const m = (dateStr || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const raw = (dateStr || "").toString().trim();
+
+  // Accept M/D/YYYY, MM/DD/YYYY, M-D-YYYY, MM-DD-YYYY
+  const m = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
   if (!m) return null;
+
   const mm = parseInt(m[1], 10) - 1;
   const dd = parseInt(m[2], 10);
   const yy = parseInt(m[3], 10);
+
   const d = new Date(yy, mm, dd);
+  d.setHours(0, 0, 0, 0);
+
   return isNaN(d.getTime()) ? null : d;
 }
-function parseMMDDYYYY(dateStr) {
-  const m = (dateStr || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (!m) return null;
-  const mm = parseInt(m[1], 10) - 1;
-  const dd = parseInt(m[2], 10);
-  const yy = parseInt(m[3], 10);
-  const d = new Date(yy, mm, dd);
-  return isNaN(d.getTime()) ? null : d;
-}
+
 function buildTicker(formGames) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1606,6 +1604,4 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-
-
 

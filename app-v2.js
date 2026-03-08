@@ -782,7 +782,12 @@ function renderSchedule() {
   setTimeout(() => {
     const list = games
       .filter(g => g.division === selectedScheduleDivision)
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort((a, b) => {
+  const da = parseMMDDYYYY(a.date);
+  const db = parseMMDDYYYY(b.date);
+  if (!da || !db) return 0;
+  return da - db;
+});
 
     const gamesByDate = {};
     list.forEach(g => {
@@ -820,9 +825,9 @@ function renderSchedule() {
               : Object.keys(gamesByDate)
                   .map(date => {
                     return `
-                      <div class="schedule-date-block">
-                        <h3 class="schedule-date-header">📅 ${date}</h3>
-                        <ul class="schedule-list">
+                      <div class="schedule-date-block" data-date="${date}">
+  <h3 class="schedule-date-header">📅 ${date}</h3>
+  <ul class="schedule-list">
                           ${gamesByDate[date]
                             .map(g => {
                               const score = SCORING_DIVISIONS.includes(
@@ -917,22 +922,24 @@ requestAnimationFrame(() => {
 
 function scrollToToday() {
   const today = new Date();
-  today.setHours(0,0,0,0);
+  today.setHours(0, 0, 0, 0);
 
-  const dateHeaders = document.querySelectorAll(".schedule-date-header");
+  const blocks = document.querySelectorAll(".schedule-date-block");
 
-  for (const header of dateHeaders) {
-    const dateText = header.textContent.replace("📅 ", "").trim();
-    const parsed = parseMMDDYYYY(dateText);   // use your existing parser
+  for (const block of blocks) {
+    const dateText = block.getAttribute("data-date") || "";
+    const parsed = parseMMDDYYYY(dateText);
 
     if (parsed && parsed >= today) {
-      header.scrollIntoView({ behavior: "smooth", block: "start" });
+      block.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
   }
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+  
 
 // ========================
 // STANDINGS

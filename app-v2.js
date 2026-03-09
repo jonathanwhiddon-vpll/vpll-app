@@ -532,46 +532,26 @@ async function loadAnnouncement() {
 // HOME PAGE
 // ================================
 async function renderHome() {
-  const announcements = await loadAnnouncement();
-  let announcementHTML = "";
-
-  if (announcements.length > 0) {
-    announcementHTML = `
-      <div class="announcement-card" style="
-        background:#fff9d9;
-        padding:14px;
-        border-radius:10px;
-        margin-bottom:16px;
-        border:1px solid #f2d57c;
-        font-size:16px;
-      ">
-        <ul>
-          ${announcements.map(a => "<li>" + a + "</li>").join("")}
-       </ul>
-      </div>
-    `;
-  }
 
   const pageRoot = getPageRoot();
   if (!pageRoot) return;
 
+  // Render page immediately
   pageRoot.innerHTML = `
   <section class="card home-card">
     <div class="home-banner home-slideshow">
-      <img src="home_banner.jpg" class="slide active" alt="League Banner">
-      <img src="home_banner2.jpg" class="slide" alt="League Banner">
-      <img src="home_banner3.jpg" class="slide" alt="League Banner">
-      <img src="home_banner4.jpg" class="slide" alt="League Banner">
-      <img src="home_banner5.jpg" class="slide" alt="League Banner">
-      <img src="home_banner6.jpg" class="slide" alt="League Banner">
+      <img src="home_banner.jpg" class="slide active">
+      <img src="home_banner2.jpg" class="slide">
+      <img src="home_banner3.jpg" class="slide">
+      <img src="home_banner4.jpg" class="slide">
+      <img src="home_banner5.jpg" class="slide">
+      <img src="home_banner6.jpg" class="slide">
     </div>
 
-    ${announcementHTML}
+    <div id="announcementMount"></div>
 
-    <!-- Hits & Hops Ticket Button -->
-    <div style="padding: 0 16px 18px 16px;">
-      <a
-        href="${HITS_HOPS_TICKET_URL}"
+    <div style="padding:0 16px 18px 16px;">
+      <a href="${HITS_HOPS_TICKET_URL}"
         target="_blank"
         rel="noopener"
         style="
@@ -585,44 +565,57 @@ async function renderHome() {
           border:1px solid #f2d57c;
           background:#fff4c4;
           color:#0b2a52;
-        "
-      >
+        ">
         🍻 Purchase Hits & Hops Tickets
       </a>
-      <div style="
-        text-align:center;
-        font-size:12px;
-        margin-top:6px;
-        opacity:0.75;
-      ">
-        Support VPLL 🎉
-      </div>
     </div>
-<!-- Snack Bar Menu Button -->
-<div style="padding: 0 16px 18px 16px;">
-  <button
-    onclick="renderSnackBarMenu()"
-    style="
-      display:block;
-      width:100%;
-      text-align:center;
-      padding:14px 12px;
-      border-radius:12px;
-      font-weight:800;
-      font-size:16px;
-      border:1px solid #c8e6c9;
-      background:#e8f5e9;
-      color:#0b2a52;
-    "
-  >
-    🍿 View Snack Bar Menu
-  </button>
-</div>
-  </section>
-`;
 
-    applyPageTransition();
+    <div style="padding:0 16px 18px 16px;">
+      <button onclick="renderSnackBarMenu()" style="
+        display:block;
+        width:100%;
+        padding:14px 12px;
+        border-radius:12px;
+        font-weight:800;
+        font-size:16px;
+        border:1px solid #c8e6c9;
+        background:#e8f5e9;
+        color:#0b2a52;">
+        🍿 View Snack Bar Menu
+      </button>
+    </div>
+
+  </section>
+  `;
+
+  applyPageTransition();
   setTimeout(startHomeSlideshow, 100);
+
+  // Load announcements AFTER page renders
+  try {
+    const announcements = await loadAnnouncement();
+
+    const mount = document.getElementById("announcementMount");
+    if (!mount) return;
+
+    if (announcements.length > 0) {
+      mount.innerHTML = `
+        <div class="announcement-card" style="
+          background:#fff9d9;
+          padding:14px;
+          border-radius:10px;
+          margin-bottom:16px;
+          border:1px solid #f2d57c;">
+          <ul>
+            ${announcements.map(a => `<li>${a}</li>`).join("")}
+          </ul>
+        </div>
+      `;
+    }
+
+  } catch (err) {
+    console.warn("Announcement load failed:", err);
+  }
 }
 function renderSnackBarMenu() {
   const pageRoot = getPageRoot();
@@ -1475,14 +1468,21 @@ function setupNav() {
 }
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
+    hideSpinner();
     ensureTickerRunning();
     refreshIfStale();
   }
 });
-// Fires when returning to the app (iOS PWA friendly)
 
-window.addEventListener("focus", refreshIfStale);
-window.addEventListener("pageshow", refreshIfStale);
+window.addEventListener("focus", () => {
+  hideSpinner();
+  refreshIfStale();
+});
+
+window.addEventListener("pageshow", () => {
+  hideSpinner();
+  refreshIfStale();
+});
 // Also fires when the app is foregrounded / resumed (especially iOS)
 
 // ========================
@@ -1597,9 +1597,11 @@ document.addEventListener("touchcancel", () => {
 });
 
 // Ensure DOM is ready (fixes blank first load on PWA)
-document.addEventListener("DOMContentLoaded", () => {
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
   initApp();
-});
+}
 
 /* --------------------------------------------------
    END OF FILE

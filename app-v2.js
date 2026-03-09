@@ -1513,8 +1513,9 @@ function startHomeSlideshow() {
 // ========================
 function initApp() {
   setupNav();
+  currentPage = "home";
   renderHome();
-  renderTicker(); 
+  renderTicker();
   loadScheduleFromApi();
   loadScoresAndStandings();
 }
@@ -1606,4 +1607,5 @@ if (document.readyState === "loading") {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+
 

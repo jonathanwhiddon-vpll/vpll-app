@@ -48,7 +48,7 @@ let tickerData = [];
 let lastScoresFetchMs = 0;
 let lastTickerHTML = "";
 const TICKER_LOOKBACK_DAYS = 4;  // show last 4 days
-const TICKER_MAX_ITEMS = 25;     // cap ticker length
+const TICKER_MAX_ITEMS = 30;     // cap ticker length
 
 const coachPins = {
   Majors: "1111",
@@ -1602,3 +1602,4 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
+

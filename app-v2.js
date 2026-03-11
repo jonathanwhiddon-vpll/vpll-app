@@ -746,7 +746,7 @@ function renderTeamSchedule(div, team) {
                     const score = SCORING_DIVISIONS.includes(g.division)
                       ? g.homeScore == null && g.awayScore == null
                         ? "No score yet"
-                        : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
+                        : `${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}`
                       : "";
 
                     const fieldName = g.field || g.Field || g.FIELD || "";
@@ -833,9 +833,9 @@ function renderSchedule() {
                               )
                                 ? g.homeScore == null && g.awayScore == null
                                   ? "No score yet"
-                                  : `${g.homeScore ?? "-"} - ${
-                                      g.awayScore ?? "-"
-                                    }`
+                                  : `${g.awayScore ?? "-"} - ${
+    g.homeScore ?? "-"
+  }`
                                 : "";
 
                               return `

@@ -756,7 +756,7 @@ function renderTeamSchedule(div, team) {
                         <span><strong>${g.date}</strong></span>
                         <span>${g.time}</span>
                         <span><em>Field: ${fieldName}</em></span>
-                        <span>${g.home} vs ${g.away}</span>
+                        <span>${g.away} at ${g.home}</span>
                         <span>${score}</span>
                       </li>`;
                   })
@@ -846,9 +846,7 @@ function renderSchedule() {
                                       g.field || ""
                                     }</span>
                                   </div>
-                                  <div class="schedule-teams">${g.home} vs ${
-                                g.away
-                              }</div>
+                                  <div class="schedule-teams">${g.away} at ${g.home}</div>
                                   ${
                                     score
                                       ? `<div class="schedule-score">${score}</div>`

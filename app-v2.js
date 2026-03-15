@@ -1018,7 +1018,7 @@ function renderStandings() {
                   s => `
           <li>
             <span>${s.team}</span>
-            <span class="record">${s.wins}-${s.losses}</span>
+            <span class="record">${s.wins}-${s.losses}-${s.ties}</span>
           </li>`
                 )
                 .join("")

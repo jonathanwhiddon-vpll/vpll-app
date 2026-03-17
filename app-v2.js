@@ -1009,21 +1009,52 @@ function renderStandings() {
         </label>
       </div>
 
-      <ul class="standings-list">
-        ${
-          standingsArray.length === 0
-            ? `<li>No standings yet.</li>`
-            : standingsArray
-                .map(
-                  s => `
-          <li>
-            <span>${s.team}</span>
-            <span class="record">${s.ties > 0 ? `${s.wins}-${s.losses}-${s.ties}` : `${s.wins}-${s.losses}`}</span>
-          </li>`
-                )
-                .join("")
-        }
-      </ul>
+            <div style="padding:0 16px 16px 16px; overflow-x:auto;">
+${
+  standingsArray.length === 0
+    ? `<p>No standings yet.</p>`
+    : `
+    <table style="
+      width:100%;
+      min-width:520px;
+      border-collapse:collapse;
+      font-size:16px;
+      text-align:center;
+    ">
+      <thead>
+        <tr style="background:#0b2a52;color:#fff;">
+          <th style="padding:10px;text-align:left;">TEAM</th>
+          <th style="padding:10px;">W</th>
+          <th style="padding:10px;">L</th>
+          <th style="padding:10px;">T</th>
+          <th style="padding:10px;">RS</th>
+          <th style="padding:10px;">RA</th>
+          <th style="padding:10px;">DIFF</th>
+          <th style="padding:10px;">PCT</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${standingsArray
+          .map(
+            s => `
+            <tr style="border-bottom:1px solid #ddd;">
+              <td style="padding:10px;text-align:left;font-weight:700;">${s.team}</td>
+              <td style="padding:10px;">${s.wins}</td>
+              <td style="padding:10px;">${s.losses}</td>
+              <td style="padding:10px;">${s.ties}</td>
+              <td style="padding:10px;">${s.runsFor}</td>
+              <td style="padding:10px;">${s.runsAgainst}</td>
+              <td style="padding:10px;">${s.runDiff > 0 ? "+" : ""}${s.runDiff}</td>
+              <td style="padding:10px;">${s.winPct.toFixed(3)}</td>
+            </tr>
+          `
+          )
+          .join("")}
+      </tbody>
+    </table>
+    `
+}
+</div>
     </section>
   `;
 

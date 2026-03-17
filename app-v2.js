@@ -1016,10 +1016,13 @@ function renderStandings() {
             : standingsArray
                 .map(
                   s => `
-          <li>
-            <span>${s.team}</span>
-            <span class="record">${s.ties > 0 ? `${s.wins}-${s.losses}-${s.ties}` : `${s.wins}-${s.losses}`}</span>
-          </li>`
+         <li>
+  <span class="team">${s.team}</span>
+  <span class="record">${s.wins}-${s.losses}${s.ties>0?'-'+s.ties:''}</span>
+  <span class="runs">RS:${s.runsFor}</span>
+  <span class="runs">RA:${s.runsAgainst}</span>
+  <span class="diff">${s.runDiff>0?'+':''}${s.runDiff}</span>
+</li>
                 )
                 .join("")
         }
@@ -1602,4 +1605,3 @@ document.addEventListener("DOMContentLoaded", () => {
 /* --------------------------------------------------
    END OF FILE
 -------------------------------------------------- */
-

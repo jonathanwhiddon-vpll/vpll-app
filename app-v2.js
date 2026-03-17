@@ -981,8 +981,8 @@ function renderStandings() {
 
   standingsArray.sort((a, b) => {
   if (b.winPct !== a.winPct) return b.winPct - a.winPct;
-  if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
   if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
+  if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
   return a.team.localeCompare(b.team);
 });
 

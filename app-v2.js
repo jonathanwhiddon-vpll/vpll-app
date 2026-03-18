@@ -969,19 +969,21 @@ function scrollToToday() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function scrollToTop() {
-  const container = document.querySelector(".schedule-container");
+  const pageRoot = document.getElementById("page-root");
 
-  if (container) {
-    container.scrollTo({
+  if (pageRoot) {
+    pageRoot.scrollTo({
       top: 0,
       behavior: "smooth"
     });
-  } else {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
+    return;
   }
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
 }
   
 

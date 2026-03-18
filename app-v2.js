@@ -865,7 +865,7 @@ function renderSchedule() {
       </section>
       <div
   id="scheduleFloatingButtons"
-  style="position:fixed; right:16px; bottom:90px; display:flex; flex-direction:column; gap:10px; z-index:1000; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity 0.25s ease;"
+  style="position:fixed; right:16px; bottom:90px; display:flex; flex-direction:column; gap:10px; z-index:1000; align-items:flex-end;"
 >
   <button
     id="scrollTopBtn"
@@ -879,6 +879,9 @@ function renderSchedule() {
       font-weight:700;
       box-shadow:0 4px 12px rgba(0,0,0,0.25);
       cursor:pointer;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 0.25s ease;
     "
   >
     ⬆️ Top
@@ -989,12 +992,12 @@ function scrollToTop() {
   window.scrollTo(0, 0);
 }
 function updateScheduleFloatingButtons() {
-  const buttons = document.getElementById("scheduleFloatingButtons");
-  if (!buttons) return;
+  const topBtn = document.getElementById("scrollTopBtn");
+  if (!topBtn) return;
 
   if (currentPage !== "schedule") {
-    buttons.style.opacity = "0";
-    buttons.style.pointerEvents = "none";
+    topBtn.style.opacity = "0";
+    topBtn.style.pointerEvents = "none";
     return;
   }
 
@@ -1010,11 +1013,11 @@ function updateScheduleFloatingButtons() {
   );
 
   if (scrollTop > 220) {
-    buttons.style.opacity = "1";
-    buttons.style.pointerEvents = "auto";
+    topBtn.style.opacity = "1";
+    topBtn.style.pointerEvents = "auto";
   } else {
-    buttons.style.opacity = "0";
-    buttons.style.pointerEvents = "none";
+    topBtn.style.opacity = "0";
+    topBtn.style.pointerEvents = "none";
   }
 }
   

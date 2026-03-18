@@ -818,7 +818,7 @@ function renderSchedule() {
   const da = parseMMDDYYYY(a.date);
   const db = parseMMDDYYYY(b.date);
   if (!da || !db) return 0;
-  return db - da;
+  return da - db;
 });
 
     const gamesByDate = {};
@@ -996,18 +996,59 @@ function scrollToToday() {
   today.setHours(0, 0, 0, 0);
 
   const blocks = document.querySelectorAll(".schedule-date-block");
+  let exactTodayBlock = null;
+  let nextFutureBlock = null;
 
   for (const block of blocks) {
     const dateText = block.getAttribute("data-date") || "";
     const parsed = parseMMDDYYYY(dateText);
+    if (!parsed) continue;
 
-    if (parsed && parsed >= today) {
-      block.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
+    if (parsed.getTime() === today.getTime()) {
+      exactTodayBlock = block;
+      break;
+    }
+
+    if (!nextFutureBlock && parsed > today) {
+      nextFutureBlock = block;
     }
   }
 
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  const targetBlock = exactTodayBlock || nextFutureBlock;
+
+  if (!targetBlock) {
+    scrollToTop();
+    return;
+  }
+
+  const main = getMainScrollEl();
+  const pageRoot = document.getElementById("page-root");
+
+  if (main) {
+    const mainRect = main.getBoundingClientRect();
+    const blockRect = targetBlock.getBoundingClientRect();
+    const offset = blockRect.top - mainRect.top + main.scrollTop - 12;
+
+    main.scrollTo({
+      top: Math.max(0, offset),
+      behavior: "smooth"
+    });
+    return;
+  }
+
+  if (pageRoot) {
+    const rootRect = pageRoot.getBoundingClientRect();
+    const blockRect = targetBlock.getBoundingClientRect();
+    const offset = blockRect.top - rootRect.top + pageRoot.scrollTop - 12;
+
+    pageRoot.scrollTo({
+      top: Math.max(0, offset),
+      behavior: "smooth"
+    });
+    return;
+  }
+
+  targetBlock.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 function scrollToTop() {
   const main = getMainScrollEl();

@@ -461,7 +461,7 @@ function buildTicker(formGames) {
       if (!da) return 1;
       if (!db) return -1;
 
-      return da - db; // oldest → newest
+      return db - da; // newest → oldest
     });
 
   return completedRecent.map(

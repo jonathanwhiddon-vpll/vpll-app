@@ -1021,34 +1021,38 @@ function scrollToToday() {
     return;
   }
 
-  const main = getMainScrollEl();
-  const pageRoot = document.getElementById("page-root");
+  // First, get the block near the top the normal way
+  targetBlock.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 
-  if (main) {
-    const mainRect = main.getBoundingClientRect();
+  // Then force the real scroll containers to the exact position
+  setTimeout(() => {
+    const pageRoot = document.getElementById("page-root");
+    const main = getMainScrollEl();
     const blockRect = targetBlock.getBoundingClientRect();
-    const offset = blockRect.top - mainRect.top + main.scrollTop - 12;
 
-    main.scrollTo({
-      top: Math.max(0, offset),
+    if (pageRoot) {
+      const rootRect = pageRoot.getBoundingClientRect();
+      const rootOffset = blockRect.top - rootRect.top + pageRoot.scrollTop - 12;
+      pageRoot.scrollTop = Math.max(0, rootOffset);
+    }
+
+    if (main && typeof main.scrollTop === "number") {
+      const mainRect = main.getBoundingClientRect();
+      const mainOffset = blockRect.top - mainRect.top + main.scrollTop - 12;
+      main.scrollTop = Math.max(0, mainOffset);
+    }
+
+    const absoluteTop =
+      window.scrollY + targetBlock.getBoundingClientRect().top - 12;
+
+    window.scrollTo({
+      top: Math.max(0, absoluteTop),
       behavior: "smooth"
     });
-    return;
-  }
-
-  if (pageRoot) {
-    const rootRect = pageRoot.getBoundingClientRect();
-    const blockRect = targetBlock.getBoundingClientRect();
-    const offset = blockRect.top - rootRect.top + pageRoot.scrollTop - 12;
-
-    pageRoot.scrollTo({
-      top: Math.max(0, offset),
-      behavior: "smooth"
-    });
-    return;
-  }
-
-  targetBlock.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 250);
 }
 function scrollToTop() {
   const main = getMainScrollEl();

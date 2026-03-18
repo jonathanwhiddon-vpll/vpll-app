@@ -27,6 +27,39 @@ const API_BASE_URL = "/schedule.json";
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
+const DIVISION_STANDINGS_TEAMS = {
+  Majors: [
+    "Nationals",
+    "Braves",
+    "Cardinals",
+    "Dodgers",
+    "Blue Jays",
+    "Mariners"
+  ],
+  AAA: [
+  "Cubs",
+  "Pirates",
+  "A's",
+  "Royals",
+  "Angels",
+  "Marlins",
+  "Tigers",
+  "Diamondbacks",
+  "Orioles",
+  "Padres"
+],
+
+AA: [
+  "A's",
+  "Angels",
+  "Pirates",
+  "Rockies",
+  "Cubs",
+  "Nationals",
+  "Braves"
+]
+   
+};
 
 const HITS_HOPS_TICKET_URL = "https://www.vplittleleague.net/Default.aspx?tabid=2752970";
 const SNACK_BAR_MENU_URL = "resources/snack-bar-menu.jpg";
@@ -1126,7 +1159,10 @@ function renderStandings() {
   const division = selectedStandingsDivision;
   const divStandings = standingsData[division] || {};
 
-  const standingsArray = Object.keys(divStandings).map(team => {
+  const allowedTeams = (DIVISION_STANDINGS_TEAMS[division] || []).map(t => t.trim());
+
+const standingsArray = Object.keys(divStandings)
+  .map(team => {
     const s = divStandings[team];
     const runDiff = s.runsFor - s.runsAgainst;
     const totalGames = s.wins + s.losses + s.ties || 1;
@@ -1142,7 +1178,8 @@ function renderStandings() {
       runDiff,
       winPct
     };
-  });
+  })
+  .filter(row => allowedTeams.includes((row.team || "").trim()));
 
   standingsArray.sort((a, b) => {
   if (b.winPct !== a.winPct) return b.winPct - a.winPct;

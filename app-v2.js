@@ -969,20 +969,20 @@ function scrollToToday() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function scrollToTop() {
-  const pageRoot = document.getElementById("page-root");
+  const main = getMainScrollEl();
 
-  if (pageRoot) {
-    pageRoot.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-    return;
+  if (main) {
+    main.scrollTop = 0;
   }
 
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
+  const pageRoot = document.getElementById("page-root");
+  if (pageRoot) {
+    pageRoot.scrollTop = 0;
+  }
+
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  window.scrollTo(0, 0);
 }
 
   

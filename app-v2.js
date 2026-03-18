@@ -863,9 +863,40 @@ function renderSchedule() {
           }
         </div>
       </section>
-      <div style="position:fixed; right:16px; bottom:90px; display:flex; flex-direction:column; gap:10px; z-index:1000;">
-  <button id="scrollTopBtn" class="scroll-today-btn" onclick="scrollToTop()">⬆️ Top</button>
-  <button id="scrollTodayBtn" class="scroll-today-btn" onclick="scrollToToday()">📅 Today</button>
+      <div style="position:fixed; right:16px; bottom:90px; display:flex; flex-direction:column; gap:10px; z-index:1000; align-items:flex-end;">
+  <button
+    id="scrollTopBtn"
+    onclick="scrollToTop()"
+    style="
+      background:#0b2a52;
+      color:#fff;
+      border:none;
+      border-radius:999px;
+      padding:12px 18px;
+      font-weight:700;
+      box-shadow:0 4px 12px rgba(0,0,0,0.25);
+      cursor:pointer;
+    "
+  >
+    ⬆️ Top
+  </button>
+
+  <button
+    id="scrollTodayBtn"
+    onclick="scrollToToday()"
+    style="
+      background:#0b2a52;
+      color:#fff;
+      border:none;
+      border-radius:999px;
+      padding:12px 18px;
+      font-weight:700;
+      box-shadow:0 4px 12px rgba(0,0,0,0.25);
+      cursor:pointer;
+    "
+  >
+    📅 Today
+  </button>
 </div>
     `;
 

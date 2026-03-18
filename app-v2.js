@@ -405,34 +405,68 @@ function parseMMDDYYYY(dateStr) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+function parseGameDateTime(dateStr, timeStr) {
+  const d = parseMMDDYYYY(dateStr);
+  if (!d) return null;
+
+  const rawTime = (timeStr || "").toString().trim().toLowerCase();
+  const m = rawTime.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+
+  let hours = 0;
+  let minutes = 0;
+
+  if (m) {
+    hours = parseInt(m[1], 10);
+    minutes = parseInt(m[2] || "0", 10);
+    const ampm = m[3];
+
+    if (ampm === "pm" && hours !== 12) hours += 12;
+    if (ampm === "am" && hours === 12) hours = 0;
+  }
+
+  return new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate(),
+    hours,
+    minutes,
+    0,
+    0
+  );
+}
+
 function buildTicker(formGames) {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(23, 59, 59, 999);
 
-  const cutoff = new Date(today);
+  const cutoff = new Date();
+  cutoff.setHours(0, 0, 0, 0);
   cutoff.setDate(cutoff.getDate() - TICKER_LOOKBACK_DAYS);
 
-  // Only keep games that actually have scores AND are within lookback window
   const completedRecent = (formGames || [])
     .filter(g => {
       if (g.homeScore == null || g.awayScore == null) return false;
       if (Number.isNaN(g.homeScore) || Number.isNaN(g.awayScore)) return false;
 
-      const gd = parseMMDDYYYY(g.date);
-      if (!gd) return false;
-      gd.setHours(0, 0, 0, 0);
+      const gameDate = parseMMDDYYYY(g.date);
+      if (!gameDate) return false;
 
-      return gd >= cutoff && gd <= today;
+      return gameDate >= cutoff && gameDate <= today;
     })
     .sort((a, b) => {
-      // keep your “newest first” behavior
-      return new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time);
-    })
-    ;
+      const da = parseGameDateTime(a.date, a.time);
+      const db = parseGameDateTime(b.date, b.time);
+
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+
+      return da - db; // oldest → newest
+    });
 
   return completedRecent.map(
-  g => `${g.date} • ${g.division} • Final: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
-);
+    g => `${g.date} • ${g.division} • Final: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
+  );
 }
 
 async function loadScoresAndStandings() {
@@ -784,7 +818,7 @@ function renderSchedule() {
   const da = parseMMDDYYYY(a.date);
   const db = parseMMDDYYYY(b.date);
   if (!da || !db) return 0;
-  return da - db;
+  return db - da;
 });
 
     const gamesByDate = {};

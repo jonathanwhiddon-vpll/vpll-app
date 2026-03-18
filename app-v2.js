@@ -863,7 +863,10 @@ function renderSchedule() {
           }
         </div>
       </section>
-      <button id="scrollTodayBtn" class="scroll-today-btn" onclick="scrollToToday()">📅 Today</button>
+      <div style="position:fixed; right:16px; bottom:90px; display:flex; flex-direction:column; gap:10px; z-index:1000;">
+  <button id="scrollTopBtn" class="scroll-today-btn" onclick="scrollToTop()">⬆️ Top</button>
+  <button id="scrollTodayBtn" class="scroll-today-btn" onclick="scrollToToday()">📅 Today</button>
+</div>
     `;
 
     applyPageTransition();
@@ -934,7 +937,21 @@ function scrollToToday() {
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
+function scrollToTop() {
+  const container = document.querySelector(".schedule-container");
 
+  if (container) {
+    container.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  } else {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+}
   
 
 // ========================

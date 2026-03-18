@@ -943,6 +943,7 @@ function renderSchedule() {
     applyPageTransition();
 hideSpinner();
 updateScheduleFloatingButtons();
+setTimeout(scrollToToday, 200);
   }, 120);
 }
 

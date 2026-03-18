@@ -863,7 +863,10 @@ function renderSchedule() {
           }
         </div>
       </section>
-      <div style="position:fixed; right:16px; bottom:90px; display:flex; flex-direction:column; gap:10px; z-index:1000; align-items:flex-end;">
+      <div
+  id="scheduleFloatingButtons"
+  style="position:fixed; right:16px; bottom:90px; display:flex; flex-direction:column; gap:10px; z-index:1000; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity 0.25s ease;"
+>
   <button
     id="scrollTopBtn"
     onclick="scrollToTop()"
@@ -901,7 +904,8 @@ function renderSchedule() {
     `;
 
     applyPageTransition();
-    hideSpinner();
+hideSpinner();
+updateScheduleFloatingButtons();
   }, 120);
 }
 
@@ -984,7 +988,35 @@ function scrollToTop() {
   document.body.scrollTop = 0;
   window.scrollTo(0, 0);
 }
+function updateScheduleFloatingButtons() {
+  const buttons = document.getElementById("scheduleFloatingButtons");
+  if (!buttons) return;
 
+  if (currentPage !== "schedule") {
+    buttons.style.opacity = "0";
+    buttons.style.pointerEvents = "none";
+    return;
+  }
+
+  const main = getMainScrollEl();
+  const pageRoot = document.getElementById("page-root");
+
+  const scrollTop = Math.max(
+    main && typeof main.scrollTop === "number" ? main.scrollTop : 0,
+    pageRoot && typeof pageRoot.scrollTop === "number" ? pageRoot.scrollTop : 0,
+    window.scrollY || 0,
+    document.documentElement.scrollTop || 0,
+    document.body.scrollTop || 0
+  );
+
+  if (scrollTop > 220) {
+    buttons.style.opacity = "1";
+    buttons.style.pointerEvents = "auto";
+  } else {
+    buttons.style.opacity = "0";
+    buttons.style.pointerEvents = "none";
+  }
+}
   
 
 // ========================
@@ -1562,6 +1594,8 @@ document.addEventListener("visibilitychange", () => {
 
 window.addEventListener("focus", refreshIfStale);
 window.addEventListener("pageshow", refreshIfStale);
+window.addEventListener("scroll", updateScheduleFloatingButtons, { passive: true });
+document.addEventListener("scroll", updateScheduleFloatingButtons, { passive: true });
 // Also fires when the app is foregrounded / resumed (especially iOS)
 
 // ========================
@@ -1678,6 +1712,7 @@ document.addEventListener("touchcancel", () => {
 // Ensure DOM is ready (fixes blank first load on PWA)
 document.addEventListener("DOMContentLoaded", () => {
   initApp();
+  updateScheduleFloatingButtons();
 });
 
 /* --------------------------------------------------

@@ -990,64 +990,24 @@ requestAnimationFrame(() => {
 });
   
 }
+
 function scrollToToday() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const blocks = document.querySelectorAll(".schedule-date-block");
-  let targetBlock = null;
 
   for (const block of blocks) {
     const dateText = block.getAttribute("data-date") || "";
     const parsed = parseMMDDYYYY(dateText);
-    if (!parsed) continue;
 
-    // ✅ EXACT MATCH FIRST
-    if (parsed.getTime() === today.getTime()) {
-      targetBlock = block;
-      break;
-    }
-
-    // ✅ Since list is newest → oldest,
-    // the first date LESS than today is the correct fallback
-    if (!targetBlock && parsed < today) {
-      targetBlock = block;
+    if (parsed && parsed >= today) {
+      block.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
     }
   }
 
-  if (!targetBlock) {
-    scrollToTop();
-    return;
-  }
-
-  const main = getMainScrollEl();
-  const pageRoot = document.getElementById("page-root");
-
-  if (main) {
-    const mainRect = main.getBoundingClientRect();
-    const blockRect = targetBlock.getBoundingClientRect();
-    const offset = blockRect.top - mainRect.top + main.scrollTop - 12;
-
-    main.scrollTo({
-      top: Math.max(0, offset),
-      behavior: "smooth"
-    });
-    return;
-  }
-
-  if (pageRoot) {
-    const rootRect = pageRoot.getBoundingClientRect();
-    const blockRect = targetBlock.getBoundingClientRect();
-    const offset = blockRect.top - rootRect.top + pageRoot.scrollTop - 12;
-
-    pageRoot.scrollTo({
-      top: Math.max(0, offset),
-      behavior: "smooth"
-    });
-    return;
-  }
-
-  targetBlock.scrollIntoView({ behavior: "smooth", block: "start" });
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function scrollToTop() {
   const main = getMainScrollEl();

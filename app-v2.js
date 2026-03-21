@@ -636,36 +636,7 @@ async function renderHome() {
 
     ${announcementHTML}
 
-    <!-- Hits & Hops Ticket Button -->
-    <div style="padding: 0 16px 18px 16px;">
-      <a
-        href="${HITS_HOPS_TICKET_URL}"
-        target="_blank"
-        rel="noopener"
-        style="
-          display:block;
-          text-align:center;
-          padding:14px 12px;
-          border-radius:12px;
-          font-weight:800;
-          font-size:16px;
-          text-decoration:none;
-          border:1px solid #f2d57c;
-          background:#fff4c4;
-          color:#0b2a52;
-        "
-      >
-        🍻 Purchase Hits & Hops Tickets
-      </a>
-      <div style="
-        text-align:center;
-        font-size:12px;
-        margin-top:6px;
-        opacity:0.75;
-      ">
-        Support VPLL 🎉
-      </div>
-    </div>
+    
 <!-- Snack Bar Menu Button -->
 <div style="padding: 0 16px 18px 16px;">
   <button

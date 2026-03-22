@@ -526,7 +526,7 @@ async function buildTicker(formGames) {
     })
     .map(
       g =>
-        `${g.division}: 🔴 LIVE • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}${
+        `${g.division}: ${g.date} • 🔴 LIVE • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}${
           g.inning ? ` • ${g.inning}` : ""
         }`
     );
@@ -553,7 +553,7 @@ async function buildTicker(formGames) {
     })
     .map(
       g =>
-        `${g.division}: ✅ FINAL • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`
+        `${g.division}: ${g.date} • ✅ FINAL • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`
     );
 
   return [...liveItems, ...completedRecent].slice(0, TICKER_MAX_ITEMS);

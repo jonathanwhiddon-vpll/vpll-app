@@ -549,7 +549,7 @@ async function buildTicker(formGames) {
       if (!da) return 1;
       if (!db) return -1;
 
-      return db - da;
+      return da - db;
     })
     .map(
       g =>

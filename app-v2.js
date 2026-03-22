@@ -64,6 +64,8 @@ AA: [
 
 const HITS_HOPS_TICKET_URL = "https://www.vplittleleague.net/Default.aspx?tabid=2752970";
 const SNACK_BAR_MENU_URL = "resources/snack-bar-menu.jpg";
+const LIVE_SCORES_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VyIDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1000083841&single=true&output=csv";
 // ========================
 // GLOBAL STATE
 // ========================
@@ -372,7 +374,33 @@ async function fetchScoresAndStandings() {
     return [];
   }
 }
+async function fetchLiveScores() {
+  try {
+    const response = await fetch(LIVE_SCORES_CSV_URL, { cache: "no-store" });
+    const csvText = await response.text();
 
+    const parsed = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
+    });
+
+    return (parsed.data || []).map(row => ({
+      status: (row.Status || "").toString().trim().toUpperCase(),
+      division: (row.Division || "").toString().trim(),
+      date: (row.Date || "").toString().trim(),
+      time: (row.Time || "").toString().trim(),
+      awayTeam: (row["Away Team"] || "").toString().trim(),
+      homeTeam: (row["Home Team"] || "").toString().trim(),
+      awayScore: normalizeScore(row["Away Score"]),
+      homeScore: normalizeScore(row["Home Score"]),
+      inning: (row.Inning || "").toString().trim(),
+      gameId: (row.GameID || "").toString().trim()
+    }));
+  } catch (err) {
+    console.error("Error fetching live scores:", err);
+    return [];
+  }
+}
 function buildStandings(formGames) {
   let table = {};
 
@@ -469,13 +497,39 @@ function parseGameDateTime(dateStr, timeStr) {
   );
 }
 
-function buildTicker(formGames) {
+async function buildTicker(formGames) {
   const today = new Date();
   today.setHours(23, 59, 59, 999);
 
   const cutoff = new Date();
   cutoff.setHours(0, 0, 0, 0);
   cutoff.setDate(cutoff.getDate() - TICKER_LOOKBACK_DAYS);
+
+  const liveGames = await fetchLiveScores();
+
+  const liveItems = liveGames
+    .filter(g => {
+      if (g.status !== "LIVE") return false;
+      if (!g.division || !g.awayTeam || !g.homeTeam) return false;
+      if (g.awayScore == null || g.homeScore == null) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const da = parseGameDateTime(a.date, a.time);
+      const db = parseGameDateTime(b.date, b.time);
+
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+
+      return da - db;
+    })
+    .map(
+      g =>
+        `${g.division}: 🔴 LIVE • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}${
+          g.inning ? ` • ${g.inning}` : ""
+        }`
+    );
 
   const completedRecent = (formGames || [])
     .filter(g => {
@@ -495,12 +549,14 @@ function buildTicker(formGames) {
       if (!da) return 1;
       if (!db) return -1;
 
-      return db - da; // newest → oldest
-    });
+      return db - da;
+    })
+    .map(
+      g =>
+        `${g.division}: ✅ FINAL • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`
+    );
 
-  return completedRecent.map(
-    g => `${g.date} • ${g.division} • Final: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
-  );
+  return [...liveItems, ...completedRecent].slice(0, TICKER_MAX_ITEMS);
 }
 
 async function loadScoresAndStandings() {
@@ -508,7 +564,7 @@ async function loadScoresAndStandings() {
   lastScoresFetchMs = Date.now();
 
   standingsData = buildStandings(formGames);
-  tickerData = buildTicker(formGames);
+  tickerData = await buildTicker(formGames);
   renderTicker();
 
   applyFormScoresToGames(formGames);
@@ -1721,6 +1777,9 @@ function initApp() {
   renderTicker(); 
   loadScheduleFromApi();
   loadScoresAndStandings();
+  setInterval(() => {
+  loadScoresAndStandings();
+}, 30000);
 }
 
 // ========================

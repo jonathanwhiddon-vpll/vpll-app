@@ -334,7 +334,7 @@ async function loadScheduleFromApi() {
 // ================================
 async function fetchScoresAndStandings() {
   const url =
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1463341365&single=true&output=csv";
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VyIDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1463341365&single=true&output=csv";
 
   try {
     const response = await fetch(url);
@@ -477,7 +477,7 @@ function buildTicker(formGames) {
   cutoff.setHours(0, 0, 0, 0);
   cutoff.setDate(cutoff.getDate() - TICKER_LOOKBACK_DAYS);
 
-  const completedRecent = (formGames || [])
+  return (formGames || [])
     .filter(g => {
       if (g.homeScore == null || g.awayScore == null) return false;
       if (Number.isNaN(g.homeScore) || Number.isNaN(g.awayScore)) return false;
@@ -495,12 +495,12 @@ function buildTicker(formGames) {
       if (!da) return 1;
       if (!db) return -1;
 
-      return db - da; // newest → oldest
-    });
-
-  return completedRecent.map(
-    g => `${g.date} • ${g.division} • Final: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`
-  );
+      return da - db;
+    })
+    .map(
+      g =>
+        `${g.division}: ${g.date} • ✅ FINAL • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`
+    );
 }
 
 async function loadScoresAndStandings() {

@@ -339,31 +339,30 @@ async function fetchScoresAndStandings() {
   try {
     const response = await fetch(url, { cache: "no-store" });
     const csvText = await response.text();
-    const rows = csvText.split("\n").slice(1); // Skip header row
 
-    const formGames = [];
+    const parsed = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
+    });
 
-    rows.forEach(row => {
-      const cols = row.split(",");
-      if (cols.length < 10) return;
+    const formGames = parsed.data.map(row => {
+      const homeScoreRaw = (row["Home Score"] || "").toString().trim();
+      const awayScoreRaw = (row["Away Score"] || "").toString().trim();
 
-      const homeScoreRaw = cols[8] ? cols[8].trim() : "";
-      const awayScoreRaw = cols[9] ? cols[9].trim() : "";
-
-      const game = {
-        timestamp: cols[0],
-        division: cols[1],
-        date: cols[3],
-        time: cols[4],
-        field: cols[5],
-        homeTeam: cols[6],
-        awayTeam: cols[7],
+      return {
+        timestamp: row["Timestamp"] || "",
+        division: row["Division"] || "",
+        date: row["Game Date"] || row["Date"] || "",
+        time: row["Game Time"] || row["Time"] || "",
+        field: row["Field"] || "",
+        homeTeam: row["Home Team"] || row["Home"] || "",
+        awayTeam: row["Away Team"] || row["Away"] || "",
         homeScore: homeScoreRaw === "" ? null : parseInt(homeScoreRaw, 10),
         awayScore: awayScoreRaw === "" ? null : parseInt(awayScoreRaw, 10),
-        submittedBy: cols[10]
+        submittedBy: row["Submitted By"] || row["Email Address"] || "",
+        status: (row["Status"] || "").toString().trim().toUpperCase(),
+        inning: (row["Inning"] || "").toString().trim()
       };
-
-      formGames.push(game);
     });
 
     return formGames;
@@ -479,15 +478,21 @@ function buildTicker(formGames) {
 
   return (formGames || [])
     .filter(g => {
-      if (g.homeScore == null || g.awayScore == null) return false;
-      if (Number.isNaN(g.homeScore) || Number.isNaN(g.awayScore)) return false;
-
       const gameDate = parseMMDDYYYY(g.date);
       if (!gameDate) return false;
+      if (gameDate < cutoff || gameDate > today) return false;
 
-      return gameDate >= cutoff && gameDate <= today;
+      const isLive = g.status === "LIVE";
+      const isFinal = g.homeScore != null && g.awayScore != null;
+
+      return isLive || isFinal;
     })
     .sort((a, b) => {
+      const aLive = a.status === "LIVE" ? 1 : 0;
+      const bLive = b.status === "LIVE" ? 1 : 0;
+
+      if (bLive !== aLive) return bLive - aLive;
+
       const da = parseGameDateTime(a.date, a.time);
       const db = parseGameDateTime(b.date, b.time);
 
@@ -495,13 +500,20 @@ function buildTicker(formGames) {
       if (!da) return 1;
       if (!db) return -1;
 
-      return db - da; // most recent first
+      return db - da;
     })
     .slice(0, TICKER_MAX_ITEMS)
-    .map(
-      g =>
-        `${g.division}: ${g.date} • FINAL • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`
-    );
+    .map(g => {
+      const awayScore = g.awayScore != null ? g.awayScore : "-";
+      const homeScore = g.homeScore != null ? g.homeScore : "-";
+
+      if (g.status === "LIVE") {
+        const inningText = g.inning ? ` • LIVE ${g.inning}` : " • LIVE";
+        return `${g.division}: ${g.date}${inningText} • ${g.awayTeam} ${awayScore} - ${homeScore} ${g.homeTeam}`;
+      }
+
+      return `${g.division}: ${g.date} • ${g.awayTeam} ${awayScore} - ${g.homeScore} ${g.homeTeam}`;
+    });
 }
 
 async function loadScoresAndStandings() {

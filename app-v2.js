@@ -337,7 +337,7 @@ async function fetchScoresAndStandings() {
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1463341365&single=true&output=csv";
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { cache: "no-store" });
     const csvText = await response.text();
     const rows = csvText.split("\n").slice(1); // Skip header row
 
@@ -471,14 +471,16 @@ function parseGameDateTime(dateStr, timeStr) {
 
 function buildTicker(formGames) {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(23, 59, 59, 999);
 
-  const cutoff = new Date(today);
+  const cutoff = new Date();
+  cutoff.setHours(0, 0, 0, 0);
   cutoff.setDate(cutoff.getDate() - TICKER_LOOKBACK_DAYS);
 
   return (formGames || [])
     .filter(g => {
       if (g.homeScore == null || g.awayScore == null) return false;
+      if (Number.isNaN(g.homeScore) || Number.isNaN(g.awayScore)) return false;
 
       const gameDate = parseMMDDYYYY(g.date);
       if (!gameDate) return false;
@@ -493,7 +495,7 @@ function buildTicker(formGames) {
       if (!da) return 1;
       if (!db) return -1;
 
-      return da - db;
+      return db - da; // most recent first
     })
     .slice(0, TICKER_MAX_ITEMS)
     .map(

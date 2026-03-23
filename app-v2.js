@@ -469,15 +469,21 @@ function parseGameDateTime(dateStr, timeStr) {
   );
 }
 
-function buildTicker() {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+function buildTicker(formGames) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  return (games || [])
+  const cutoff = new Date(today);
+  cutoff.setDate(cutoff.getDate() - TICKER_LOOKBACK_DAYS);
+
+  return (formGames || [])
     .filter(g => {
+      if (g.homeScore == null || g.awayScore == null) return false;
+
       const gameDate = parseMMDDYYYY(g.date);
       if (!gameDate) return false;
-      return gameDate >= now;
+
+      return gameDate >= cutoff && gameDate <= today;
     })
     .sort((a, b) => {
       const da = parseGameDateTime(a.date, a.time);
@@ -492,7 +498,7 @@ function buildTicker() {
     .slice(0, TICKER_MAX_ITEMS)
     .map(
       g =>
-        `${g.division}: ${g.date} • ${g.time} • ${g.away} at ${g.home}`
+        `${g.division}: ${g.date} • ✅ FINAL • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`
     );
 }
 
@@ -501,7 +507,7 @@ async function loadScoresAndStandings() {
   lastScoresFetchMs = Date.now();
 
   standingsData = buildStandings(formGames);
-  tickerData = buildTicker();
+  tickerData = buildTicker(formGames);
   renderTicker();
 
   applyFormScoresToGames(formGames);

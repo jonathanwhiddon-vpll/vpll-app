@@ -500,7 +500,7 @@ function buildTicker(formGames) {
     .slice(0, TICKER_MAX_ITEMS)
     .map(
       g =>
-        `${g.division}: ${g.date} • ✅ FINAL • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`
+        `${g.division}: ${g.date} • FINAL • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`
     );
 }
 

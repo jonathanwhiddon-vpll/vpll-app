@@ -376,8 +376,11 @@ function buildStandings(formGames) {
   let table = {};
 
   formGames.forEach(g => {
-    // Skip games that don't have BOTH scores
-    if (g.homeScore == null || g.awayScore == null) return;
+  // Skip LIVE games so they do not affect standings
+  if (g.status === "LIVE") return;
+
+  // Skip games that don't have BOTH scores
+  if (g.homeScore == null || g.awayScore == null) return;
 
     if (!table[g.division]) table[g.division] = {};
 

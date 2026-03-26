@@ -79,6 +79,7 @@ const ADMIN_PIN = "0709";
 
 let standingsData = {};
 let tickerData = [];
+let lastFormGames = [];
 let lastScoresFetchMs = 0;
 let lastTickerHTML = "";
 const TICKER_LOOKBACK_DAYS = 4;  // show last 4 days
@@ -268,7 +269,8 @@ const CSV_URLS = {
   "T-Ball":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=860483387&single=true&output=csv"
 };
-
+const TOURNAMENT_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1000083841&single=true&output=csv";
+let tournamentGames = [];
 async function loadScheduleFromApi() {
   showSpinner();
   try {
@@ -328,7 +330,40 @@ async function loadScheduleFromApi() {
     hideSpinner();
   }
 }
+async function loadTournamentGames() {
+  try {
+    const response = await fetch(TOURNAMENT_CSV_URL, { cache: "no-cache" });
+    const csvText = await response.text();
 
+    const rows = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
+    }).data;
+
+    tournamentGames = rows.map(item => ({
+      date: item.date || item.Date || "",
+      time: item.time || item.Time || "",
+      field: item.field || item.Field || "",
+      home: item.home || item.Home || "",
+      away: item.away || item.Away || "",
+      homeScore: normalizeScore(item["home score"] || item["Home Score"]),
+      awayScore: normalizeScore(item["away score"] || item["Away Score"]),
+      status: (item["Status"] || item["status"] || "").toString().trim().toUpperCase(),
+      inning: (item["Inning"] || item["inning"] || "").toString().trim(),
+      pool: item["Pool"] || item["pool"] || ""
+    }));
+
+    if (currentPage === "tournaments") renderTournaments();
+
+    if (lastFormGames && lastFormGames.length) {
+  tickerData = buildTicker(lastFormGames, tournamentGames);
+  renderTicker();
+}
+  } catch (err) {
+    console.error("Error loading tournament CSV:", err);
+    tournamentGames = [];
+  }
+}
 // ================================
 // FETCH SCORES + STANDINGS (FORM)
 // ================================
@@ -471,7 +506,7 @@ function parseGameDateTime(dateStr, timeStr) {
   );
 }
 
-function buildTicker(formGames) {
+function buildTicker(formGames, tournamentList = []) {
   const today = new Date();
   today.setHours(23, 59, 59, 999);
 
@@ -479,7 +514,7 @@ function buildTicker(formGames) {
   cutoff.setHours(0, 0, 0, 0);
   cutoff.setDate(cutoff.getDate() - TICKER_LOOKBACK_DAYS);
 
-  return (formGames || [])
+  const leagueEntries = (formGames || [])
     .filter(g => {
       const gameDate = parseMMDDYYYY(g.date);
       if (!gameDate) return false;
@@ -490,41 +525,79 @@ function buildTicker(formGames) {
 
       return isLive || isFinal;
     })
+    .map(g => ({
+      source: "league",
+      division: g.division,
+      date: g.date,
+      time: g.time,
+      awayTeam: g.awayTeam,
+      homeTeam: g.homeTeam,
+      awayScore: g.awayScore != null ? g.awayScore : "-",
+      homeScore: g.homeScore != null ? g.homeScore : "-",
+      status: g.status,
+      inning: g.inning || "",
+      sortDate: parseGameDateTime(g.date, g.time)
+    }));
+
+  const tournamentEntries = (tournamentList || [])
+    .filter(g => {
+      const gameDate = parseMMDDYYYY(g.date);
+      if (!gameDate) return false;
+      if (gameDate < cutoff || gameDate > today) return false;
+
+      const isLive = g.status === "LIVE";
+      const isFinal = g.homeScore != null && g.awayScore != null;
+
+      return isLive || isFinal;
+    })
+    .map(g => ({
+      source: "tournament",
+      division: "Tournament",
+      date: g.date,
+      time: g.time,
+      awayTeam: g.away,
+      homeTeam: g.home,
+      awayScore: g.awayScore != null ? g.awayScore : "-",
+      homeScore: g.homeScore != null ? g.homeScore : "-",
+      status: g.status,
+      inning: g.inning || "",
+      pool: g.pool || "",
+      sortDate: parseGameDateTime(g.date, g.time)
+    }));
+
+  return [...leagueEntries, ...tournamentEntries]
     .sort((a, b) => {
       const aLive = a.status === "LIVE" ? 1 : 0;
       const bLive = b.status === "LIVE" ? 1 : 0;
 
       if (bLive !== aLive) return bLive - aLive;
 
-      const da = parseGameDateTime(a.date, a.time);
-      const db = parseGameDateTime(b.date, b.time);
+      if (!a.sortDate && !b.sortDate) return 0;
+      if (!a.sortDate) return 1;
+      if (!b.sortDate) return -1;
 
-      if (!da && !db) return 0;
-      if (!da) return 1;
-      if (!db) return -1;
-
-      return db - da;
+      return b.sortDate - a.sortDate;
     })
     .slice(0, TICKER_MAX_ITEMS)
     .map(g => {
-      const awayScore = g.awayScore != null ? g.awayScore : "-";
-      const homeScore = g.homeScore != null ? g.homeScore : "-";
+      const prefix = g.source === "tournament" ? "Tournament" : g.division;
 
       if (g.status === "LIVE") {
         const inningText = g.inning ? ` • LIVE ${g.inning}` : " • LIVE";
-        return `${g.division}: ${g.date}${inningText} • ${g.awayTeam} ${awayScore} - ${homeScore} ${g.homeTeam}`;
+        return `${prefix}: ${g.date}${inningText} • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`;
       }
 
-      return `${g.division}: ${g.date} • ${g.awayTeam} ${awayScore} - ${g.homeScore} ${g.homeTeam}`;
+      return `${prefix}: ${g.date} • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`;
     });
 }
 
 async function loadScoresAndStandings() {
   const formGames = await fetchScoresAndStandings();
+  lastFormGames = formGames;
   lastScoresFetchMs = Date.now();
 
   standingsData = buildStandings(formGames);
-  tickerData = buildTicker(formGames);
+  tickerData = buildTicker(formGames, tournamentGames);
   renderTicker();
 
   applyFormScoresToGames(formGames);
@@ -966,7 +1039,131 @@ hideSpinner();
 updateScheduleFloatingButtons();
   }, 120);
 }
+function renderTournaments() {
+  showSpinner();
 
+  setTimeout(() => {
+    const list = [...tournamentGames].sort((a, b) => {
+      const da = parseMMDDYYYY(a.date);
+      const db = parseMMDDYYYY(b.date);
+      if (!da || !db) return 0;
+      return da - db;
+    });
+
+    const gamesByDate = {};
+    list.forEach(g => {
+      if (!gamesByDate[g.date]) gamesByDate[g.date] = [];
+      gamesByDate[g.date].push(g);
+    });
+
+    const pageRoot = getPageRoot();
+    if (!pageRoot) {
+      hideSpinner();
+      return;
+    }
+
+    pageRoot.innerHTML = `
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">Tournaments</div>
+        </div>
+
+        <div class="schedule-container">
+          ${
+            list.length === 0
+              ? `<p style="padding:16px;">No tournament games loaded.</p>`
+              : Object.keys(gamesByDate)
+                  .map(date => {
+                    return `
+                      <div class="schedule-date-block" data-date="${date}">
+                        <h3 class="schedule-date-header">🏆 ${date}</h3>
+                        <ul class="schedule-list">
+                          ${gamesByDate[date]
+                            .map(g => {
+                              let scoreText = "";
+
+                              if (g.status === "LIVE") {
+                                const awayScore = g.awayScore ?? "-";
+                                const homeScore = g.homeScore ?? "-";
+                                scoreText = `<div class="schedule-score">LIVE${g.inning ? ` ${g.inning}` : ""} • ${awayScore} - ${homeScore}</div>`;
+                              } else if (g.homeScore != null || g.awayScore != null) {
+                                scoreText = `<div class="schedule-score">${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}</div>`;
+                              }
+
+                              return `
+                                <li class="schedule-item">
+                                  <div class="schedule-time-field">
+                                    <span class="schedule-time">${g.time}</span>
+                                    <span class="schedule-field">Field: ${g.field || ""}</span>
+                                  </div>
+                                  <div class="schedule-teams">${g.away} at ${g.home}</div>
+                                  ${
+                                    g.pool
+                                      ? `<div style="font-size:13px; color:#666; margin-top:4px;">${g.pool}</div>`
+                                      : ""
+                                  }
+                                  ${scoreText}
+                                </li>
+                              `;
+                            })
+                            .join("")}
+                        </ul>
+                      </div>
+                    `;
+                  })
+                  .join("")
+          }
+        </div>
+      </section>
+
+      <div
+        id="tournamentFloatingButtons"
+        style="position:fixed; right:16px; bottom:90px; display:flex; flex-direction:column; gap:10px; z-index:1000; align-items:flex-end;"
+      >
+        <button
+          id="scrollTopBtn"
+          onclick="scrollToTop()"
+          style="
+            background:#0b2a52;
+            color:#fff;
+            border:none;
+            border-radius:999px;
+            padding:12px 18px;
+            font-weight:700;
+            box-shadow:0 4px 12px rgba(0,0,0,0.25);
+            cursor:pointer;
+            opacity:0;
+            pointer-events:none;
+            transition:opacity 0.25s ease;
+          "
+        >
+          ⬆️ Top
+        </button>
+
+        <button
+          id="scrollTodayBtn"
+          onclick="scrollToToday()"
+          style="
+            background:#0b2a52;
+            color:#fff;
+            border:none;
+            border-radius:999px;
+            padding:12px 18px;
+            font-weight:700;
+            box-shadow:0 4px 12px rgba(0,0,0,0.25);
+            cursor:pointer;
+          "
+        >
+          📅 Today
+        </button>
+      </div>
+    `;
+
+    applyPageTransition();
+    hideSpinner();
+    updateScheduleFloatingButtons();
+  }, 120);
+}
 function renderTicker(forceRestart = false) {
   const el = document.getElementById("tickerContent");
   if (!el) return;
@@ -1095,7 +1292,7 @@ function updateScheduleFloatingButtons() {
   const topBtn = document.getElementById("scrollTopBtn");
   if (!topBtn) return;
 
-  if (currentPage !== "schedule") {
+  if (currentPage !== "schedule" && currentPage !== "tournaments") {
     topBtn.style.opacity = "0";
     topBtn.style.pointerEvents = "none";
     return;
@@ -1644,6 +1841,9 @@ function renderPage(page) {
     } else {
       renderTicker(false);
     }
+      } else if (page === "tournaments") {
+    loadTournamentGames();
+    renderTournaments();
   } else if (page === "schedule") {
     renderSchedule();
     loadScheduleFromApi();
@@ -1734,9 +1934,10 @@ function startHomeSlideshow() {
 function initApp() {
   setupNav();
   renderHome();
-  renderTicker(); 
+  renderTicker();
   loadScheduleFromApi();
-  loadScoresAndStandings();
+  loadTournamentGames();      // load first
+  loadScoresAndStandings();   // then combine
 }
 
 // ========================
@@ -1754,11 +1955,14 @@ function getMainScrollEl() {
 }
 
 function onPullRefresh() {
-  // always do the refresh (don’t rely on stale logic here)
-  return Promise.all([loadScheduleFromApi(), loadScoresAndStandings()])
+  return Promise.all([
+    loadScheduleFromApi(),
+    loadScoresAndStandings(),
+    loadTournamentGames()
+  ])
     .then(() => {
       renderHome();
-      renderTicker(false); // keep ticker in sync too
+      renderTicker(false);
       ensureTickerRunning();
     })
     .catch(err => console.error("Pull refresh error:", err));

@@ -929,7 +929,7 @@ function renderSchedule() {
 
     pageRoot.innerHTML = `
       <section class="card">
-        <div class="card-header"><div class="card-title">Schedule</div></div>
+        <div class="card-header"><div class="card-title">Schedules</div></div>
 
         <div style="padding:16px;">
           <label><strong>Division:</strong>

@@ -1065,7 +1065,7 @@ function renderTournaments() {
     pageRoot.innerHTML = `
       <section class="card">
         <div class="card-header">
-          <div class="card-title">Chuck Kibby Tournament</div>
+          <div class="card-title">VPLL Playoffs</div>
         </div>
 
         <div class="schedule-container">

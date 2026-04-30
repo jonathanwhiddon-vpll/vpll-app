@@ -1096,7 +1096,7 @@ function renderTournaments() {
                                     <span class="schedule-time">${g.time}</span>
                                     <span class="schedule-field">Field: ${g.field || ""}</span>
                                   </div>
-                                  <div class="schedule-teams">${g.away} vs ${g.home}</div>
+                                  <div class="schedule-teams">${g.away} at ${g.home}</div>
                                   ${
                                     g.pool
                                       ? `<div style="font-size:13px; color:#666; margin-top:4px;">${g.pool}</div>`

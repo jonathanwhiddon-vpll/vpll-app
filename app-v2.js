@@ -715,7 +715,7 @@ async function renderHome() {
   pageRoot.innerHTML = `
   <section class="card home-card">
     <div class="home-banner home-slideshow">
-      <img src="home_banner.jpg" class="slide active" alt="League Banner">
+      <img src="home_banner.jpg?v=2" class="slide active" alt="League Banner">
       <img src="home_banner2.jpg" class="slide" alt="League Banner">
       <img src="home_banner3.jpg" class="slide" alt="League Banner">
       <img src="home_banner4.jpg" class="slide" alt="League Banner">

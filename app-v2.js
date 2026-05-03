@@ -580,7 +580,7 @@ function buildTicker(formGames, tournamentList = []) {
     })
     .slice(0, TICKER_MAX_ITEMS)
     .map(g => {
-      const prefix = g.source === "tournament" ? "Tournament" : g.division;
+      const prefix = g.source === "tournament" ? "Playoffs" : g.division;
 
       if (g.status === "LIVE") {
         const inningText = g.inning ? ` • LIVE ${g.inning}` : " • LIVE";

@@ -1710,7 +1710,12 @@ function renderMore() {
     <div class="more-card" data-target="field-map">
       <div class="more-icon">📍</div>
       <div class="more-label">Field Map</div>
-    </div>
+  
+      </div>
+    <div class="more-card" data-target="tournaments">
+  <div class="more-icon">🏆</div>
+  <div class="more-label">VP Playoffs</div>
+  </div>
 
     <div class="more-card more-card-wide" data-target="enter-score">
       <div class="more-icon">📋✅</div>
@@ -1727,6 +1732,7 @@ function renderMore() {
       if (target === "teams") renderTeams();
       if (target === "resources") renderResources();
       if (target === "field-map") renderFieldMap();
+      if (target === "tournaments") renderPage("tournaments");
       if (target === "enter-score") renderLogin();
 
       applyPageTransition();

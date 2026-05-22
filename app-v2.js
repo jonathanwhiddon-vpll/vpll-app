@@ -271,6 +271,9 @@ const CSV_URLS = {
 };
 const TOURNAMENT_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1000083841&single=true&output=csv";
 let tournamentGames = [];
+const TOC_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=2037385450&single=true&output=csv";
+
+let tocGames = [];
 async function loadScheduleFromApi() {
   showSpinner();
   try {
@@ -362,6 +365,36 @@ async function loadTournamentGames() {
   } catch (err) {
     console.error("Error loading tournament CSV:", err);
     tournamentGames = [];
+  }
+}
+async function loadTOCGames() {
+  try {
+    const response = await fetch(TOC_CSV_URL, { cache: "no-cache" });
+    const csvText = await response.text();
+
+    const rows = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
+    }).data;
+
+    tocGames = rows.map(item => ({
+      date: item.date || item.Date || "",
+      time: item.time || item.Time || "",
+      field: item.field || item.Field || "",
+      home: item.home || item.Home || "",
+      away: item.away || item.Away || "",
+      homeScore: normalizeScore(item["home score"] || item["Home Score"]),
+      awayScore: normalizeScore(item["away score"] || item["Away Score"]),
+      status: (item["Status"] || item["status"] || "").toString().trim().toUpperCase(),
+      inning: (item["Inning"] || item["inning"] || "").toString().trim(),
+      pool: item["Pool"] || item["pool"] || ""
+    }));
+
+    if (currentPage === "toc") renderTOC();
+
+  } catch (err) {
+    console.error("Error loading TOC CSV:", err);
+    tocGames = [];
   }
 }
 // ================================
@@ -1164,6 +1197,84 @@ function renderTournaments() {
     updateScheduleFloatingButtons();
   }, 120);
 }
+
+function renderTOC() {
+  showSpinner();
+
+  setTimeout(() => {
+    const list = [...tocGames].sort((a, b) => {
+      const da = parseMMDDYYYY(a.date);
+      const db = parseMMDDYYYY(b.date);
+      if (!da || !db) return 0;
+      return da - db;
+    });
+
+    const gamesByDate = {};
+    list.forEach(g => {
+      if (!gamesByDate[g.date]) gamesByDate[g.date] = [];
+      gamesByDate[g.date].push(g);
+    });
+
+    const pageRoot = getPageRoot();
+    if (!pageRoot) {
+      hideSpinner();
+      return;
+    }
+
+    pageRoot.innerHTML = `
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">TOC</div>
+        </div>
+
+        <div class="schedule-container">
+          ${
+            list.length === 0
+              ? `<p style="padding:16px;">No TOC games loaded.</p>`
+              : Object.keys(gamesByDate)
+                  .map(date => {
+                    return `
+                      <div class="schedule-date-block" data-date="${date}">
+                        <h3 class="schedule-date-header">🏅 ${date}</h3>
+                        <ul class="schedule-list">
+                          ${gamesByDate[date]
+                            .map(g => {
+                              let scoreText = "";
+
+                              if (g.status === "LIVE") {
+                                const awayScore = g.awayScore ?? "-";
+                                const homeScore = g.homeScore ?? "-";
+                                scoreText = `<div class="schedule-score">LIVE${g.inning ? ` ${g.inning}` : ""} • ${awayScore} - ${homeScore}</div>`;
+                              } else if (g.homeScore != null || g.awayScore != null) {
+                                scoreText = `<div class="schedule-score">${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}</div>`;
+                              }
+
+                              return `
+                                <li class="schedule-item">
+                                  <div class="schedule-time-field">
+                                    <span class="schedule-time">${g.time}</span>
+                                    <span class="schedule-field">Field: ${g.field || ""}</span>
+                                  </div>
+                                  <div class="schedule-teams">${g.away} at ${g.home}</div>
+                                  ${scoreText}
+                                </li>
+                              `;
+                            })
+                            .join("")}
+                        </ul>
+                      </div>
+                    `;
+                  })
+                  .join("")
+          }
+        </div>
+      </section>
+    `;
+
+    applyPageTransition();
+    hideSpinner();
+  }, 120);
+}
 function renderTicker(forceRestart = false) {
   const el = document.getElementById("tickerContent");
   if (!el) return;
@@ -1850,6 +1961,9 @@ function renderPage(page) {
       } else if (page === "tournaments") {
     loadTournamentGames();
     renderTournaments();
+    } else if (page === "toc") {
+  loadTOCGames();
+  renderTOC();
   } else if (page === "schedule") {
     renderSchedule();
     loadScheduleFromApi();
@@ -1943,6 +2057,7 @@ function initApp() {
   renderTicker();
   loadScheduleFromApi();
   loadTournamentGames();      // load first
+  loadTOCGames();
   loadScoresAndStandings();   // then combine
 }
 

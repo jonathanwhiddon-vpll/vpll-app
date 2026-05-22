@@ -82,7 +82,7 @@ let tickerData = [];
 let lastFormGames = [];
 let lastScoresFetchMs = 0;
 let lastTickerHTML = "";
-const TICKER_LOOKBACK_DAYS = 4;  // show last 14 days
+const TICKER_LOOKBACK_DAYS = 4;  // show last 4 days
 const TICKER_MAX_ITEMS = 30;     // cap ticker length
 
 const coachPins = {
@@ -391,7 +391,10 @@ async function loadTOCGames() {
     }));
 
     if (currentPage === "toc") renderTOC();
-
+if (lastFormGames && lastFormGames.length) {
+  tickerData = buildTicker(lastFormGames, tournamentGames, tocGames);
+  renderTicker();
+}
   } catch (err) {
     console.error("Error loading TOC CSV:", err);
     tocGames = [];

@@ -82,7 +82,7 @@ let tickerData = [];
 let lastFormGames = [];
 let lastScoresFetchMs = 0;
 let lastTickerHTML = "";
-const TICKER_LOOKBACK_DAYS = 4;  // show last 7 days
+const TICKER_LOOKBACK_DAYS = 4;  // show last 4 days
 const TICKER_MAX_ITEMS = 30;     // cap ticker length
 
 const coachPins = {
@@ -1828,6 +1828,16 @@ function renderMore() {
   <div class="more-label">VP Playoffs</div>
   </div>
 
+  <div class="more-card" data-target="toc-majors">
+  <div class="more-icon">🏅</div>
+  <div class="more-label">TOC Majors</div>
+</div>
+
+<div class="more-card" data-target="toc-minors">
+  <div class="more-icon">🏅</div>
+  <div class="more-label">TOC Minors</div>
+</div>
+
     <div class="more-card more-card-wide" data-target="enter-score">
       <div class="more-icon">📋✅</div>
       <div class="more-label">Enter Final Score</div>
@@ -1844,6 +1854,13 @@ function renderMore() {
       if (target === "resources") renderResources();
       if (target === "field-map") renderFieldMap();
       if (target === "tournaments") renderPage("tournaments");
+      if (target === "toc-majors") {
+  renderPdfPage("resources/toc_majors.pdf", "TOC Majors Bracket");
+}
+
+if (target === "toc-minors") {
+  renderPdfPage("resources/toc_minors.pdf", "TOC Minors Bracket");
+}
       if (target === "enter-score") renderLogin();
 
       applyPageTransition();

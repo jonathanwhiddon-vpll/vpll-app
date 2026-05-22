@@ -82,7 +82,7 @@ let tickerData = [];
 let lastFormGames = [];
 let lastScoresFetchMs = 0;
 let lastTickerHTML = "";
-const TICKER_LOOKBACK_DAYS = 4;  // show last 4 days
+const TICKER_LOOKBACK_DAYS = 4;  // show last 6 days
 const TICKER_MAX_ITEMS = 30;     // cap ticker length
 
 const coachPins = {

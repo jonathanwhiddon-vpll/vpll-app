@@ -359,7 +359,7 @@ async function loadTournamentGames() {
     if (currentPage === "tournaments") renderTournaments();
 
     if (lastFormGames && lastFormGames.length) {
-  tickerData = buildTicker(lastFormGames, tournamentGames);
+  tickerData = buildTicker(lastFormGames, tournamentGames, tocGames);
   renderTicker();
 }
   } catch (err) {
@@ -539,7 +539,7 @@ function parseGameDateTime(dateStr, timeStr) {
   );
 }
 
-function buildTicker(formGames, tournamentList = []) {
+function buildTicker(formGames, tournamentList = [], tocList = []) {
   const today = new Date();
   today.setHours(23, 59, 59, 999);
 
@@ -597,8 +597,31 @@ function buildTicker(formGames, tournamentList = []) {
       pool: g.pool || "",
       sortDate: parseGameDateTime(g.date, g.time)
     }));
+const tocEntries = (tocList || [])
+  .filter(g => {
+    const gameDate = parseMMDDYYYY(g.date);
+    if (!gameDate) return false;
+    if (gameDate < cutoff || gameDate > today) return false;
 
-  return [...leagueEntries, ...tournamentEntries]
+    const isLive = g.status === "LIVE";
+    const isFinal = g.homeScore != null && g.awayScore != null;
+
+    return isLive || isFinal;
+  })
+  .map(g => ({
+    source: "toc",
+    division: "TOC",
+    date: g.date,
+    time: g.time,
+    awayTeam: g.away,
+    homeTeam: g.home,
+    awayScore: g.awayScore != null ? g.awayScore : "-",
+    homeScore: g.homeScore != null ? g.homeScore : "-",
+    status: g.status,
+    inning: g.inning || "",
+    sortDate: parseGameDateTime(g.date, g.time)
+  }));
+  return [...leagueEntries, ...tournamentEntries, ...tocEntries]
     .sort((a, b) => {
       const aLive = a.status === "LIVE" ? 1 : 0;
       const bLive = b.status === "LIVE" ? 1 : 0;
@@ -630,7 +653,7 @@ async function loadScoresAndStandings() {
   lastScoresFetchMs = Date.now();
 
   standingsData = buildStandings(formGames);
-  tickerData = buildTicker(formGames, tournamentGames);
+  tickerData = buildTicker(formGames, tournamentGames, tocGames);
   renderTicker();
 
   applyFormScoresToGames(formGames);
@@ -2096,7 +2119,8 @@ function onPullRefresh() {
   return Promise.all([
     loadScheduleFromApi(),
     loadScoresAndStandings(),
-    loadTournamentGames()
+    loadTournamentGames(),
+    loadTOCGames()
   ])
     .then(() => {
       renderHome();

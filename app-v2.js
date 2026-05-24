@@ -688,7 +688,7 @@ const tocEntries = (tocList || [])
     .map(g => {
       const prefix = g.source === "tournament" ? "Playoffs" : g.division;
 
-      if (g.status === "LIVE") {
+      if ((g.status || "").trim() === "LIVE") {
         const inningText = g.inning ? ` • LIVE ${g.inning}` : " • LIVE";
         return `${prefix}: ${g.date}${inningText} • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`;
       }

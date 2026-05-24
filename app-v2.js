@@ -1188,7 +1188,7 @@ function renderTournaments() {
                             .map(g => {
                               let scoreText = "";
 
-                              if (g.status === "LIVE") {
+                              if ((g.status || "").trim() === "LIVE") {
                                 const awayScore = g.awayScore ?? "-";
                                 const homeScore = g.homeScore ?? "-";
                                 scoreText = `<div class="schedule-score">LIVE${g.inning ? ` ${g.inning}` : ""} • ${awayScore} - ${homeScore}</div>`;
@@ -1314,7 +1314,7 @@ function renderTOC() {
                             .map(g => {
                               let scoreText = "";
 
-                              if (g.status === "LIVE") {
+                              if ((g.status || "").trim() === "LIVE") {
                                 const awayScore = g.awayScore ?? "-";
                                 const homeScore = g.homeScore ?? "-";
                                 scoreText = `<div class="schedule-score">LIVE${g.inning ? ` ${g.inning}` : ""} • ${awayScore} - ${homeScore}</div>`;

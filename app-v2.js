@@ -426,19 +426,24 @@ async function loadAllStarsGames() {
       header: true,
       skipEmptyLines: true
     }).data;
-
+const get = (item, name) => {
+  const key = Object.keys(item).find(
+    k => k.trim().toLowerCase() === name.toLowerCase()
+  );
+  return key ? item[key] : "";
+};
     allStarsGames = rows.map(item => ({
-      division: item.Division || item.division || "",
-      date: item.Date || item.date || "",
-      time: item.Time || item.time || "",
-      field: item.Field || item.field || "",
-      home: item.Home || item.home || "",
-      away: item.Away || item.away || "",
-      homeScore: normalizeScore(item["Home Score"] || item["home score"]),
-      awayScore: normalizeScore(item["Away Score"] || item["away score"]),
-      status: (item.Status || item.status || "").toString().trim().toUpperCase(),
-      inning: (item.Inning || item.inning || "").toString().trim()
-    }));
+  division: get(item, "Division"),
+  date: get(item, "Date"),
+  time: get(item, "Time"),
+  field: get(item, "Field"),
+  home: get(item, "Home"),
+  away: get(item, "Away"),
+  homeScore: normalizeScore(get(item, "Home Score")),
+  awayScore: normalizeScore(get(item, "Away Score")),
+  status: get(item, "Status").toString().trim().toUpperCase(),
+  inning: get(item, "Inning").toString().trim()
+}));
 
     if (currentPage === "allstars") renderAllStars();
 

@@ -1417,18 +1417,20 @@ function renderAllStars() {
                           .map(g => {
                             let scoreText = "";
 
-                            if (g.status === "LIVE") {
-                              scoreText = `
-                                <div class="schedule-score">
-                                  LIVE${g.inning ? ` ${g.inning}` : ""}
-                                  •
-                                  ${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}
-                                </div>
-                              `;
-                            } else if (
-                              g.homeScore != null ||
-                              g.awayScore != null
-                            ) {
+                           if ((g.status || "").trim() === "LIVE") {
+
+  scoreText = `
+    <div class="schedule-score live-score">
+      🔴 LIVE ${g.inning ? `• ${g.inning}` : ""}
+      <br>
+      ${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}
+    </div>
+  `;
+
+} else if (
+  g.homeScore != null ||
+  g.awayScore != null
+) {
                               scoreText = `
                                 <div class="schedule-score">
                                   ${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}

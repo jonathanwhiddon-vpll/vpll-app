@@ -1333,7 +1333,7 @@ function renderTOC() {
                                     <span class="schedule-time">${g.time}</span>
                                     <span class="schedule-field">Field: ${g.field || ""}</span>
                                   </div>
-                                  <div class="schedule-teams">${g.away} at ${g.home}</div>
+                                  <div class="schedule-teams">${g.away} vs ${g.home}</div>
                                   ${scoreText}
                                 </li>
                               `;

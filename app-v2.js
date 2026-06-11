@@ -1359,7 +1359,10 @@ function renderAllStars() {
 
   setTimeout(() => {
     const list = allStarsGames
-      .filter(g => g.division === selectedAllStarsDivision)
+  .filter(g =>
+    selectedAllStarsDivision === "All Teams" ||
+    g.division === selectedAllStarsDivision
+  )
       .sort((a, b) => {
         const da = parseMMDDYYYY(a.date);
         const db = parseMMDDYYYY(b.date);

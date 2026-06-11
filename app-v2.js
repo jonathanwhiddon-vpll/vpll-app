@@ -286,6 +286,17 @@ const ALL_STARS_DIVISIONS = [
   "10U",
   "Pool Play"
 ];
+const VPLL_ALL_STARS_TEAMS = [
+  "Juniors",
+  "Intermediate",
+  "12U",
+  "11U BC",
+  "11U TT",
+  "10U DD",
+  "10U GG",
+  "9U JW",
+  "9U ZS"
+];
 
 let selectedAllStarsDivision = "All Teams";
 let selectedAllStarsView = "schedule";
@@ -1360,6 +1371,10 @@ function renderAllStars() {
   .filter(g =>
     selectedAllStarsDivision === "All Teams" ||
     g.division === selectedAllStarsDivision
+  )
+  .filter(g =>
+    VPLL_ALL_STARS_TEAMS.includes(g.home) ||
+    VPLL_ALL_STARS_TEAMS.includes(g.away)
   )
       .sort((a, b) => {
         const da = parseMMDDYYYY(a.date);

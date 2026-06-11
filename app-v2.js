@@ -278,6 +278,7 @@ const ALL_STARS_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1970088002&single=true&output=csv";
 
 const ALL_STARS_DIVISIONS = [
+  "All Teams",
   "Juniors",
   "Intermediate",
   "12U",
@@ -289,7 +290,7 @@ const ALL_STARS_DIVISIONS = [
   "9U ZS"
 ];
 
-let selectedAllStarsDivision = "Juniors";
+let selectedAllStarsDivision = "All Teams";
 let allStarsGames = [];
 async function loadScheduleFromApi() {
   showSpinner();

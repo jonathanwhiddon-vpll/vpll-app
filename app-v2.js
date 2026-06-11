@@ -291,6 +291,7 @@ const ALL_STARS_DIVISIONS = [
 ];
 
 let selectedAllStarsDivision = "All Teams";
+let selectedAllStarsView = "schedule";
 let allStarsGames = [];
 async function loadScheduleFromApi() {
   showSpinner();
@@ -1390,7 +1391,32 @@ function renderAllStars() {
         <div class="card-header">
           <div class="card-title">All Stars</div>
         </div>
+        <div style="padding:16px 16px 0 16px;">
+  <button
+    onclick="
+      selectedAllStarsView='schedule';
+      renderAllStars();
+    "
+    style="
+      margin-right:8px;
+      font-weight:${selectedAllStarsView === "schedule" ? "700" : "400"};
+    "
+  >
+    Schedule
+  </button>
 
+  <button
+    onclick="
+      selectedAllStarsView='standings';
+      renderAllStars();
+    "
+    style="
+      font-weight:${selectedAllStarsView === "standings" ? "700" : "400"};
+    "
+  >
+    Standings
+  </button>
+</div>
         <div style="padding:16px;">
           <label>
             <strong>Division:</strong>

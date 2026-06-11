@@ -384,7 +384,12 @@ async function loadTournamentGames() {
     if (currentPage === "tournaments") renderTournaments();
 
     if (lastFormGames && lastFormGames.length) {
-  tickerData = buildTicker(lastFormGames, tournamentGames, tocGames);
+  tickerData = buildTicker(
+  lastFormGames,
+  tournamentGames,
+  tocGames,
+  allStarsGames
+);
   renderTicker();
 }
   } catch (err) {
@@ -417,7 +422,12 @@ async function loadTOCGames() {
 
     if (currentPage === "toc") renderTOC();
 if (lastFormGames && lastFormGames.length) {
-  tickerData = buildTicker(lastFormGames, tournamentGames, tocGames);
+  tickerData = buildTicker(
+  lastFormGames,
+  tournamentGames,
+  tocGames,
+  allStarsGames
+);
   renderTicker();
 }
   } catch (err) {
@@ -454,7 +464,15 @@ const get = (item, name) => {
 }));
 
     if (currentPage === "allstars") renderAllStars();
-
+if (lastFormGames && lastFormGames.length) {
+  tickerData = buildTicker(
+    lastFormGames,
+    tournamentGames,
+    tocGames,
+    allStarsGames
+  );
+  renderTicker();
+}
   } catch (err) {
     console.error("Error loading All Stars CSV:", err);
     allStarsGames = [];
@@ -602,7 +620,12 @@ function parseGameDateTime(dateStr, timeStr) {
   );
 }
 
-function buildTicker(formGames, tournamentList = [], tocList = []) {
+function buildTicker(
+  formGames,
+  tournamentList = [],
+  tocList = [],
+  allStarsList = []
+) {
   const today = new Date();
   today.setHours(23, 59, 59, 999);
 
@@ -684,7 +707,41 @@ const tocEntries = (tocList || [])
     inning: g.inning || "",
     sortDate: parseGameDateTime(g.date, g.time)
   }));
-  return [...leagueEntries, ...tournamentEntries, ...tocEntries]
+  const allStarsEntries = (allStarsList || [])
+  .filter(g => {
+    const gameDate = parseMMDDYYYY(g.date);
+    if (!gameDate) return false;
+    if (gameDate < cutoff || gameDate > today) return false;
+
+    const isLive = g.status === "LIVE";
+    const isFinal = g.homeScore != null && g.awayScore != null;
+
+    if (!(isLive || isFinal)) return false;
+
+    return (
+      VPLL_ALL_STARS_TEAMS.includes(g.home) ||
+      VPLL_ALL_STARS_TEAMS.includes(g.away)
+    );
+  })
+  .map(g => ({
+    source: "allstars",
+    division: "All Stars",
+    date: g.date,
+    time: g.time,
+    awayTeam: g.away,
+    homeTeam: g.home,
+    awayScore: g.awayScore != null ? g.awayScore : "-",
+    homeScore: g.homeScore != null ? g.homeScore : "-",
+    status: g.status,
+    inning: g.inning || "",
+    sortDate: parseGameDateTime(g.date, g.time)
+  }));
+  return [
+  ...leagueEntries,
+  ...tournamentEntries,
+  ...tocEntries,
+  ...allStarsEntries
+]
     .sort((a, b) => {
       const aLive = a.status === "LIVE" ? 1 : 0;
       const bLive = b.status === "LIVE" ? 1 : 0;
@@ -716,7 +773,12 @@ async function loadScoresAndStandings() {
   lastScoresFetchMs = Date.now();
 
   standingsData = buildStandings(formGames);
-  tickerData = buildTicker(formGames, tournamentGames, tocGames);
+  tickerData = buildTicker(
+  formGames,
+  tournamentGames,
+  tocGames,
+  allStarsGames
+);
   renderTicker();
 
   applyFormScoresToGames(formGames);

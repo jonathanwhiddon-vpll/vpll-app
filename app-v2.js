@@ -282,12 +282,9 @@ const ALL_STARS_DIVISIONS = [
   "Juniors",
   "Intermediate",
   "12U",
-  "11U BC",
-  "11U TT",
-  "10U DD",
-  "10U GG",
-  "9U JW",
-  "9U ZS"
+  "11U",
+  "10U",
+  "Pool Play"
 ];
 
 let selectedAllStarsDivision = "All Teams";

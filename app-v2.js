@@ -287,15 +287,13 @@ const ALL_STARS_DIVISIONS = [
   "Pool Play"
 ];
 const VPLL_ALL_STARS_TEAMS = [
-  "Juniors",
-  "Intermediate",
-  "12U",
-  "11U BC",
-  "11U TT",
-  "10U DD",
-  "10U GG",
-  "9U JW",
-  "9U ZS"
+  "VPLL",
+  "VPLL CC",
+  "VPLL TT",
+  "VPLL DD",
+  "VPLL GG",
+  "VPLL JW",
+  "VPLL ZS"
 ];
 
 let selectedAllStarsDivision = "All Teams";

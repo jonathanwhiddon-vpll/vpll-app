@@ -1438,68 +1438,67 @@ function renderAllStars() {
           </label>
         </div>
 
-        <div class="schedule-container">
-          ${
-            list.length === 0
-              ? `<p style="padding:16px;">No All Stars games loaded.</p>`
-              : Object.keys(gamesByDate)
-                  .map(date => `
-                    <div class="schedule-date-block" data-date="${date}">
-                      <h3 class="schedule-date-header">⭐ ${date}</h3>
+        ${
+  selectedAllStarsView === "standings"
+    ? renderAllStarsStandings()
+    : `
+      <div class="schedule-container">
+        ${
+          list.length === 0
+            ? `<p style="padding:16px;">No All Stars games loaded.</p>`
+            : Object.keys(gamesByDate)
+                .map(date => `
+                  <div class="schedule-date-block" data-date="${date}">
+                    <h3 class="schedule-date-header">⭐ ${date}</h3>
 
-                      <ul class="schedule-list">
-                        ${gamesByDate[date]
-                          .map(g => {
-                            let scoreText = "";
+                    <ul class="schedule-list">
+                      ${gamesByDate[date]
+                        .map(g => {
+                          let scoreText = "";
 
-                           if ((g.status || "").trim() === "LIVE") {
-
-  scoreText = `
-    <div class="schedule-score live-score">
-      🔴 LIVE ${g.inning ? `• ${g.inning}` : ""}
-      <br>
-      ${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}
-    </div>
-  `;
-
-} else if (
-  g.homeScore != null ||
-  g.awayScore != null
-) {
-                              scoreText = `
-                                <div class="schedule-score">
-                                  ${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}
-                                </div>
-                              `;
-                            }
-
-                            return `
-                              <li class="schedule-item">
-
-                                <div class="schedule-time-field">
-                                  <span class="schedule-time">${g.time}</span>
-
-                                  <span class="schedule-field">
-                                    Field: ${g.field || ""}
-                                  </span>
-                                </div>
-
-                                <div class="schedule-teams">
-                                  ${g.away} at ${g.home}
-                                </div>
-
-                                ${scoreText}
-
-                              </li>
+                          if ((g.status || "").trim() === "LIVE") {
+                            scoreText = `
+                              <div class="schedule-score live-score">
+                                🔴 LIVE ${g.inning ? `• ${g.inning}` : ""}
+                                <br>
+                                ${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}
+                              </div>
                             `;
-                          })
-                          .join("")}
-                      </ul>
-                    </div>
-                  `)
-                  .join("")
-          }
-        </div>
+                          } else if (
+                            g.homeScore != null ||
+                            g.awayScore != null
+                          ) {
+                            scoreText = `
+                              <div class="schedule-score">
+                                ${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}
+                              </div>
+                            `;
+                          }
+
+                          return `
+                            <li class="schedule-item">
+                              <div class="schedule-time-field">
+                                <span class="schedule-time">${g.time}</span>
+                                <span class="schedule-field">Field: ${g.field || ""}</span>
+                              </div>
+
+                              <div class="schedule-teams">
+                                ${g.away} at ${g.home}
+                              </div>
+
+                              ${scoreText}
+                            </li>
+                          `;
+                        })
+                        .join("")}
+                    </ul>
+                  </div>
+                `)
+                .join("")
+        }
+      </div>
+    `
+}
 
       </section>
     `;
@@ -1507,6 +1506,110 @@ function renderAllStars() {
     applyPageTransition();
     hideSpinner();
   }, 120);
+}
+function renderAllStarsStandings() {
+  const filteredGames = allStarsGames.filter(g =>
+    selectedAllStarsDivision === "All Teams" ||
+    g.division === selectedAllStarsDivision
+  );
+
+  const table = {};
+
+  filteredGames.forEach(g => {
+    if ((g.status || "").trim() === "LIVE") return;
+    if (g.homeScore == null || g.awayScore == null) return;
+
+    const home = g.home;
+    const away = g.away;
+
+    if (!table[home]) {
+      table[home] = { team: home, wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
+    }
+
+    if (!table[away]) {
+      table[away] = { team: away, wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
+    }
+
+    table[home].runsFor += g.homeScore;
+    table[home].runsAgainst += g.awayScore;
+    table[away].runsFor += g.awayScore;
+    table[away].runsAgainst += g.homeScore;
+
+    if (g.homeScore > g.awayScore) {
+      table[home].wins++;
+      table[away].losses++;
+    } else if (g.homeScore < g.awayScore) {
+      table[away].wins++;
+      table[home].losses++;
+    } else {
+      table[home].ties++;
+      table[away].ties++;
+    }
+  });
+
+  const standingsArray = Object.values(table)
+    .map(s => {
+      const totalGames = s.wins + s.losses + s.ties || 1;
+      const winPct = (s.wins + 0.5 * s.ties) / totalGames;
+      const runDiff = s.runsFor - s.runsAgainst;
+
+      return {
+        ...s,
+        winPct,
+        runDiff
+      };
+    })
+    .sort((a, b) => {
+      if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+      if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
+      if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
+      return a.team.localeCompare(b.team);
+    });
+
+  return `
+    <div style="padding:0 16px 16px 16px; overflow-x:auto;">
+      ${
+        standingsArray.length === 0
+          ? `<p>No standings yet.</p>`
+          : `
+            <table style="
+              width:100%;
+              min-width:520px;
+              border-collapse:collapse;
+              font-size:16px;
+              text-align:center;
+            ">
+              <thead>
+                <tr style="background:#0b2a52;color:#fff;">
+                  <th style="padding:10px;text-align:left;">TEAM</th>
+                  <th style="padding:10px;">W</th>
+                  <th style="padding:10px;">L</th>
+                  <th style="padding:10px;">T</th>
+                  <th style="padding:10px;">RS</th>
+                  <th style="padding:10px;">RA</th>
+                  <th style="padding:10px;">DIFF</th>
+                  <th style="padding:10px;">PCT</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${standingsArray.map(s => `
+                  <tr style="border-bottom:1px solid #ddd;">
+                    <td style="padding:10px;text-align:left;font-weight:700;">${s.team}</td>
+                    <td style="padding:10px;">${s.wins}</td>
+                    <td style="padding:10px;">${s.losses}</td>
+                    <td style="padding:10px;">${s.ties}</td>
+                    <td style="padding:10px;">${s.runsFor}</td>
+                    <td style="padding:10px;">${s.runsAgainst}</td>
+                    <td style="padding:10px;">${s.runDiff > 0 ? "+" : ""}${s.runDiff}</td>
+                    <td style="padding:10px;">${s.winPct.toFixed(3)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          `
+      }
+    </div>
+  `;
 }
 function renderTicker(forceRestart = false) {
   const el = document.getElementById("tickerContent");

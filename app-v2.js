@@ -1480,7 +1480,7 @@ function renderAllStars() {
                               </div>
 
                               <div class="schedule-teams">
-                                ${g.away} at ${g.home}
+                                ${g.away} vs ${g.home}
                               </div>
 
                               ${scoreText}

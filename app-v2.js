@@ -296,6 +296,15 @@ const VPLL_ALL_STARS_TEAMS = [
   "VPLL ZS"
 ];
 
+const ALL_STARS_ROUNDS = [
+  "Districts",
+  "Pool Play",
+  "8/9 Section 10",
+  "Sectionals"
+];
+
+let selectedAllStarsRound = "Districts";
+
 let selectedAllStarsDivision = "All Teams";
 let selectedAllStarsView = "schedule";
 let allStarsGames = [];
@@ -451,6 +460,7 @@ const get = (item, name) => {
   return key ? item[key] : "";
 };
     allStarsGames = rows.map(item => ({
+  round: get(item, "Round"),
   division: get(item, "Division"),
   date: get(item, "Date"),
   time: get(item, "Time"),
@@ -1429,6 +1439,9 @@ function renderAllStars() {
   setTimeout(() => {
     const list = allStarsGames
   .filter(g =>
+    g.round === selectedAllStarsRound
+  )
+  .filter(g =>
     selectedAllStarsDivision === "All Teams" ||
     g.division === selectedAllStarsDivision
   )
@@ -1490,13 +1503,35 @@ function renderAllStars() {
   </button>
 </div>
         <div style="padding:16px;">
-          <label>
-            <strong>Division:</strong>
 
-            <select onchange="
-              selectedAllStarsDivision=this.value;
-              renderAllStars();
-            ">
+  <label>
+    <strong>Round:</strong>
+
+    <select onchange="
+      selectedAllStarsRound=this.value;
+      renderAllStars();
+    ">
+      ${ALL_STARS_ROUNDS.map(
+        r => `
+          <option value="${r}"
+            ${r === selectedAllStarsRound ? "selected" : ""}
+          >
+            ${r}
+          </option>
+        `
+      ).join("")}
+    </select>
+  </label>
+
+  <br><br>
+
+  <label>
+    <strong>Division:</strong>
+
+    <select onchange="
+      selectedAllStarsDivision=this.value;
+      renderAllStars();
+    ">
               ${ALL_STARS_DIVISIONS.map(
                 d => `
                   <option value="${d}"
@@ -1580,7 +1615,11 @@ function renderAllStars() {
   }, 120);
 }
 function renderAllStarsStandings() {
-  const filteredGames = allStarsGames.filter(g =>
+  const filteredGames = allStarsGames
+  .filter(g =>
+    g.round === selectedAllStarsRound
+  )
+  .filter(g =>
     selectedAllStarsDivision === "All Teams" ||
     g.division === selectedAllStarsDivision
   );

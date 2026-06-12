@@ -298,7 +298,6 @@ const VPLL_ALL_STARS_TEAMS = [
 
 const ALL_STARS_ROUNDS = [
   "Districts",
-  "Pool Play",
   "8/9 Section 10",
   "Sectionals"
 ];

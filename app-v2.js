@@ -772,7 +772,7 @@ const tocEntries = (tocList || [])
         return `${prefix}: ${g.date}${inningText} • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`;
       }
 
-      return `${prefix}: ${g.date} • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`;
+      return `${prefix}: ${g.date} • FINAL • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`;
     });
 }
 

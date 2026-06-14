@@ -461,7 +461,8 @@ const get = (item, name) => {
     allStarsGames = rows.map(item => ({
   round: get(item, "Round"),
   division: get(item, "Division"),
-  date: get(item, "Date"),
+pool: get(item, "Pool"),
+date: get(item, "Date"),
   time: get(item, "Time"),
   field: get(item, "Field"),
   home: get(item, "Home"),
@@ -1615,29 +1616,49 @@ function renderAllStars() {
 }
 function renderAllStarsStandings() {
   const filteredGames = allStarsGames
-  .filter(g =>
-    g.round === selectedAllStarsRound
-  )
-  .filter(g =>
-    selectedAllStarsDivision === "All Teams" ||
-    g.division === selectedAllStarsDivision
-  );
+    .filter(g =>
+      g.round === selectedAllStarsRound
+    )
+    .filter(g =>
+      selectedAllStarsDivision === "All Teams" ||
+      g.division === selectedAllStarsDivision
+    );
 
-  const table = {};
+  const pools = {};
 
   filteredGames.forEach(g => {
     if ((g.status || "").trim() === "LIVE") return;
     if (g.homeScore == null || g.awayScore == null) return;
 
+    const poolName = (g.pool || "Pool").trim();
+
+    if (!pools[poolName]) pools[poolName] = {};
+
+    const table = pools[poolName];
+
     const home = g.home;
     const away = g.away;
 
     if (!table[home]) {
-      table[home] = { team: home, wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
+      table[home] = {
+        team: home,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        runsFor: 0,
+        runsAgainst: 0
+      };
     }
 
     if (!table[away]) {
-      table[away] = { team: away, wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
+      table[away] = {
+        team: away,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        runsFor: 0,
+        runsAgainst: 0
+      };
     }
 
     table[home].runsFor += g.homeScore;
@@ -1657,67 +1678,76 @@ function renderAllStarsStandings() {
     }
   });
 
-  const standingsArray = Object.values(table)
-    .map(s => {
-      const totalGames = s.wins + s.losses + s.ties || 1;
-      const winPct = (s.wins + 0.5 * s.ties) / totalGames;
-      const runDiff = s.runsFor - s.runsAgainst;
+  const poolNames = Object.keys(pools).sort();
 
-      return {
-        ...s,
-        winPct,
-        runDiff
-      };
-    })
-    .sort((a, b) => {
-      if (b.winPct !== a.winPct) return b.winPct - a.winPct;
-      if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
-      if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
-      return a.team.localeCompare(b.team);
-    });
+  if (poolNames.length === 0) {
+    return `<div style="padding:0 16px 16px 16px;"><p>No standings yet.</p></div>`;
+  }
 
   return `
     <div style="padding:0 16px 16px 16px; overflow-x:auto;">
-      ${
-        standingsArray.length === 0
-          ? `<p>No standings yet.</p>`
-          : `
-            <table style="
-              width:100%;
-              min-width:520px;
-              border-collapse:collapse;
-              font-size:16px;
-              text-align:center;
-            ">
-              <thead>
-                <tr style="background:#0b2a52;color:#fff;">
-                  <th style="padding:10px;text-align:left;">TEAM</th>
-                  <th style="padding:10px;">W</th>
-                  <th style="padding:10px;">L</th>
-                  <th style="padding:10px;">T</th>
-                  <th style="padding:10px;">RS</th>
-                  <th style="padding:10px;">RA</th>
-                  <th style="padding:10px;">DIFF</th>
-                  <th style="padding:10px;">PCT</th>
+      ${poolNames.map(poolName => {
+        const standingsArray = Object.values(pools[poolName])
+          .map(s => {
+            const totalGames = s.wins + s.losses + s.ties || 1;
+            const winPct = (s.wins + 0.5 * s.ties) / totalGames;
+            const runDiff = s.runsFor - s.runsAgainst;
+
+            return {
+              ...s,
+              winPct,
+              runDiff
+            };
+          })
+          .sort((a, b) => {
+            if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+            if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
+            if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
+            return a.team.localeCompare(b.team);
+          });
+
+        return `
+          <h3 style="margin:16px 0 8px 0; color:#0b2a52;">
+            ${poolName}
+          </h3>
+
+          <table style="
+            width:100%;
+            min-width:520px;
+            border-collapse:collapse;
+            font-size:16px;
+            text-align:center;
+            margin-bottom:20px;
+          ">
+            <thead>
+              <tr style="background:#0b2a52;color:#fff;">
+                <th style="padding:10px;text-align:left;">TEAM</th>
+                <th style="padding:10px;">W</th>
+                <th style="padding:10px;">L</th>
+                <th style="padding:10px;">T</th>
+                <th style="padding:10px;">RS</th>
+                <th style="padding:10px;">RA</th>
+                <th style="padding:10px;">DIFF</th>
+                <th style="padding:10px;">PCT</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${standingsArray.map(s => `
+                <tr style="border-bottom:1px solid #ddd;">
+                  <td style="padding:10px;text-align:left;font-weight:700;">${s.team}</td>
+                  <td style="padding:10px;">${s.wins}</td>
+                  <td style="padding:10px;">${s.losses}</td>
+                  <td style="padding:10px;">${s.ties}</td>
+                  <td style="padding:10px;">${s.runsFor}</td>
+                  <td style="padding:10px;">${s.runsAgainst}</td>
+                  <td style="padding:10px;">${s.runDiff > 0 ? "+" : ""}${s.runDiff}</td>
+                  <td style="padding:10px;">${s.winPct.toFixed(3)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                ${standingsArray.map(s => `
-                  <tr style="border-bottom:1px solid #ddd;">
-                    <td style="padding:10px;text-align:left;font-weight:700;">${s.team}</td>
-                    <td style="padding:10px;">${s.wins}</td>
-                    <td style="padding:10px;">${s.losses}</td>
-                    <td style="padding:10px;">${s.ties}</td>
-                    <td style="padding:10px;">${s.runsFor}</td>
-                    <td style="padding:10px;">${s.runsAgainst}</td>
-                    <td style="padding:10px;">${s.runDiff > 0 ? "+" : ""}${s.runDiff}</td>
-                    <td style="padding:10px;">${s.winPct.toFixed(3)}</td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          `
-      }
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      }).join("")}
     </div>
   `;
 }

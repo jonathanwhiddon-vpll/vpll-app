@@ -1615,6 +1615,42 @@ function renderAllStars() {
   }, 120);
 }
 function renderAllStarsStandings() {
+    if (selectedAllStarsDivision === "Juniors") {
+    return `
+      <div style="padding:0 16px 16px 16px;">
+        <div style="
+          background:#f7f9fc;
+          border:1px solid #dbe3ef;
+          border-radius:12px;
+          padding:16px;
+          text-align:center;
+        ">
+          <h3 style="margin-top:0; color:#0b2a52;">
+            🏆 Juniors Double-Elimination Bracket
+          </h3>
+
+          <p style="margin-bottom:16px;">
+            Standings are not used for this division.
+          </p>
+
+          <button
+            onclick="renderPdfPage('resources/juniors_bracket.pdf','Juniors Bracket')"
+            style="
+              background:#0b2a52;
+              color:#fff;
+              border:none;
+              border-radius:10px;
+              padding:12px 18px;
+              font-weight:700;
+              font-size:15px;
+            "
+          >
+            View Juniors Bracket
+          </button>
+        </div>
+      </div>
+    `;
+  }
   const filteredGames = allStarsGames
     .filter(g =>
       g.round === selectedAllStarsRound

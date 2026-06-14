@@ -287,13 +287,14 @@ const ALL_STARS_DIVISIONS = [
   "Pool Play"
 ];
 const VPLL_ALL_STARS_TEAMS = [
-  "VPLL",
-  "VPLL CC",
-  "VPLL TT",
-  "VPLL DD",
-  "VPLL GG",
-  "VPLL JW",
-  "VPLL ZS"
+  "VPLL Juniors", 
+  "VPLL Intermediate",
+  "VPLL 11U CC",
+  "VPLL 11U TT",
+  "VPLL 10 UDD",
+  "VPLL 10U GG",
+  "VPLL 9U JW",
+  "VPLL 8/9U ZS"
 ];
 
 const ALL_STARS_ROUNDS = [

@@ -2116,7 +2116,13 @@ async function renderPdfPage(pdfUrl, title) {
   pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header">
-        <button onclick="renderResources()" style="margin-right:8px;">← Back</button>
+        <button onclick="
+  if (currentPage === 'allstars') {
+    renderAllStars();
+  } else {
+    renderResources();
+  }
+" style="margin-right:8px;">← Back</button>
         <div class="card-title">${title}</div>
       </div>
 

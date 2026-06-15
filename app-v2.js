@@ -284,7 +284,8 @@ const ALL_STARS_DIVISIONS = [
   "12U",
   "11U",
   "10U",
-  "Pool Play"
+  "Pool Play",
+   "8/9 Section 10"
 ];
 const VPLL_ALL_STARS_TEAMS = [
   "VPLL Juniors", 

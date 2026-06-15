@@ -292,7 +292,7 @@ const VPLL_ALL_STARS_TEAMS = [
   "VPLL 12U",
   "VPLL 11U CC",
   "VPLL 11U TT",
-  "VPLL 10 DD",
+  "VPLL 10U DD",
   "VPLL 10U GG",
   "VPLL 9U JW",
   "VPLL 8/9U ZS"

@@ -1739,11 +1739,20 @@ function renderAllStarsStandings() {
             };
           })
           .sort((a, b) => {
-            if (b.winPct !== a.winPct) return b.winPct - a.winPct;
-            if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
-            if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
-            return a.team.localeCompare(b.team);
-          });
+  if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+
+  // Tie breaker: fewest runs against
+  if (a.runsAgainst !== b.runsAgainst) {
+    return a.runsAgainst - b.runsAgainst;
+  }
+
+  // Next tie breaker: runs scored
+  if (b.runsFor !== a.runsFor) {
+    return b.runsFor - a.runsFor;
+  }
+
+  return a.team.localeCompare(b.team);
+});
 
         return `
           <h3 style="margin:16px 0 8px 0; color:#0b2a52;">

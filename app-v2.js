@@ -1592,9 +1592,17 @@ function renderAllStars() {
                                 <span class="schedule-field">Field: ${g.field || ""}</span>
                               </div>
 
-                              <div class="schedule-teams">
-                                ${g.away} vs ${g.home}
-                              </div>
+                              ${
+  g.pool
+    ? `<div style="font-size:13px; color:#d32f2f; font-weight:800; margin-bottom:4px;">
+        ${g.pool}
+      </div>`
+    : ""
+}
+
+<div class="schedule-teams">
+  ${g.away} vs ${g.home}
+</div>
 
                               ${scoreText}
                             </li>
@@ -1666,10 +1674,15 @@ function renderAllStarsStandings() {
   const pools = {};
 
   filteredGames.forEach(g => {
+
+  const poolName = (g.pool || "").trim();
+
+  // Only count pool play games
+  if (poolName !== "Pool 1" && poolName !== "Pool 2") {
+    return;
+  }
     if ((g.status || "").trim() === "LIVE") return;
     if (g.homeScore == null || g.awayScore == null) return;
-
-    const poolName = (g.pool || "Pool").trim();
 
     if (!pools[poolName]) pools[poolName] = {};
 
@@ -1739,14 +1752,18 @@ function renderAllStarsStandings() {
             };
           })
           .sort((a, b) => {
-  if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+  // 1st: most wins
+  if (b.wins !== a.wins) return b.wins - a.wins;
 
-  // Tie breaker: fewest runs against
+  // 2nd: fewest losses
+  if (a.losses !== b.losses) return a.losses - b.losses;
+
+  // 3rd: fewest runs against
   if (a.runsAgainst !== b.runsAgainst) {
     return a.runsAgainst - b.runsAgainst;
   }
 
-  // Next tie breaker: runs scored
+  // 4th: most runs scored
   if (b.runsFor !== a.runsFor) {
     return b.runsFor - a.runsFor;
   }

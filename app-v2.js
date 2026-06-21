@@ -291,7 +291,7 @@ const VPLL_ALL_STARS_TEAMS = [
   "VPLL Juniors", 
   "VPLL Intermediate",
   "VPLL 12U",
-  "VPLL 11U CC",
+  "VPLL 11U BC",
   "VPLL 11U TT",
   "VPLL 10U DD",
   "VPLL 10U GG",

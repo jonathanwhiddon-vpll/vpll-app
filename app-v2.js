@@ -2247,6 +2247,15 @@ function renderResources() {
             🙋 Volunteer List 
           </a>
         </li>
+      <li>
+  <a
+    href="https://apps.apple.com/us/app/district-30-little-league/id6769469029"
+    target="_blank"
+    rel="noopener"
+  >
+    📱 Download the District 30 Little League App
+  </a>
+</li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/aa_rules.pdf','AA Special Rules'); return false;">
             💡 AA Special Rules 

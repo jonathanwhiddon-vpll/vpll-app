@@ -2257,8 +2257,12 @@ function renderResources() {
           </a>
         </li>
      <li>
-  <a href="#" onclick="openDistrict30App(); return false;">
-    📱 District 30 Little League App
+  <a
+    href="https://apps.apple.com/us/app/district-30-little-league/id6769469029"
+    target="_blank"
+    rel="noopener"
+  >
+    📱 Download / Open District 30 Little League App
   </a>
 </li>
         <li>
@@ -2398,6 +2402,31 @@ function renderMore() {
   <div class="more-label">TOC Minors</div>
 </div>
 
+<div class="more-card" data-target="allstars-majors">
+  <div class="more-icon">⭐</div>
+  <div class="more-label">All Stars Majors</div>
+</div>
+
+<div class="more-card" data-target="allstars-11u">
+  <div class="more-icon">⭐</div>
+  <div class="more-label">All Stars 11U</div>
+</div>
+
+<div class="more-card" data-target="allstars-10u">
+  <div class="more-icon">⭐</div>
+  <div class="more-label">All Stars 10U</div>
+</div>
+
+<div class="more-card" data-target="allstars-poolplay">
+  <div class="more-icon">⭐</div>
+  <div class="more-label">All Stars pool Play</div>
+</div>
+
+<div class="more-card" data-target="allstars-8/9section10">
+  <div class="more-icon">⭐</div>
+  <div class="more-label">All Stars 8/9 Section 10</div>
+</div>
+
     <div class="more-card more-card-wide" data-target="enter-score">
       <div class="more-icon">📋✅</div>
       <div class="more-label">Enter Final Score</div>
@@ -2420,6 +2449,25 @@ function renderMore() {
 
 if (target === "toc-minors") {
   renderPdfPage("resources/toc_minors.pdf", "TOC Minors Bracket");
+}
+if (target === "allstars-majors") {
+  renderPdfPage("resources/allstars_majors.pdf", "All Stars Majors Bracket");
+}
+
+if (target === "allstars-11u") {
+  renderPdfPage("resources/allstars_11u.pdf", "All Stars 11U Bracket");
+}
+
+if (target === "allstars-10u") {
+  renderPdfPage("resources/allstars_10u.pdf", "All Stars 10U Bracket");
+}
+
+if (target === "allstars-poolplay") {
+  renderPdfPage("resources/allstars_poolplay.pdf", "All Stars Pool Play Bracket");
+}
+
+if (target === "allstars-8/9section10") {
+  renderPdfPage("resources/allstars_89_section10.pdf", "All Stars 8/9 Section 10 Bracket");
 }
       if (target === "enter-score") renderLogin();
 

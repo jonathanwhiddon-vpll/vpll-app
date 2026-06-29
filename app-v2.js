@@ -1666,19 +1666,19 @@ if (
   selectedAllStarsDivision === "8/9 Section 10"
 ) {
   const bracketMap = {
-    "12U": {
-      title: "12U Sectionals Bracket",
-      file: "resources/allstars_12u_sectionals.pdf"
-    },
-    "11U": {
-      title: "11U Sectionals Bracket",
-      file: "resources/allstars_11u_sectionals.pdf"
-    },
-    "8/9 Section 10": {
-  title: "Section 10 Bracket",
-  file: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTldb_YdOdt9VxKl96n2qS9N0xnFPF8VwBYPUrsGGnNituw1xtYQ4SbSsGPFkmmvFsUHuhkK5LdD5XT/pubhtml?gid=2081750134&single=true"
-}
-  };
+  "12U": {
+    title: "Section 5 Majors Bracket",
+    file: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTldb_YdOdt9VxKl96n2qS9N0xnFPF8VwBYPUrsGGnNituw1xtYQ4SbSsGPFkmmvFsUHuhkK5LdD5XT/pubhtml?gid=907799207&single=true"
+  },
+  "11U": {
+    title: "Section 5 9-10-11 Bracket",
+    file: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTldb_YdOdt9VxKl96n2qS9N0xnFPF8VwBYPUrsGGnNituw1xtYQ4SbSsGPFkmmvFsUHuhkK5LdD5XT/pubhtml?gid=1648528606&single=true"
+  },
+  "8/9 Section 10": {
+    title: "Section 10 Bracket",
+    file: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTldb_YdOdt9VxKl96n2qS9N0xnFPF8VwBYPUrsGGnNituw1xtYQ4SbSsGPFkmmvFsUHuhkK5LdD5XT/pubhtml?gid=2081750134&single=true"
+  }
+};
 
   const bracket = bracketMap[selectedAllStarsDivision];
 
@@ -1700,7 +1700,7 @@ if (
         </p>
 
         <button
-          onclick="window.open('${bracket.file}', '_blank')"
+          onclick="renderWebBracketPage('${bracket.file}', '${bracket.title}')"
           style="background:#0b2a52;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-weight:700;font-size:15px;margin:6px;"
         >
           View ${bracket.title}
@@ -2229,7 +2229,31 @@ async function renderPdfPage(pdfUrl, title) {
 
   renderPdfCanvas();
 }
+function renderWebBracketPage(url, title) {
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
 
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <button onclick="renderAllStars()" style="margin-right:8px;">← Back</button>
+        <div class="card-title">${title}</div>
+      </div>
+
+      <iframe
+        src="${url}"
+        style="
+          width:100%;
+          height:calc(100vh - 120px);
+          border:0;
+          background:white;
+        "
+      ></iframe>
+    </section>
+  `;
+
+  applyPageTransition();
+}
 async function renderPdfCanvas() {
   if (!pdfDoc) return;
 

@@ -301,7 +301,6 @@ const VPLL_ALL_STARS_TEAMS = [
 
 const ALL_STARS_ROUNDS = [
   "Districts",
-  "8/9 Section 10",
   "Sectionals"
 ];
 
@@ -1656,6 +1655,55 @@ function renderAllStarsStandings() {
           style="background:#d32f2f;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-weight:700;font-size:15px;margin:6px;"
         >
           View Juniors Sectionals Bracket
+        </button>
+      </div>
+    </div>
+  `;
+}
+if (
+  selectedAllStarsDivision === "12U" ||
+  selectedAllStarsDivision === "11U" ||
+  selectedAllStarsDivision === "8/9 Section 10"
+) {
+  const bracketMap = {
+    "12U": {
+      title: "12U Sectionals Bracket",
+      file: "resources/allstars_12u_sectionals.pdf"
+    },
+    "11U": {
+      title: "11U Sectionals Bracket",
+      file: "resources/allstars_11u_sectionals.pdf"
+    },
+    "8/9 Section 10": {
+      title: "8/9 Section 10 Bracket",
+      file: "resources/allstars_89_section10_sectionals.pdf"
+    }
+  };
+
+  const bracket = bracketMap[selectedAllStarsDivision];
+
+  return `
+    <div style="padding:0 16px 16px 16px;">
+      <div style="
+        background:#f7f9fc;
+        border:1px solid #dbe3ef;
+        border-radius:12px;
+        padding:16px;
+        text-align:center;
+      ">
+        <h3 style="margin-top:0; color:#0b2a52;">
+          🏆 ${bracket.title}
+        </h3>
+
+        <p style="margin-bottom:16px;">
+          Tap below to view the bracket.
+        </p>
+
+        <button
+          onclick="renderPdfPage('${bracket.file}','${bracket.title}')"
+          style="background:#0b2a52;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-weight:700;font-size:15px;margin:6px;"
+        >
+          View ${bracket.title}
         </button>
       </div>
     </div>

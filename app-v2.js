@@ -1675,9 +1675,9 @@ if (
       file: "resources/allstars_11u_sectionals.pdf"
     },
     "8/9 Section 10": {
-      title: "8/9 Section 10 Bracket",
-      file: "resources/allstars_89_section10_sectionals.pdf"
-    }
+  title: "Section 10 Bracket",
+  file: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTldb_YdOdt9VxKl96n2qS9N0xnFPF8VwBYPUrsGGnNituw1xtYQ4SbSsGPFkmmvFsUHuhkK5LdD5XT/pubhtml?gid=2081750134&single=true"
+}
   };
 
   const bracket = bracketMap[selectedAllStarsDivision];
@@ -1700,7 +1700,7 @@ if (
         </p>
 
         <button
-          onclick="renderPdfPage('${bracket.file}','${bracket.title}')"
+          onclick="window.open('${bracket.file}', '_blank')"
           style="background:#0b2a52;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-weight:700;font-size:15px;margin:6px;"
         >
           View ${bracket.title}

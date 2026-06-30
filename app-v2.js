@@ -914,7 +914,9 @@ async function renderHome() {
       <img src="home_banner4.jpg" class="slide" alt="League Banner">
       <img src="home_banner5.jpg" class="slide" alt="League Banner">
       <img src="home_banner6.jpg" class="slide" alt="League Banner">
-    </div>
+      <img src="home_banner7.jpg" class="slide" alt="League Banner">
+      <img src="home_banner8.jpg" class="slide" alt="League Banner">
+      </div>
 
     ${announcementHTML}
 

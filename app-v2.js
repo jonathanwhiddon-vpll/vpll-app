@@ -940,7 +940,7 @@ async function renderHome() {
       transition:all .2s ease;
     "
   >
-    ⚾ Fall Ball Registration is OPEN
+    🍂⚾ Fall Ball Registration is OPEN
     <div style="
       font-size:15px;
       font-weight:600;

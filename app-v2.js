@@ -1906,8 +1906,8 @@ function renderTicker(forceRestart = false) {
   if (!tickerData || tickerData.length === 0) {
     html = `
       <div class="ticker-item">
-        ⚾ <span class="no-scores">No score submissions yet.</span>
-      </div>
+        🍂 <span class="no-scores">Fall Ball Registration is NOW OPEN! Tap the button below to register.</span>
+    </div>
     `;
   } else {
     html = tickerData

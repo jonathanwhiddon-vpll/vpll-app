@@ -920,7 +920,28 @@ async function renderHome() {
 
     ${announcementHTML}
 
-    
+ <!-- Fall Ball Registration -->
+<div style="padding:0 16px 18px 16px;">
+  <button
+    onclick="window.open('https://www.vplittleleague.net/Default.aspx?tabid=2752970','_blank')"
+    style="
+      display:block;
+      width:100%;
+      text-align:center;
+      padding:16px 12px;
+      border-radius:12px;
+      font-weight:800;
+      font-size:18px;
+      border:none;
+      background:#d32f2f;
+      color:#fff;
+      box-shadow:0 4px 10px rgba(0,0,0,.2);
+    "
+  >
+    🍂 Fall Ball Registration is OPEN!
+  </button>
+</div>   
+
 <!-- Snack Bar Menu Button -->
 <div style="padding: 0 16px 18px 16px;">
   <button

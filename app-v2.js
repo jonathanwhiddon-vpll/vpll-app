@@ -883,6 +883,10 @@ async function loadAnnouncement() {
 // ================================
 async function renderHome() {
   const announcements = await loadAnnouncement();
+
+  // Don't let a delayed Home load overwrite another page
+  if (currentPage !== "home") return;
+
   let announcementHTML = "";
 
   if (announcements.length > 0) {

@@ -2687,6 +2687,7 @@ function renderMore() {
     <div class="more-card" data-target="field-map">
       <div class="more-icon">📍</div>
       <div class="more-label">Field Map</div>
+      </div>
   
     <div class="more-card more-card-wide" data-target="enter-score">
       <div class="more-icon">📋✅</div>

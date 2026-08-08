@@ -2573,18 +2573,23 @@ function renderBoardDirectory() {
             ${
               member.email
                 ? `
-                  <a
-                    href="mailto:${member.email}"
-                    style="
-                      display:inline-block;
-                      margin-top:10px;
-                      color:#0b2a52;
-                      font-weight:700;
-                      text-decoration:none;
-                    "
-                  >
-                    ✉️ ${member.email}
-                  </a>
+                  <button
+  onclick="window.location.href='mailto:${member.email}'"
+  style="
+    display:inline-block;
+    margin-top:10px;
+    padding:8px 12px;
+    border:none;
+    border-radius:8px;
+    background:#0b2a52;
+    color:#fff;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+  "
+>
+  ✉️ Email ${member.name}
+</button>
                 `
                 : ""
             }

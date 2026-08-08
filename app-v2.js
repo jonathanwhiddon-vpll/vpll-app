@@ -1178,7 +1178,7 @@ function renderSchedule() {
         <div class="schedule-container">
           ${
             list.length === 0
-              ? `<p style="padding:16px;">Fall Ball schedule coming soon.</p>`
+              ? `<p style="padding:16px;">No games loaded.</p>`
               : Object.keys(gamesByDate)
                   .map(date => {
                     return `
@@ -2351,6 +2351,11 @@ function renderResources() {
 </div>
 
       <ul class="roster-list">
+      <li>
+  <a href="#" onclick="renderBoardDirectory(); return false;">
+    👥 VPLL Board Directory
+  </a>
+</li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/local_rules.pdf','Local League Rules'); return false;">
             📜 Local League Rules 
@@ -2361,16 +2366,7 @@ function renderResources() {
             💥 Home Run Club 
           </a>
         </li>
-        <li>
-          <a href="#" onclick="renderPdfPage('resources/volunteer_list.pdf','Volunteer List'); return false;">
-            🙋 Volunteer List 
-          </a>
-        </li>
-        <li>
-  <a href="#" onclick="renderBoardDirectory(); return false;">
-    👥 VPLL Board Directory
-  </a>
-</li>
+        
      <li>
   <a
     href="https://apps.apple.com/us/app/district-30-little-league/id6769469029"

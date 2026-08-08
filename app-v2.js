@@ -2688,47 +2688,6 @@ function renderMore() {
       <div class="more-icon">📍</div>
       <div class="more-label">Field Map</div>
   
-      </div>
-    <div class="more-card" data-target="tournaments">
-  <div class="more-icon">🏆</div>
-  <div class="more-label">VP Playoffs</div>
-  </div>
-
-  <div class="more-card" data-target="toc-majors">
-  <div class="more-icon">🏅</div>
-  <div class="more-label">TOC Majors</div>
-</div>
-
-<div class="more-card" data-target="toc-minors">
-  <div class="more-icon">🏅</div>
-  <div class="more-label">TOC Minors</div>
-</div>
-
-<div class="more-card" data-target="allstars-majors">
-  <div class="more-icon">⭐</div>
-  <div class="more-label">All Stars Majors</div>
-</div>
-
-<div class="more-card" data-target="allstars-11u">
-  <div class="more-icon">⭐</div>
-  <div class="more-label">All Stars 11U</div>
-</div>
-
-<div class="more-card" data-target="allstars-10u">
-  <div class="more-icon">⭐</div>
-  <div class="more-label">All Stars 10U</div>
-</div>
-
-<div class="more-card" data-target="allstars-poolplay">
-  <div class="more-icon">⭐</div>
-  <div class="more-label">All Stars pool Play</div>
-</div>
-
-<div class="more-card" data-target="allstars-8/9section10">
-  <div class="more-icon">⭐</div>
-  <div class="more-label">All Stars 8/9 Section 10</div>
-</div>
-
     <div class="more-card more-card-wide" data-target="enter-score">
       <div class="more-icon">📋✅</div>
       <div class="more-label">Enter Final Score</div>

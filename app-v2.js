@@ -2066,7 +2066,7 @@ function renderStandings() {
     pageRoot.innerHTML = `
       <section class="card">
         <div class="card-header"><div class="card-title">Standings</div></div>
-        <p style="padding:16px;">No standings available yet.</p>
+        <p style="padding:16px;">No standings during the fall ball season.</p>
       </section>
     `;
     applyPageTransition();

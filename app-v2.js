@@ -2362,6 +2362,11 @@ function renderResources() {
             🙋 Volunteer List 
           </a>
         </li>
+        <li>
+  <a href="#" onclick="renderBoardDirectory(); return false;">
+    👥 VPLL Board Directory
+  </a>
+</li>
      <li>
   <a
     href="https://apps.apple.com/us/app/district-30-little-league/id6769469029"
@@ -2402,7 +2407,195 @@ function renderResources() {
 
   applyPageTransition();
 }
+function renderBoardDirectory() {
+  const boardMembers = [
+    {
+      name: "Jon Whiddon",
+      position: "President",
+      email: "vpllpresident@yahoo.com"
+    },
+    {
+      name: "Sean Pullin",
+      position: "President Elect",
+      email: ""
+    },
+    {
+      name: "Brian Cole",
+      position: "Vice President",
+      email: ""
+    },
+    {
+      name: "Jake Monson",
+      position: "Player Agent Upper Div",
+      email: "vpllplayersagent@gmail.com"
+    },
+    {
+      name: "Graham Ferguson",
+      position: "Player Agent Lower Div",
+      email: "vpllplayersagent@gmail.com"
+    },
+    {
+      name: "Jason Coleman",
+      position: "Player Agent Lower Div",
+      email: "vpllplayersagent@gmail.com"
+    },
+    {
+      name: "Zach Smothermon",
+      position: "Umpire Coordinator UIC",
+      email: ""
+    },
+    {
+      name: "Bryan Arguello",
+      position: "Treasurer",
+      email: ""
+    },
+    {
+      name: "Jessica Dossey",
+      position: "Secretary",
+      email: ""
+    },
+    {
+      name: "Dave White",
+      position: "Information Officer/Website",
+      email: "vpllwebmaster@gmail.com"
+    },
+    {
+      name: "Matt Williams",
+      position: "Snack Bar Coordinator",
+      email: ""
+    },
+    {
+      name: "Christina Evelo",
+      position: "Snack Bar Coordinator",
+      email: ""
+    },
+    {
+      name: "Todd Thergesen",
+      position: "Practice Coordinator",
+      email: ""
+    },
+    {
+      name: "Chris Bragg",
+      position: "Practice Coordinator lowers",
+      email: ""
+    },
+    {
+      name: "Scott Belcher",
+      position: "Low Division Coordinator",
+      email: ""
+    },
+    {
+      name: "Anthony Mazza",
+      position: "Safety Officer",
+      email: ""
+    },
+    {
+      name: "Matt Cairney",
+      position: "Equipment",
+      email: ""
+    },
+    {
+      name: "Justin Meyers",
+      position: "Field Coordinator",
+      email: ""
+    },
+    {
+      name: "Anthony Decker",
+      position: "Assistant Field Coordinator",
+      email: ""
+    },
+    {
+      name: "Tracy Paul",
+      position: "Team Parent Coordinator/Events Coordinator",
+      email: ""
+    },
+    {
+      name: "Kristin Ridenour",
+      position: "Sponsorship Coordinator",
+      email: ""
+    },
+    {
+      name: "Katie Tassos",
+      position: "Fundraiser Coordinator",
+      email: ""
+    },
+    {
+      name: "Lee Tousignant",
+      position: "Uniforms",
+      email: ""
+    },
+    {
+      name: "Jon Brucher",
+      position: "Merchandise",
+      email: ""
+    }
+  ];
 
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <button onclick="renderResources()" style="margin-right:8px;">
+          ← Back
+        </button>
+
+        <div class="card-title">VPLL Board Directory</div>
+      </div>
+
+      <div style="padding:16px;">
+        ${boardMembers.map(member => `
+          <div style="
+            background:#fff;
+            border:1px solid #e1e5ea;
+            border-radius:12px;
+            padding:14px 16px;
+            margin-bottom:12px;
+            box-shadow:0 2px 6px rgba(0,0,0,0.06);
+          ">
+            <div style="
+              font-size:17px;
+              font-weight:800;
+              color:#0b2a52;
+            ">
+              ${member.name}
+            </div>
+
+            <div style="
+              font-size:14px;
+              color:#666;
+              margin-top:3px;
+            ">
+              ${member.position}
+            </div>
+
+            ${
+              member.email
+                ? `
+                  <a
+                    href="mailto:${member.email}"
+                    style="
+                      display:inline-block;
+                      margin-top:10px;
+                      color:#0b2a52;
+                      font-weight:700;
+                      text-decoration:none;
+                    "
+                  >
+                    ✉️ ${member.email}
+                  </a>
+                `
+                : ""
+            }
+          </div>
+        `).join("")}
+      </div>
+    </section>
+  `;
+
+  applyPageTransition();
+}
 // ========================
 // COACH SCORE FORM
 // ========================

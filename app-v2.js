@@ -1910,7 +1910,7 @@ function renderTicker(forceRestart = false) {
   if (!tickerData || tickerData.length === 0) {
     html = `
       <div class="ticker-item">
-        🍂 <span class="no-scores">Fall Ball Registration is NOW OPEN! Tap the button below to register.</span>
+        🍂 <span class="no-scores">Fall Ball Registration is closed. Teams are being formed and info will be sent soon.</span>
     </div>
     `;
   } else {

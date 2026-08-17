@@ -393,6 +393,10 @@ async function loadPractices() {
         weekdayTime: (row["Weekday Time"] || "").trim(),
         weekdayField: (row["Weekday Field"] || "").trim(),
 
+        alternateWeekdayTime: (row["Alternate Weekday Time"] || "").trim(),
+alternateWeekdayField: (row["Alternate Weekday Field"] || "").trim(),
+
+
         aug22Time: (row["Saturday Aug 22 Time"] || "").trim(),
         aug22Field: (row["Saturday Aug 22 Field"] || "").trim(),
 
@@ -1142,15 +1146,34 @@ function showCoachPractice(coachName) {
       </div>
 
       <div style="
-        padding:12px;
-        background:#fff;
-        border-radius:10px;
-        margin-bottom:18px;
-      ">
-        <div><strong>${p.weekday || "TBD"}</strong></div>
+  padding:12px;
+  background:#fff;
+  border-radius:10px;
+  margin-bottom:18px;
+">
+  <div><strong>${p.weekday || "TBD"}</strong></div>
+
+  ${
+    p.alternateWeekdayTime
+      ? `
+        <div style="margin-top:6px; font-weight:700;">Rotating Times</div>
+        <div>${p.weekdayTime || "Time TBD"} / ${p.alternateWeekdayTime}</div>
+        <div>
+          Field: ${p.weekdayField || "TBD"}
+          ${
+            p.alternateWeekdayField &&
+            p.alternateWeekdayField !== p.weekdayField
+              ? ` / ${p.alternateWeekdayField}`
+              : ""
+          }
+        </div>
+      `
+      : `
         <div>${p.weekdayTime || "Time TBD"}</div>
         <div>${p.weekdayField ? `Field: ${p.weekdayField}` : "Field TBD"}</div>
-      </div>
+      `
+  }
+</div>
 
       <div style="
         font-weight:800;

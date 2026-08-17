@@ -981,7 +981,7 @@ async function renderHome() {
       cursor:pointer;
     "
   >
-    ⚾ Fall Ball Practices
+    ⚾ Fall Ball Practices 🍂
   </button>
 </div>
 <!-- 

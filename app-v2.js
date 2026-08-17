@@ -269,6 +269,10 @@ const CSV_URLS = {
   "T-Ball":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=860483387&single=true&output=csv"
 };
+const PRACTICES_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=371320809&single=true&output=csv";
+
+let practices = [];
 const TOURNAMENT_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1000083841&single=true&output=csv";
 let tournamentGames = [];
 const TOC_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=2037385450&single=true&output=csv";
@@ -356,7 +360,7 @@ async function loadScheduleFromApi() {
       combined = combined.concat(parsed);
     }
 
-    games = combined;
+       games = combined;
     applyScoreOverrides();
 
     if (currentPage === "schedule") renderSchedule();
@@ -368,6 +372,43 @@ async function loadScheduleFromApi() {
     hideSpinner();
   }
 }
+
+async function loadPractices() {
+  try {
+    const response = await fetch(PRACTICES_CSV_URL, { cache: "no-cache" });
+    const csvText = await response.text();
+
+    const rows = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
+    }).data;
+
+    practices = rows
+      .map(row => ({
+        division: (row["Division"] || "").trim(),
+        coach: (row["Coach"] || "").trim(),
+        team: (row["Team"] || "").trim(),
+
+        weekday: (row["Weekday"] || "").trim(),
+        weekdayTime: (row["Weekday Time"] || "").trim(),
+        weekdayField: (row["Weekday Field"] || "").trim(),
+
+        aug22Time: (row["Saturday Aug 22 Time"] || "").trim(),
+        aug22Field: (row["Saturday Aug 22 Field"] || "").trim(),
+
+        aug29Time: (row["Saturday Aug 29 Time"] || "").trim(),
+        aug29Field: (row["Saturday Aug 29 Field"] || "").trim(),
+
+        sept5Time: (row["Saturday Sept 5 Time"] || "").trim(),
+        sept5Field: (row["Saturday Sept 5 Field"] || "").trim()
+      }))
+      .filter(p => p.coach);
+  } catch (err) {
+    console.error("Error loading practices CSV:", err);
+    practices = [];
+  }
+}
+
 async function loadTournamentGames() {
   try {
     const response = await fetch(TOURNAMENT_CSV_URL, { cache: "no-cache" });
@@ -923,7 +964,26 @@ async function renderHome() {
       </div>
 
     ${announcementHTML} 
-
+<div style="padding: 0 16px 18px 16px;">
+  <button
+    onclick="currentPage='practices'; renderPractices();"
+    style="
+      display:block;
+      width:100%;
+      text-align:center;
+      padding:14px 12px;
+      border-radius:12px;
+      font-weight:800;
+      font-size:16px;
+      border:1px solid #b8cbe3;
+      background:#eef4fb;
+      color:#0b2a52;
+      cursor:pointer;
+    "
+  >
+    ⚾ Practices
+  </button>
+</div>
 <!-- 
 <div style="padding: 0 16px 18px 16px;">
   <button
@@ -950,6 +1010,174 @@ async function renderHome() {
 
     applyPageTransition();
   setTimeout(startHomeSlideshow, 100);
+}
+async function renderPractices() {
+  showSpinner();
+
+  if (!practices.length) {
+    await loadPractices();
+  }
+
+  const pageRoot = getPageRoot();
+  if (!pageRoot) {
+    hideSpinner();
+    return;
+  }
+
+  const coachNames = [...new Set(
+    practices
+      .map(p => p.coach)
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b));
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <button onclick="currentPage='home'; renderHome();" style="margin-right:8px;">← Back</button>
+        <div>
+          <div class="card-title">⚾ Practices</div>
+          <div class="card-subtitle">Find your coach's practice schedule</div>
+        </div>
+      </div>
+
+      <div style="padding:16px;">
+        <label for="practiceCoachSelect">
+          <strong>Coach:</strong>
+        </label>
+
+        <select
+          id="practiceCoachSelect"
+          onchange="showCoachPractice(this.value)"
+          style="
+            width:100%;
+            margin-top:8px;
+            padding:12px;
+            border-radius:10px;
+            border:1px solid #ccc;
+            font-size:16px;
+            background:#fff;
+          "
+        >
+          <option value="">Select your coach</option>
+
+          ${coachNames.map(coach => `
+            <option value="${coach}">
+              ${coach}
+            </option>
+          `).join("")}
+        </select>
+
+        <div id="practiceDetails" style="margin-top:18px;"></div>
+      </div>
+    </section>
+  `;
+
+  applyPageTransition();
+  hideSpinner();
+}
+
+function showCoachPractice(coachName) {
+  const details = document.getElementById("practiceDetails");
+  if (!details) return;
+
+  if (!coachName) {
+    details.innerHTML = "";
+    return;
+  }
+
+  const p = practices.find(item => item.coach === coachName);
+
+  if (!p) {
+    details.innerHTML = `
+      <p>No practice information found.</p>
+    `;
+    return;
+  }
+
+  const saturdayPractices = [
+    {
+      date: "Saturday, Aug 22",
+      time: p.aug22Time,
+      field: p.aug22Field
+    },
+    {
+      date: "Saturday, Aug 29",
+      time: p.aug29Time,
+      field: p.aug29Field
+    },
+    {
+      date: "Saturday, Sept 5",
+      time: p.sept5Time,
+      field: p.sept5Field
+    }
+  ].filter(s => s.time || s.field);
+
+  details.innerHTML = `
+    <div style="
+      background:#f7f9fc;
+      border:1px solid #dbe3ef;
+      border-radius:12px;
+      padding:16px;
+    ">
+      <div style="
+        font-size:20px;
+        font-weight:800;
+        color:#0b2a52;
+        margin-bottom:4px;
+      ">
+        ${p.coach}
+      </div>
+
+      <div style="font-size:15px; margin-bottom:18px;">
+        ${p.division || ""}
+        ${p.team ? ` • ${p.team}` : ""}
+      </div>
+
+      <div style="
+        font-weight:800;
+        color:#0b2a52;
+        margin-bottom:8px;
+      ">
+        📅 Weekly Practice
+      </div>
+
+      <div style="
+        padding:12px;
+        background:#fff;
+        border-radius:10px;
+        margin-bottom:18px;
+      ">
+        <div><strong>${p.weekday || "TBD"}</strong></div>
+        <div>${p.weekdayTime || "Time TBD"}</div>
+        <div>${p.weekdayField ? `Field: ${p.weekdayField}` : "Field TBD"}</div>
+      </div>
+
+      <div style="
+        font-weight:800;
+        color:#0b2a52;
+        margin-bottom:8px;
+      ">
+        ⚾ Saturday Practices
+      </div>
+
+      ${
+        saturdayPractices.length
+          ? saturdayPractices.map(s => `
+              <div style="
+                padding:12px;
+                background:#fff;
+                border-radius:10px;
+                margin-bottom:10px;
+              ">
+                <div><strong>${s.date}</strong></div>
+                <div>${s.time || "Time TBD"}</div>
+                <div>${s.field ? `Field: ${s.field}` : "Field TBD"}</div>
+              </div>
+            `).join("")
+          : `<div>No Saturday practices assigned.</div>`
+      }
+    </div>
+  `;
 }
 function renderSnackBarMenu() {
   const pageRoot = getPageRoot();

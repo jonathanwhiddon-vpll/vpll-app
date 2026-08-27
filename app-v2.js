@@ -2575,6 +2575,11 @@ function renderResources() {
     👥 VPLL Board Directory
   </a>
 </li>
+<li>
+  <a href="#" onclick="renderPdfPage('resources/volunteer_list.pdf','Volunteer List'); return false;">
+    🙋 Volunteer List
+  </a>
+</li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/local_rules.pdf','Local League Rules'); return false;">
             📜 Local League Rules 

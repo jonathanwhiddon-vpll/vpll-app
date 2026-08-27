@@ -2129,7 +2129,7 @@ function renderTicker(forceRestart = false) {
   if (!tickerData || tickerData.length === 0) {
     html = `
       <div class="ticker-item">
-        🍂 <span class="no-scores">Click Fall Ball Practices to see your practice slots.</span>
+        🍂 <span class="no-scores">Extreme Heat Warning, stay cool and drink lots of water. Click Fall Ball Practices to see your practice slots.</span>
     </div>
     `;
   } else {

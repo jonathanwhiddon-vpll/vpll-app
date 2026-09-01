@@ -2,14 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Villa Park Little League</title>
-
-<!-- iOS PWA -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="VPLL">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Villa Park Little League</title>
 
   <!-- CSS -->
 <link rel="stylesheet" href="style.css?v=5" />
@@ -27,13 +21,16 @@
   });
 </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <script src="app-v2.js?v=5" defer></script>
+   <script src="app-v2.js?v=117" defer></script>
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json" />
-    <link rel="icon" type="image/png" href="60thlogo.jpg" />
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="theme-color" content="#0a192f">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
 </head>
 
 <body>
@@ -46,76 +43,45 @@
     <img src="60thlogo.jpg" alt="Villa Park Logo" />
     Villa Park Little League
 </header>
-<!-- AUTH SECTION (Shown before user unlocks) -->
-<div id="auth-section" style="display:none; padding:20px; text-align:center;">
-
-  <h2 style="margin-bottom:10px;">Unlock App</h2>
-
-  <p>Please enter your email address:</p>
-
-  <input 
-    id="auth-email" 
-    type="email" 
-    placeholder="you@example.com"
-    style="padding:10px; width:80%; max-width:300px; margin-top:10px;"
-  />
-
-  <button 
-    onclick="handleLogin(document.getElementById('auth-email').value)"
-    style="margin-top:15px; padding:10px 20px;">
-      Send Magic Link
-  </button>
-
+<div id="tickerBar">
+  <div id="tickerContent"></div>
 </div>
 
-<div id="gameTicker" class="ticker">
-    <div class="ticker__wrap">
-        <div class="ticker__move" id="tickerContent"></div>
-    </div>
-</div>
+<!-- Main App Root (all pages rendered by app-v2.js) -->
+<main id="page-root">
+    <div id="homeContent"></div>
+</main>
 
-<!-- APP SHELL (Hidden until user unlocks) -->
-<div id="app-shell" style="display:none;">
 
-  <!-- Main App Root -->
-  <main id="page-root">
-      <div id="homeContent"></div>
-  </main>
+<!-- Bottom Navigation -->
+<nav id="bottomNav">
+    <button class="nav-btn" data-page="home">
+        <span class="icon">🏠</span>
+        <span class="label">Home</span>
+    </button>
 
-  <!-- Bottom Navigation -->
-  <nav id="bottomNav">
-      <button class="nav-btn" data-page="home">
-          <span class="icon">🏠</span>
-          <span class="label">Home</span>
-      </button>
+    <button class="nav-btn" data-page="schedule">
+        <span class="icon">📅</span>
+        <span class="label">Schedule</span>
+    </button>
 
-      <button class="nav-btn" data-page="schedule">
-          <span class="icon">📅</span>
-          <span class="label">Schedule</span>
-      </button>
-
-      <button class="nav-btn" data-page="standings">
-          <span class="icon">🏆</span>
-          <span class="label">Standings</span>
-      </button>
-
-      <button class="nav-btn" data-page="more">
-          <span class="icon">⋯</span>
-          <span class="label">More</span>
-      </button>
-  </nav>
-
-</div>
+    <button class="nav-btn" data-page="standings">
+        <span class="icon">🥇</span>
+        <span class="label">Standings</span>
+    </button>
+     
+    <button class="nav-btn" data-page="more">
+        <span class="icon">⋯</span>
+        <span class="label">More</span>
+    </button>
+</nav>
 <script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", function() {
-      navigator.serviceWorker.register("/vpll-sw-v7.js")
-        .then(() => console.log("Service Worker Registered"))
-        .catch(err => console.error("SW registration failed:", err));
-    });
-  }
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/vpll-sw-v7.js?v=12');
+  });
+}
 </script>
 
 </body>
 </html>
-

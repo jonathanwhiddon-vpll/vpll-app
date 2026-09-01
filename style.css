@@ -1,7 +1,6 @@
 /* -----------------------------------------
    Villa Park Little League - Clean Theme
-   No notifications, no alert bar, no spinners
-------------------------------------------*/
+------------------------------------------ */
 
 * {
   box-sizing: border-box;
@@ -19,7 +18,8 @@ body {
 
 /* -----------------------------------------
    HEADER
-------------------------------------------*/
+------------------------------------------ */
+
 header {
   background-color: #0a192f;
   color: white;
@@ -43,7 +43,8 @@ header img {
 
 /* -----------------------------------------
    MAIN
-------------------------------------------*/
+------------------------------------------ */
+
 main {
   flex: 1;
   overflow-y: auto;
@@ -52,7 +53,8 @@ main {
 
 /* -----------------------------------------
    CARDS / SIMPLE UI BLOCKS
-------------------------------------------*/
+------------------------------------------ */
+
 .card {
   background: white;
   border-radius: 16px;
@@ -82,7 +84,11 @@ main {
 
 /* -----------------------------------------
    PAGE TRANSITION
-------------------------------------------*/
+------------------------------------------ */
+#page-root {
+  opacity: 1;
+}
+
 .page-transition {
   animation: slideUp 0.35s ease forwards;
 }
@@ -100,7 +106,8 @@ main {
 
 /* -----------------------------------------
    HOME BANNER
-------------------------------------------*/
+------------------------------------------ */
+
 .home-card {
   padding: 0;
   background: white;
@@ -110,21 +117,38 @@ main {
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
 }
 
-.home-banner {
+.home-banner img {
   width: 100%;
-  object-fit: contain;
-  background-color: #000;
+  height: auto;
+  display: block;
+}
+/* --- HOME SLIDESHOW (safe override) --- */
+
+.home-slideshow {
+  position: relative;
+  width: 100%;
+  height: 220px; /* adjust if you want taller */
+  overflow: hidden;
 }
 
-.home-banner img {
+.home-slideshow img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+
+.home-slideshow img.active {
+  opacity: 1;
 }
 
 /* -----------------------------------------
    ANNOUNCEMENTS
-------------------------------------------*/
+------------------------------------------ */
+
 .announcements {
   padding: 16px;
   background: white;
@@ -151,7 +175,8 @@ main {
 
 /* -----------------------------------------
    BOTTOM NAVIGATION
-------------------------------------------*/
+------------------------------------------ */
+
 #bottomNav {
   position: fixed;
   bottom: 0;
@@ -198,26 +223,16 @@ main {
 }
 
 /* -----------------------------------------
-   RESPONSIVE
-------------------------------------------*/
-@media (max-width: 600px) {
-  header {
-    font-size: 1.1rem;
-  }
-  .card {
-    margin: 12px;
-  }
-  #bottomNav .nav-btn {
-    font-size: 0.9rem;
-  }
-}
+   SPINNER OVERLAY
+------------------------------------------ */
+
 .spinner-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(255,255,255,0.7);
+  background: rgba(255, 255, 255, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -235,6 +250,11 @@ main {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* -----------------------------------------
+   SCHEDULE LIST
+------------------------------------------ */
+
 .schedule-container {
   padding: 0 16px 16px 16px;
 }
@@ -281,7 +301,11 @@ main {
   color: #d32f2f;
   font-weight: 700;
 }
-/* Scroll-To-Today Button */
+
+/* -----------------------------------------
+   SCROLL-TO-TODAY BUTTON
+------------------------------------------ */
+
 .scroll-today-btn {
   position: fixed;
   bottom: 90px;
@@ -304,45 +328,51 @@ main {
   opacity: 1;
   transform: scale(1.05);
 }
+
+/* -----------------------------------------
+   ANNOUNCEMENT BANNER / FADE-IN
+------------------------------------------ */
+
 #vpll-announcement-banner {
   animation: fadeIn 0.4s ease-in-out;
 }
-/* --- GAME TICKER --- */
-.ticker {
-    width: 100%;
-    overflow: hidden;
-    background: #0b3d91;
-    color: white;
-    padding: 6px 0;
-    border-bottom: 2px solid #ffcc00;
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-#tickerContent {
-  overflow: hidden;
-  white-space: nowrap;
-  position: relative;
-}
-
-.ticker-text {
-  display: inline-block;
-  padding-left: 100%;
-  animation: tickerScroll 35s linear infinite;
-}
-
-@keyframes tickerScroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-100%); }
-}
-
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-/* More Page Grid Layout */
+
+/* -----------------------------------------
+   DIVISION BADGES
+------------------------------------------ */
+
+.ticker-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 6px;
+  display: inline-block;
+  color: white;
+}
+
+.badge-maj {
+  background: #0A2A66; /* VPLL Navy */
+}
+
+.badge-aaa {
+  background: #F4B41A; /* VPLL Gold */
+  color: black;        /* Better contrast on gold */
+}
+
+.badge-aa {
+  background: #4EC5C1; /* Light Aqua */
+}
+
+/* -----------------------------------------
+   MORE PAGE GRID LAYOUT
+------------------------------------------ */
+
 .more-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -380,10 +410,14 @@ main {
   color: #0a2a66;
 }
 
-/* Wide Version (Enter Final Score) */
 .more-card-wide {
   grid-column: span 2;
 }
+
+/* -----------------------------------------
+   BUTTONS
+------------------------------------------ */
+
 .form-button {
   display: inline-block;
   background: #0a2a66;
@@ -393,6 +427,146 @@ main {
   text-decoration: none;
   font-size: 16px;
   margin-top: 12px;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #0b3b7e;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+/* -----------------------------------------
+   FULL SCREEN PDF VIEW
+------------------------------------------ */
+
+.pdf-view {
+  position: fixed;
+  top: 70px;      /* header height (adjust if needed) */
+  bottom: 65px;   /* bottom nav height */
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  z-index: 2000;
+}
+
+.pdf-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #0a192f;
+  color: white;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.pdf-title {
+  flex: 1;
+  text-align: center;
+  margin-right: 40px;
+}
+
+.pdf-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  display: block;
+}
+
+/* -----------------------------------------
+   RESPONSIVE
+------------------------------------------ */
+
+@media (max-width: 600px) {
+  header {
+    font-size: 1.1rem;
+  }
+  .card {
+    margin: 12px;
+  }
+  #bottomNav .nav-btn {
+    font-size: 0.9rem;
+  }
+}
+:root{
+  /* 👇 change this anytime (60s, 80s, 120s...) */
+  --ticker-duration: 50s;
+}
+
+/* -------- PREMIUM TICKER STYLE (C1-A) -------- */
+
+#tickerBar {
+  width: 100%;
+  overflow: hidden;
+  background: #0b3d91;
+  border-bottom: 2px solid #ffcc00;
+  padding: 4px 0;
+  white-space: nowrap;
+}
+
+#tickerContent {
+  display: inline-block;
+  white-space: nowrap;
+  /* ✅ one single source of truth for speed */
+  animation: tickerScroll 30s linear infinite;
+
+  /* ✅ makes it “already in motion” (no long wait at the start) */
+  animation-delay: -6s;
+
+  /* ✅ helps mobile Safari */
+  will-change: transform;
+}
+
+.ticker-item {
+  display: inline-block;
+  margin-right: 40px;
+  font-size: 15px;
+  color: white;
+  font-weight: 600;
+}
+
+/* Division badges */
+.badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.badge-majors {
+  background: #d32f2f;
+}
+.badge-aaa {
+  background: #ff9800;
+}
+.badge-aa {
+  background: #4caf50;
+}
+
+/* Text */
+.ticker-text-score {
+  font-size: 15px;
+  letter-spacing: 0.3px;
+}
+
+.no-scores {
+  opacity: 0.8;
+}
+
+/* Animation */
+@keyframes tickerScroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 

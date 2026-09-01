@@ -5,10 +5,7 @@
 const CACHE_NAME = "vpll-static-v8";
 
 const STATIC_ASSETS = [
-  "/", 
-  "/index.html",
   "/style.css",
-  "/app-v2.js",
   "/60thlogo.jpg",
   "/home_banner.jpg",
   "/favicon.ico"
@@ -56,7 +53,11 @@ self.addEventListener("fetch", (event) => {
   if (url.hostname.includes("google")) {
     return; // Let browser handle it normally
   }
-
+// Always fetch fresh HTML (fixes nav / layout updates)
+if (request.mode === "navigate") {
+  event.respondWith(fetch(request));
+  return;
+}
   // 2. Always network-fetch JS (gets you fresh updates every time)
   if (url.pathname.endsWith(".js")) {
     return; 

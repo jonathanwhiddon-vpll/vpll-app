@@ -3,51 +3,67 @@
    - Loads schedule from Google Sheets CSV
    - Coach & Admin login
    - Score entry for Majors / AAA / AA
-   - Standings computed from scores
-   - Messages + Admin pages
-   - No push notifications, no alert bar
+   - Standings from Google Form
+   - Announcements
+   - In-app PDF viewer for Resources
+   - Pull-down refresh on Home
 -------------------------------------------------- */
-// --- Supabase Initialization ---
-const SUPABASE_URL = "https://ikckvtdoskayhtdzvttx.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrY2t2dGRvc2theWh0ZHp2dHR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3NzIzOTEsImV4cCI6MjA4MDM0ODM5MX0.yxm32dawRpDTcQTucGL4QQdVjSbs1_V0ApUq8TV_Fhg";
-
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-// =====================================================
-// MAGIC LINK HANDLER — FIX FOR iPHONE OPENING SAFARI
-// =====================================================
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-  console.log("Auth event:", event);
-
-  // When user clicks magic link and Safari logs them in:
-  if (event === "SIGNED_IN" && session) {
-    const email = session.user?.email?.toLowerCase() || "";
-
-    // Save login locally
-    localStorage.setItem("vpll-user", email);
-
-    // Return to app interface
-    showAppShell();
-    initApp();
-  }
-});
 
 // ========================
 // CONFIG
 // ========================
 function showSpinner() {
-  document.getElementById("loadingSpinner").style.display = "flex";
+  const el = document.getElementById("loadingSpinner");
+  if (el) el.style.display = "flex";
 }
 
 function hideSpinner() {
-  document.getElementById("loadingSpinner").style.display = "none";
+  const el = document.getElementById("loadingSpinner");
+  if (el) el.style.display = "none";
 }
 
-// This no longer matters since we're using CSV
+// (Kept for future use, not used with CSV)
 const API_BASE_URL = "/schedule.json";
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
+const DIVISION_STANDINGS_TEAMS = {
+  Majors: [
+    "Nationals",
+    "Braves",
+    "Cardinals",
+    "Dodgers",
+    "Blue Jays",
+    "Mariners"
+  ],
+  AAA: [
+  "Cubs",
+  "Pirates",
+  "A's",
+  "Royals",
+  "Angels",
+  "Marlins",
+  "Tigers",
+  "Diamondbacks",
+  "Orioles",
+  "Padres"
+],
 
+AA: [
+  "A's",
+  "Angels",
+  "Pirates",
+  "Rockies",
+  "Cubs",
+  "Nationals",
+  "Braves",
+   "Orioles"
+]
+   
+};
+
+const HITS_HOPS_TICKET_URL = "https://www.vplittleleague.net/Default.aspx?tabid=2752970";
+const SNACK_BAR_MENU_URL = "resources/snack-bar-menu.jpg";
 // ========================
 // GLOBAL STATE
 // ========================
@@ -55,223 +71,147 @@ let games = [];
 let currentPage = "home";
 let selectedScheduleDivision = "Majors";
 let selectedStandingsDivision = "Majors";
+let isFirstRender = true;
 
 let loggedInCoach = null;
 let isAdmin = false;
 const ADMIN_PIN = "0709";
-let standingsData = {};   // <— NEW
-let tickerData = [];      // <— NEW
 
-// INITIAL standings layout
-const INITIAL_STANDINGS = {
-  "Majors": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6"],
-  "AAA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
-  "AA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"]
-};
+let standingsData = {};
+let tickerData = [];
+let lastFormGames = [];
+let lastScoresFetchMs = 0;
+let lastTickerHTML = "";
+const TICKER_LOOKBACK_DAYS = 5;  // show last 5 days
+const TICKER_MAX_ITEMS = 30;     // cap ticker length
 
-// Division-level login (simple)
 const coachPins = {
-  "Majors": "1111",
-  "AAA": "2222",
-  "AA": "3333"
+  Majors: "1111",
+  AAA: "2222",
+  AA: "3333"
 };
 
-let scoreOverrides = JSON.parse(localStorage.getItem("vpll_score_overrides") || "{}");
+let scoreOverrides = JSON.parse(
+  localStorage.getItem("vpll_score_overrides") || "{}"
+);
 
-const pageRoot = document.getElementById("page-root");
+// PDF viewer state
+let pdfDoc = null;
+let pdfPageNum = 1;
+let pdfTotalPages = 0;
 
-/* ========================
-   AUTH + ACCESS (MAGIC LINK)
-======================== */
-
-// Show/hide auth section vs app shell (optional, safe if IDs don't exist)
-function showAuthSection() {
-  const authSection = document.getElementById("auth-section");
-  const appShell = document.getElementById("app-shell");
-  if (authSection) authSection.style.display = "block";
-  if (appShell) appShell.style.display = "none";
-}
-
-function showAppShell() {
-  const authSection = document.getElementById("auth-section");
-  const appShell = document.getElementById("app-shell");
-  if (authSection) authSection.style.display = "none";
-  if (appShell) appShell.style.display = "flex"; // or "block" depending on your CSS
-}
-
-// FREE / COACH / BOARD emails + paid check
-async function checkUserAccess(rawEmail) {
-  const email = (rawEmail || "").trim().toLowerCase();
-
-  // FREE ACCESS LIST — edit this anytime
-  const freeEmails = [
-    "bcole1910@gmail.com",
-    "jonathan.whiddon@gmail.com",
-    "aaronmsadler@gmail.com",
-    "agaasch@hotmail.com",
-    "amazzajr@gmail.com",
-    "ben@hannaconstruction.net",
-    "chad@bessire-casenhiser.com",
-    "gferguson101@yahoo.com",
-    "kra24mons3@gmail.com",
-    "jasonpwalker@gmail.com",
-    "nava.dossey@gmail.com",
-    "jmyers24@yahoo.com",
-    "katiestassos@gmail.com",
-    "chlellp@gmail.com",
-    "coachtooz@gmail.com",
-    "matthewcairney@gmail.com",
-    "mattwilliams351@gmail.com",
-    "mrscottbelcher@gmail.com",
-    "naesnillup@yahoo.com",
-    "tthergesen25@aol.com",
-    "tranger79@yahoo.com"
-  ].map(e => e.toLowerCase());
-
-  if (freeEmails.includes(email)) {
-    return true;
-  }
-
-  // Check Supabase users table for paid status (Stripe webhook updates this)
-  const { data, error } = await supabaseClient
-    .from("users")
-    .select("paid")
-    .eq("email", email)
-    .single();
-
-  if (error || !data) {
-    console.warn("checkUserAccess: no paid record for", email, error);
-    return false;
-  }
-
-  return data.paid === true;
-}
-
-// Send Supabase Magic Link
-async function sendMagicLink(email) {
-  const { error } = await supabaseClient.auth.signInWithOtp({
-    email,
-    options: {
-    // Redirect back into the installed PWA after tapping the email link
-    emailRedirectTo: "https://vpll-app.vercel.app/auth"
-
-}
-
-  });
-
-  if (error) {
-    alert("Failed to send magic link: " + error.message);
-    console.error("sendMagicLink error", error);
-    return false;
-  }
-
-  return true;
-}
-
-// Called by your login form. Password (2nd arg) is ignored now.
-async function handleLogin(rawEmail /*, _passwordIgnored */) {
-  const email = (rawEmail || "").trim().toLowerCase();
-  if (!email) {
-    alert("Please enter an email address.");
-    return;
-  }
-
-  // Check if this email is allowed (free list or paid)
-  const access = await checkUserAccess(email);
-
-  if (!access) {
-    alert("You must purchase the app for $1.99 to continue.");
-    // Pass email to paywall so you can pre-fill Stripe or show a message
-    window.location.href = "/paywall.html?email=" + encodeURIComponent(email);
-    return;
-  }
-
-  const ok = await sendMagicLink(email);
-  if (!ok) return;
-
-  alert(
-    "A magic login link has been sent to your email. " +
-    "Tap the link, then reopen the app to start using it."
-  );
-}
-
-// On load, see if there's a Supabase session; if so, verify access and start app
-async function initAuthAndApp() {
-  try {
-       // Detect redirect from magic link returned to the PWA
-if (window.location.hash.includes("auth")) {
-  console.log("Magic link redirect detected…");
-
-  const { data: sessionData } = await supabaseClient.auth.getSession();
-
-  if (sessionData?.session?.user?.email) {
-    const email = sessionData.session.user.email.toLowerCase();
-    localStorage.setItem("vpll-user", email);
-
-    // Clean up URL hash
-    window.location.hash = "";
-
-    showAppShell();
-    initApp();
-    return;
-  }
-}
-
-    const { data, error } = await supabaseClient.auth.getUser();
-
-    if (error) {
-      console.warn("Supabase getUser error:", error);
-    }
-
-    const user = data && data.user ? data.user : null;
-
-    if (user && user.email) {
-      const email = user.email.toLowerCase();
-      const access = await checkUserAccess(email);
-
-      if (!access) {
-        showAuthSection();
-        window.location.href = "/paywall.html?email=" + encodeURIComponent(email);
-        return;
-      }
-
-      // Save login session
-      localStorage.setItem("vpll-user", email);
-
-      // Show main app shell (if those containers exist) and start app
-      showAppShell();
-      initApp();
-    } else {
-      // Not logged in yet; show login
-      showAuthSection();
-    }
-  } catch (err) {
-    console.error("Error during auth init:", err);
-    showAuthSection();
-  }
-}
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 // ========================
 // HELPERS
 // ========================
+function getPageRoot() {
+  return document.getElementById("page-root");
+}
+function norm(s) {
+  return (s || "").toString().trim().replace(/\s+/g, " ").toLowerCase();
+}
+function restartTickerAnimation() {
+  const ticker = document.getElementById("tickerContent");
+  if (!ticker) return;
+
+  ticker.style.animation = "none";
+  void ticker.offsetWidth; // force reflow
+  ticker.style.animation = ""; // return to CSS animation
+}
+function ensureTickerRunning() {
+  const ticker = document.getElementById("tickerContent");
+  if (!ticker) return;
+
+  const anims = ticker.getAnimations ? ticker.getAnimations() : [];
+  if (anims.length) {
+    anims.forEach(a => {
+      try { a.play(); } catch (e) {}
+    });
+    return;
+  }
+
+  const state = getComputedStyle(ticker).animationPlayState;
+  if (state === "paused") {
+    ticker.style.animationPlayState = "running";
+  }
+}
+function normDate(s) {
+  const t = (s || "").toString().trim();
+  const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return norm(t);
+  const mm = m[1].padStart(2, "0");
+  const dd = m[2].padStart(2, "0");
+  return `${mm}/${dd}/${m[3]}`;
+}
+
+function normTime(s) {
+  let t = (s || "").toString().trim().toLowerCase();
+  t = t.replace(/\s+/g, "");
+  t = t.replace(/\./g, "");
+  t = t.replace(/^(\d{1,2}):00(am|pm)$/, "$1$2");
+  return t;
+}
+
+function makeKey({ division, date, time, home, away }) {
+  return [
+    norm(division),
+    normDate(date),
+    normTime(time),
+    norm(home),
+    norm(away)
+  ].join("|");
+}
+
+function applyFormScoresToGames(formGames) {
+  if (!Array.isArray(formGames) || !Array.isArray(games)) return;
+
+  const map = new Map();
+
+  formGames.forEach(fg => {
+    if (fg.homeScore == null || fg.awayScore == null) return;
+
+    const key = makeKey({
+      division: fg.division,
+      date: fg.date,
+      time: fg.time,
+      home: fg.homeTeam,
+      away: fg.awayTeam
+    });
+
+    map.set(key, fg);
+  });
+
+  games.forEach(g => {
+    if (!SCORING_DIVISIONS.includes(g.division)) return;
+
+    const key = makeKey({
+      division: g.division,
+      date: g.date,
+      time: g.time,
+      home: g.home,
+      away: g.away
+    });
+
+    const fg = map.get(key);
+    if (!fg) return;
+
+    g.homeScore = fg.homeScore;
+    g.awayScore = fg.awayScore;
+  });
+}
 function normalizeScore(value) {
   if (value === "" || value == null) return null;
   const n = Number(value);
   return Number.isNaN(n) ? null : n;
 }
 
-function normalizeField(value) {
-  return value == null ? "" : value.toString();
-}
-
 function makeGameKey(game) {
-  return [
-    game.division, game.date, game.time, game.home, game.away
-  ].map(s => s.toString().trim()).join("|");
-}
-
-function saveMessages() {
-  localStorage.setItem("vpll_messages", JSON.stringify(messages));
+  return [game.division, game.date, game.time, game.home, game.away]
+    .map(s => s.toString().trim())
+    .join("|");
 }
 
 function saveScoreOverrides() {
@@ -287,38 +227,92 @@ function applyScoreOverrides() {
     }
   });
 }
+let firstPaintDone = false;
 
 function applyPageTransition() {
   const root = document.getElementById("page-root");
+  if (!root) return;
 
-  // Start fade-out
-  root.style.opacity = 0;
+  // ✅ First render: DO NOTHING
+  if (!firstPaintDone) {
+    root.style.opacity = "1";
+    root.style.transition = "none";
+    firstPaintDone = true;
+    return;
+  }
+
+  // ✅ Normal transitions after first paint
   root.style.transition = "opacity 0.35s ease";
+  root.style.opacity = "0";
 
-  // Wait a tiny bit, then fade back in
   requestAnimationFrame(() => {
     setTimeout(() => {
-      root.style.opacity = 1;
-    }, 50);
+      root.style.opacity = "1";
+    }, 30);
   });
 }
 
 // ========================
 // LOAD SCHEDULE FROM CSV
 // ========================
-// CSV links for each division
-// ===========================
-// LOAD SCHEDULE FROM MULTIPLE DIVISION CSVs
-// ===========================
 const CSV_URLS = {
-  "Majors": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=0&single=true&output=csv",
-  "AAA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1857914653&single=true&output=csv",
-  "AA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1006784456&single=true&output=csv",
-  "Single A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1852143804&single=true&output=csv",
-  "Coach Pitch": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=359750423&single=true&output=csv",
-  "T-Ball": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=860483387&single=true&output=csv"
+  Majors:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=0&single=true&output=csv",
+  AAA:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1857914653&single=true&output=csv",
+  AA:
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1006784456&single=true&output=csv",
+  "Single A":
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1852143804&single=true&output=csv",
+  "Coach Pitch":
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=359750423&single=true&output=csv",
+  "T-Ball":
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=860483387&single=true&output=csv"
 };
+const PRACTICES_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=371320809&single=true&output=csv";
 
+let practices = [];
+const TOURNAMENT_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1000083841&single=true&output=csv";
+let tournamentGames = [];
+const TOC_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=2037385450&single=true&output=csv";
+
+let tocGames = [];
+const ALL_STARS_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1970088002&single=true&output=csv";
+
+const ALL_STARS_DIVISIONS = [
+  "All Teams",
+  "Juniors",
+  "Intermediate",
+  "12U",
+  "11U",
+  "10U",
+  "Pool Play",
+   "8/9 Section 10"
+];
+const VPLL_ALL_STARS_TEAMS = [
+  "VPLL Juniors", 
+  "VPLL Intermediate",
+  "VPLL 12U",
+  "VPLL 11U BC",
+  "VPLL 11U TT",
+  "VPLL 10U DD",
+  "VPLL 10U GG",
+  "VPLL 9U JW",
+  "VPLL 8/9U ZS"
+];
+
+const ALL_STARS_ROUNDS = [
+  "Districts",
+  "Sectionals"
+];
+
+let selectedAllStarsRound = "Districts";
+
+let selectedAllStarsDivision = "All Teams";
+let selectedAllStarsView = "schedule";
+let allStarsGames = [];
 async function loadScheduleFromApi() {
   showSpinner();
   try {
@@ -341,8 +335,12 @@ async function loadScheduleFromApi() {
         const home = item.home || item.Home || "";
         const away = item.away || item.Away || "";
 
-        const homeScore = normalizeScore(item["home score"] || item["Home Score"]);
-        const awayScore = normalizeScore(item["away score"] || item["Away Score"]);
+        const homeScore = normalizeScore(
+          item["home score"] || item["Home Score"]
+        );
+        const awayScore = normalizeScore(
+          item["away score"] || item["Away Score"]
+        );
 
         const game = {
           division,
@@ -352,7 +350,7 @@ async function loadScheduleFromApi() {
           home,
           away,
           homeScore,
-          awayScore,
+          awayScore
         };
 
         game.key = makeGameKey(game);
@@ -362,83 +360,261 @@ async function loadScheduleFromApi() {
       combined = combined.concat(parsed);
     }
 
-    games = combined;
+       games = combined;
     applyScoreOverrides();
-    hideSpinner();
 
     if (currentPage === "schedule") renderSchedule();
     if (currentPage === "standings") renderStandings();
     if (currentPage === "home") renderHome();
-
   } catch (err) {
     console.error("Error loading schedule CSV:", err);
+  } finally {
+    hideSpinner();
   }
 }
 
+async function loadPractices() {
+  try {
+    const response = await fetch(PRACTICES_CSV_URL, { cache: "no-cache" });
+    const csvText = await response.text();
+
+    const rows = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
+    }).data;
+
+    practices = rows
+      .map(row => ({
+        division: (row["Division"] || "").trim(),
+        coach: (row["Coach"] || "").trim(),
+        team: (row["Team"] || "").trim(),
+
+        weekday: (row["Weekday"] || "").trim(),
+        weekdayTime: (row["Weekday Time"] || "").trim(),
+        weekdayField: (row["Weekday Field"] || "").trim(),
+
+        alternateWeekdayTime: (row["Alternate Weekday Time"] || "").trim(),
+alternateWeekdayField: (row["Alternate Weekday Field"] || "").trim(),
+
+
+        aug22Time: (row["Saturday Aug 22 Time"] || "").trim(),
+        aug22Field: (row["Saturday Aug 22 Field"] || "").trim(),
+
+        aug29Time: (row["Saturday Aug 29 Time"] || "").trim(),
+        aug29Field: (row["Saturday Aug 29 Field"] || "").trim(),
+
+        sept5Time: (row["Saturday Sept 5 Time"] || "").trim(),
+        sept5Field: (row["Saturday Sept 5 Field"] || "").trim()
+      }))
+      .filter(p => p.coach);
+  } catch (err) {
+    console.error("Error loading practices CSV:", err);
+    practices = [];
+  }
+}
+
+async function loadTournamentGames() {
+  try {
+    const response = await fetch(TOURNAMENT_CSV_URL, { cache: "no-cache" });
+    const csvText = await response.text();
+
+    const rows = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
+    }).data;
+
+    tournamentGames = rows.map(item => ({
+      date: item.date || item.Date || "",
+      time: item.time || item.Time || "",
+      field: item.field || item.Field || "",
+      home: item.home || item.Home || "",
+      away: item.away || item.Away || "",
+      homeScore: normalizeScore(item["home score"] || item["Home Score"]),
+      awayScore: normalizeScore(item["away score"] || item["Away Score"]),
+      status: (item["Status"] || item["status"] || "").toString().trim().toUpperCase(),
+      inning: (item["Inning"] || item["inning"] || "").toString().trim(),
+      pool: item["Pool"] || item["pool"] || ""
+    }));
+
+    if (currentPage === "tournaments") renderTournaments();
+
+    if (lastFormGames && lastFormGames.length) {
+  tickerData = buildTicker(
+  lastFormGames,
+  tournamentGames,
+  tocGames,
+  allStarsGames
+);
+  renderTicker();
+}
+  } catch (err) {
+    console.error("Error loading tournament CSV:", err);
+    tournamentGames = [];
+  }
+}
+async function loadTOCGames() {
+  try {
+    const response = await fetch(TOC_CSV_URL, { cache: "no-cache" });
+    const csvText = await response.text();
+
+    const rows = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
+    }).data;
+
+    tocGames = rows.map(item => ({
+      date: item.date || item.Date || "",
+      time: item.time || item.Time || "",
+      field: item.field || item.Field || "",
+      home: item.home || item.Home || "",
+      away: item.away || item.Away || "",
+      homeScore: normalizeScore(item["home score"] || item["Home Score"]),
+      awayScore: normalizeScore(item["away score"] || item["Away Score"]),
+      status: (item["Status"] || item["status"] || "").toString().trim().toUpperCase(),
+      inning: (item["Inning"] || item["inning"] || "").toString().trim(),
+      pool: item["Pool"] || item["pool"] || ""
+    }));
+
+    if (currentPage === "toc") renderTOC();
+if (lastFormGames && lastFormGames.length) {
+  tickerData = buildTicker(
+  lastFormGames,
+  tournamentGames,
+  tocGames,
+  allStarsGames
+);
+  renderTicker();
+}
+  } catch (err) {
+    console.error("Error loading TOC CSV:", err);
+    tocGames = [];
+  }
+}
+async function loadAllStarsGames() {
+  try {
+    const response = await fetch(ALL_STARS_CSV_URL, { cache: "no-cache" });
+    const csvText = await response.text();
+
+    const rows = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
+    }).data;
+const get = (item, name) => {
+  const key = Object.keys(item).find(
+    k => k.trim().toLowerCase() === name.toLowerCase()
+  );
+  return key ? item[key] : "";
+};
+    allStarsGames = rows.map(item => ({
+  round: get(item, "Round"),
+  division: get(item, "Division"),
+pool: get(item, "Pool"),
+date: get(item, "Date"),
+  time: get(item, "Time"),
+  field: get(item, "Field"),
+  home: get(item, "Home"),
+  away: get(item, "Away"),
+  homeScore: normalizeScore(get(item, "Home Score")),
+  awayScore: normalizeScore(get(item, "Away Score")),
+  status: get(item, "Status").toString().trim().toUpperCase(),
+  inning: get(item, "Inning").toString().trim()
+}));
+
+    if (currentPage === "allstars") renderAllStars();
+if (lastFormGames && lastFormGames.length) {
+  tickerData = buildTicker(
+    lastFormGames,
+    tournamentGames,
+    tocGames,
+    allStarsGames
+  );
+  renderTicker();
+}
+  } catch (err) {
+    console.error("Error loading All Stars CSV:", err);
+    allStarsGames = [];
+  }
+}
 // ================================
 // FETCH SCORES + STANDINGS (FORM)
 // ================================
 async function fetchScoresAndStandings() {
-  const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1463341365&single=true&output=csv";
+  const url =
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1463341365&single=true&output=csv";
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { cache: "no-store" });
     const csvText = await response.text();
-    const rows = csvText.split("\n").slice(1); // skip header
 
-    let games = [];
-
-    rows.forEach(row => {
-      let cols = row.split(",");
-
-      if (cols.length < 10) return; // skip incomplete rows
-
-      let game = {
-        timestamp: cols[0],
-        division: cols[1],
-        date: cols[3],          // Using "Game Time" and "Game Date"
-        time: cols[4],          // adjust if needed
-        field: cols[5],
-        homeTeam: cols[6],
-        awayTeam: cols[7],
-        homeScore: parseInt(cols[8] || "0"),
-        awayScore: parseInt(cols[9] || "0"),
-        submittedBy: cols[10]
-      };
-
-      games.push(game);
+    const parsed = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
     });
 
-    return games;
+    const formGames = parsed.data.map(row => {
+      const homeScoreRaw = (row["Home Score"] || "").toString().trim();
+      const awayScoreRaw = (row["Away Score"] || "").toString().trim();
 
+      return {
+        timestamp: row["Timestamp"] || "",
+        division: row["Division"] || "",
+        date: row["Game Date"] || row["Date"] || "",
+        time: row["Game Time"] || row["Time"] || "",
+        field: row["Field"] || "",
+        homeTeam: row["Home Team"] || row["Home"] || "",
+        awayTeam: row["Away Team"] || row["Away"] || "",
+        homeScore: homeScoreRaw === "" ? null : parseInt(homeScoreRaw, 10),
+        awayScore: awayScoreRaw === "" ? null : parseInt(awayScoreRaw, 10),
+        submittedBy: row["Submitted By"] || row["Email Address"] || "",
+        status: (row["Status"] || "").toString().trim().toUpperCase(),
+        inning: (row["Inning"] || "").toString().trim()
+      };
+    });
+
+    return formGames;
   } catch (err) {
     console.error("Error fetching scores/standings:", err);
     return [];
   }
 }
 
-function buildStandings(games) {
+function buildStandings(formGames) {
   let table = {};
 
-  games.forEach(g => {
+  formGames.forEach(g => {
+  // Skip LIVE games so they do not affect standings
+  if (g.status === "LIVE") return;
+
+  // Skip games that don't have BOTH scores
+  if (g.homeScore == null || g.awayScore == null) return;
+
     if (!table[g.division]) table[g.division] = {};
 
-    // Ensure home team exists
     if (!table[g.division][g.homeTeam]) {
-      table[g.division][g.homeTeam] = { wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
-    }
-    // Ensure away team exists
-    if (!table[g.division][g.awayTeam]) {
-      table[g.division][g.awayTeam] = { wins: 0, losses: 0, ties: 0, runsFor: 0, runsAgainst: 0 };
+      table[g.division][g.homeTeam] = {
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        runsFor: 0,
+        runsAgainst: 0
+      };
     }
 
-    // Add RF/RA
+    if (!table[g.division][g.awayTeam]) {
+      table[g.division][g.awayTeam] = {
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        runsFor: 0,
+        runsAgainst: 0
+      };
+    }
+
     table[g.division][g.homeTeam].runsFor += g.homeScore;
     table[g.division][g.homeTeam].runsAgainst += g.awayScore;
     table[g.division][g.awayTeam].runsFor += g.awayScore;
     table[g.division][g.awayTeam].runsAgainst += g.homeScore;
 
-    // Wins / Losses
     if (g.homeScore > g.awayScore) {
       table[g.division][g.homeTeam].wins++;
       table[g.division][g.awayTeam].losses++;
@@ -454,23 +630,217 @@ function buildStandings(games) {
   return table;
 }
 
-function buildTicker(formGames) {
-  formGames.sort((a, b) => {
-    return new Date(b.date + " " + b.time) - new Date(a.date + " " + a.time);
-  });
+function parseMMDDYYYY(dateStr) {
+  const raw = (dateStr || "").toString().trim();
 
-  return formGames.map(g => {
-    return `${g.division}: ${g.homeTeam} ${g.homeScore} - ${g.awayScore} ${g.awayTeam}`;
-  });
+  // Accept M/D/YYYY, MM/DD/YYYY, M-D-YYYY, MM-DD-YYYY
+  const m = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if (!m) return null;
+
+  const mm = parseInt(m[1], 10) - 1;
+  const dd = parseInt(m[2], 10);
+  const yy = parseInt(m[3], 10);
+
+  const d = new Date(yy, mm, dd);
+  d.setHours(0, 0, 0, 0);
+
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function parseGameDateTime(dateStr, timeStr) {
+  const d = parseMMDDYYYY(dateStr);
+  if (!d) return null;
+
+  const rawTime = (timeStr || "").toString().trim().toLowerCase();
+  const m = rawTime.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+
+  let hours = 0;
+  let minutes = 0;
+
+  if (m) {
+    hours = parseInt(m[1], 10);
+    minutes = parseInt(m[2] || "0", 10);
+    const ampm = m[3];
+
+    if (ampm === "pm" && hours !== 12) hours += 12;
+    if (ampm === "am" && hours === 12) hours = 0;
+  }
+
+  return new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate(),
+    hours,
+    minutes,
+    0,
+    0
+  );
+}
+
+function buildTicker(
+  formGames,
+  tournamentList = [],
+  tocList = [],
+  allStarsList = []
+) {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  const cutoff = new Date();
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setDate(cutoff.getDate() - TICKER_LOOKBACK_DAYS);
+
+  const leagueEntries = (formGames || [])
+    .filter(g => {
+      const gameDate = parseMMDDYYYY(g.date);
+      if (!gameDate) return false;
+      if (gameDate < cutoff || gameDate > today) return false;
+
+      const isLive = g.status === "LIVE";
+      const isFinal = g.homeScore != null && g.awayScore != null;
+
+      return isLive || isFinal;
+    })
+    .map(g => ({
+      source: "league",
+      division: g.division,
+      date: g.date,
+      time: g.time,
+      awayTeam: g.awayTeam,
+      homeTeam: g.homeTeam,
+      awayScore: g.awayScore != null ? g.awayScore : "-",
+      homeScore: g.homeScore != null ? g.homeScore : "-",
+      status: g.status,
+      inning: g.inning || "",
+      sortDate: parseGameDateTime(g.date, g.time)
+    }));
+
+  const tournamentEntries = (tournamentList || [])
+    .filter(g => {
+      const gameDate = parseMMDDYYYY(g.date);
+      if (!gameDate) return false;
+      if (gameDate < cutoff || gameDate > today) return false;
+
+      const isLive = g.status === "LIVE";
+      const isFinal = g.homeScore != null && g.awayScore != null;
+
+      return isLive || isFinal;
+    })
+    .map(g => ({
+      source: "tournament",
+      division: "Tournament",
+      date: g.date,
+      time: g.time,
+      awayTeam: g.away,
+      homeTeam: g.home,
+      awayScore: g.awayScore != null ? g.awayScore : "-",
+      homeScore: g.homeScore != null ? g.homeScore : "-",
+      status: g.status,
+      inning: g.inning || "",
+      pool: g.pool || "",
+      sortDate: parseGameDateTime(g.date, g.time)
+    }));
+const tocEntries = (tocList || [])
+  .filter(g => {
+    const gameDate = parseMMDDYYYY(g.date);
+    if (!gameDate) return false;
+    if (gameDate < cutoff || gameDate > today) return false;
+
+    const isLive = g.status === "LIVE";
+    const isFinal = g.homeScore != null && g.awayScore != null;
+
+    return isLive || isFinal;
+  })
+  .map(g => ({
+    source: "toc",
+    division: "TOC",
+    date: g.date,
+    time: g.time,
+    awayTeam: g.away,
+    homeTeam: g.home,
+    awayScore: g.awayScore != null ? g.awayScore : "-",
+    homeScore: g.homeScore != null ? g.homeScore : "-",
+    status: g.status,
+    inning: g.inning || "",
+    sortDate: parseGameDateTime(g.date, g.time)
+  }));
+  const allStarsEntries = (allStarsList || [])
+  .filter(g => {
+    const gameDate = parseMMDDYYYY(g.date);
+    if (!gameDate) return false;
+    if (gameDate < cutoff || gameDate > today) return false;
+
+    const isLive = g.status === "LIVE";
+    const isFinal = g.homeScore != null && g.awayScore != null;
+
+    if (!(isLive || isFinal)) return false;
+
+    return (
+      VPLL_ALL_STARS_TEAMS.includes(g.home) ||
+      VPLL_ALL_STARS_TEAMS.includes(g.away)
+    );
+  })
+  .map(g => ({
+    source: "allstars",
+    division: "All Stars",
+    date: g.date,
+    time: g.time,
+    awayTeam: g.away,
+    homeTeam: g.home,
+    awayScore: g.awayScore != null ? g.awayScore : "-",
+    homeScore: g.homeScore != null ? g.homeScore : "-",
+    status: g.status,
+    inning: g.inning || "",
+    sortDate: parseGameDateTime(g.date, g.time)
+  }));
+  return [
+  ...leagueEntries,
+  ...tournamentEntries,
+  ...tocEntries,
+  ...allStarsEntries
+]
+    .sort((a, b) => {
+      const aLive = a.status === "LIVE" ? 1 : 0;
+      const bLive = b.status === "LIVE" ? 1 : 0;
+
+      if (bLive !== aLive) return bLive - aLive;
+
+      if (!a.sortDate && !b.sortDate) return 0;
+      if (!a.sortDate) return 1;
+      if (!b.sortDate) return -1;
+
+      return b.sortDate - a.sortDate;
+    })
+    .slice(0, TICKER_MAX_ITEMS)
+    .map(g => {
+      const prefix = g.source === "tournament" ? "Playoffs" : g.division;
+
+      if ((g.status || "").trim() === "LIVE") {
+        const inningText = g.inning ? ` • LIVE ${g.inning}` : " • LIVE";
+        return `${prefix}: ${g.date}${inningText} • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`;
+      }
+
+      return `${prefix}: ${g.date} • FINAL • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`;
+    });
 }
 
 async function loadScoresAndStandings() {
-  let formGames = await fetchScoresAndStandings();
+  const formGames = await fetchScoresAndStandings();
+  lastFormGames = formGames;
+  lastScoresFetchMs = Date.now();
 
   standingsData = buildStandings(formGames);
-  tickerData = buildTicker(formGames);
+  tickerData = buildTicker(
+  formGames,
+  tournamentGames,
+  tocGames,
+  allStarsGames
+);
+  renderTicker();
 
-  // These functions already exist in your file
+  applyFormScoresToGames(formGames);
+
+  if (currentPage === "schedule") renderSchedule();
   if (currentPage === "standings") renderStandings();
   if (currentPage === "home") renderHome();
 }
@@ -512,32 +882,31 @@ function editScore(gameKey) {
 // ================================
 async function loadAnnouncement() {
   try {
-    const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
+    const url =
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5YELgRFF-Ui9-t68hK0FcXcjf4_oWO3aJh8Hh3VylDU4OsbGS5Nn5Lad5FZQDK3exbBu5C3UjLAuO/pub?gid=1400490192&single=true&output=csv";
 
-    const resp = await fetch(url);
+    const resp = await fetch(url, { cache: "no-store" });
     if (!resp.ok) throw new Error("Announcement CSV fetch failed");
 
     const csv = await resp.text();
     const lines = csv.trim().split("\n");
     if (lines.length < 2) return [];
 
-    // Parse header
     const header = lines[0].split(",");
-    const annIndex = header.findIndex(h => h.toLowerCase().includes("announcement"));
+    const annIndex = header.findIndex(h =>
+      h.toLowerCase().includes("announcement")
+    );
     if (annIndex < 0) return [];
 
     const announcements = [];
 
-    // Parse each row
     for (let i = 1; i < lines.length; i++) {
-      // Split by comma, but safely (allowing commas inside quotes)
       const row = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
       if (!row) continue;
 
       let msg = row[annIndex] || "";
       msg = msg.trim();
 
-      // Remove wrapping quotes ("message" → message)
       if (msg.startsWith('"') && msg.endsWith('"')) {
         msg = msg.slice(1, -1);
       }
@@ -548,7 +917,6 @@ async function loadAnnouncement() {
     }
 
     return announcements;
-
   } catch (err) {
     console.warn("Error loading announcements:", err);
     return [];
@@ -559,8 +927,11 @@ async function loadAnnouncement() {
 // HOME PAGE
 // ================================
 async function renderHome() {
-
   const announcements = await loadAnnouncement();
+
+  // Don't let a delayed Home load overwrite another page
+  if (currentPage !== "home") return;
+
   let announcementHTML = "";
 
   if (announcements.length > 0) {
@@ -574,34 +945,300 @@ async function renderHome() {
         font-size:16px;
       ">
         <ul>
-          ${announcements.map(a => `<li>${a}</li>`).join("")}
-        </ul>
+          ${announcements.map(a => "<li>" + a + "</li>").join("")}
+       </ul>
       </div>
     `;
   }
 
-  // Build final home page HTML
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
   pageRoot.innerHTML = `
-    <section class="card home-card">
-      <div class="home-banner">
-        <img src="home_banner.jpg" alt="League Banner">
+  <section class="card home-card">
+    <div class="home-banner home-slideshow">
+      <img src="home_banner.jpg?v=3" class="slide active" alt="League Banner">
+      <img src="home_banner2.jpg" class="slide" alt="League Banner">
+      <img src="home_banner3.jpg" class="slide" alt="League Banner">
+      <img src="home_banner4.jpg" class="slide" alt="League Banner">
+      <img src="home_banner5.jpg" class="slide" alt="League Banner">
+      <img src="home_banner6.jpg" class="slide" alt="League Banner">
+      <img src="home_banner7.jpg" class="slide" alt="League Banner">
+      <img src="home_banner8.jpg" class="slide" alt="League Banner">
       </div>
 
-      ${announcementHTML}
+    ${announcementHTML} 
+<div style="padding: 0 16px 18px 16px;">
+  <button
+    onclick="currentPage='practices'; renderPractices();"
+    style="
+      display:block;
+      width:100%;
+      text-align:center;
+      padding:14px 12px;
+      border-radius:12px;
+      font-weight:800;
+      font-size:16px;
+      border:1px solid #b8cbe3;
+      background:#eef4fb;
+      color:#0b2a52;
+      cursor:pointer;
+    "
+  >
+    ⚾ Fall Ball Practices 🍂
+  </button>
+</div>
+<!-- 
+<div style="padding: 0 16px 18px 16px;">
+  <button
+    onclick="renderSnackBarMenu()"
+    style="
+      display:block;
+      width:100%;
+      text-align:center;
+      padding:14px 12px;
+      border-radius:12px;
+      font-weight:800;
+      font-size:16px;
+      border:1px solid #c8e6c9;
+      background:#e8f5e9;
+      color:#0b2a52;
+    "
+  >
+    🍿 View Snack Bar Menu
+  </button>
+</div>
+-->
+  </section>
+`;
+
+    applyPageTransition();
+  setTimeout(startHomeSlideshow, 100);
+}
+async function renderPractices() {
+  showSpinner();
+
+  if (!practices.length) {
+    await loadPractices();
+  }
+
+  const pageRoot = getPageRoot();
+  if (!pageRoot) {
+    hideSpinner();
+    return;
+  }
+
+  const coachNames = [...new Set(
+    practices
+      .map(p => p.coach)
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b));
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <button onclick="currentPage='home'; renderHome();" style="margin-right:8px;">← Back</button>
+        <div>
+          <div class="card-title">⚾ Practices</div>
+          <div class="card-subtitle">Find your coach's practice schedule</div>
+        </div>
+      </div>
+
+      <div style="padding:16px;">
+        <label for="practiceCoachSelect">
+          <strong>Coach:</strong>
+        </label>
+
+        <select
+          id="practiceCoachSelect"
+          onchange="showCoachPractice(this.value)"
+          style="
+            width:100%;
+            margin-top:8px;
+            padding:12px;
+            border-radius:10px;
+            border:1px solid #ccc;
+            font-size:16px;
+            background:#fff;
+          "
+        >
+          <option value="">Select your coach</option>
+
+          ${coachNames.map(coach => `
+            <option value="${coach}">
+              ${coach}
+            </option>
+          `).join("")}
+        </select>
+
+        <div id="practiceDetails" style="margin-top:18px;"></div>
+      </div>
     </section>
   `;
-  renderTicker();
+
+  applyPageTransition();
+  hideSpinner();
+}
+
+function showCoachPractice(coachName) {
+  const details = document.getElementById("practiceDetails");
+  if (!details) return;
+
+  if (!coachName) {
+    details.innerHTML = "";
+    return;
+  }
+
+  const p = practices.find(item => item.coach === coachName);
+
+  if (!p) {
+    details.innerHTML = `
+      <p>No practice information found.</p>
+    `;
+    return;
+  }
+
+  const saturdayPractices = [
+    {
+      date: "Saturday, Aug 22",
+      time: p.aug22Time,
+      field: p.aug22Field
+    },
+    {
+      date: "Saturday, Aug 29",
+      time: p.aug29Time,
+      field: p.aug29Field
+    },
+    {
+      date: "Saturday, Sept 5",
+      time: p.sept5Time,
+      field: p.sept5Field
+    }
+  ].filter(s => s.time || s.field);
+
+  details.innerHTML = `
+    <div style="
+      background:#f7f9fc;
+      border:1px solid #dbe3ef;
+      border-radius:12px;
+      padding:16px;
+    ">
+      <div style="
+        font-size:20px;
+        font-weight:800;
+        color:#0b2a52;
+        margin-bottom:4px;
+      ">
+        ${p.coach}
+      </div>
+
+      <div style="font-size:15px; margin-bottom:18px;">
+        ${p.division || ""}
+        ${p.team ? ` • ${p.team}` : ""}
+      </div>
+
+      <div style="
+        font-weight:800;
+        color:#0b2a52;
+        margin-bottom:8px;
+      ">
+        📅 Weekly Practice
+      </div>
+
+      <div style="
+  padding:12px;
+  background:#fff;
+  border-radius:10px;
+  margin-bottom:18px;
+">
+  <div><strong>${p.weekday || "TBD"}</strong></div>
+
+  ${
+    p.alternateWeekdayTime
+      ? `
+        <div style="margin-top:6px; font-weight:700;">Rotating Times</div>
+        <div>${p.weekdayTime || "Time TBD"} / ${p.alternateWeekdayTime}</div>
+        <div>
+          Field: ${p.weekdayField || "TBD"}
+          ${
+            p.alternateWeekdayField &&
+            p.alternateWeekdayField !== p.weekdayField
+              ? ` / ${p.alternateWeekdayField}`
+              : ""
+          }
+        </div>
+      `
+      : `
+        <div>${p.weekdayTime || "Time TBD"}</div>
+        <div>${p.weekdayField ? `Field: ${p.weekdayField}` : "Field TBD"}</div>
+      `
+  }
+</div>
+
+      <div style="
+        font-weight:800;
+        color:#0b2a52;
+        margin-bottom:8px;
+      ">
+        ⚾ Saturday Practices
+      </div>
+
+      ${
+        saturdayPractices.length
+          ? saturdayPractices.map(s => `
+              <div style="
+                padding:12px;
+                background:#fff;
+                border-radius:10px;
+                margin-bottom:10px;
+              ">
+                <div><strong>${s.date}</strong></div>
+                <div>${s.time || "Time TBD"}</div>
+                <div>${s.field ? `Field: ${s.field}` : "Field TBD"}</div>
+              </div>
+            `).join("")
+          : `<div>No Saturday practices assigned.</div>`
+      }
+    </div>
+  `;
+}
+function renderSnackBarMenu() {
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <button onclick="renderHome()" style="margin-right:8px;">← Back</button>
+        <div class="card-title">Snack Bar Menu</div>
+      </div>
+
+      <div style="padding:12px;">
+        <img
+          src="resources/snack-bar-menu.jpg"
+          style="width:100%; border-radius:12px;"
+          alt="Snack Bar Menu"
+        />
+      </div>
+    </section>
+  `;
 
   applyPageTransition();
 }
-
 // ========================
 // TEAMS
 // ========================
 function renderTeams() {
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header"><div class="card-title">Teams</div></div>
+      <div class="card-header">
+  <button onclick="renderMore()" style="margin-right:8px;">← Back</button>
+  <div class="card-title">Teams</div>
+</div>
+
       <ul class="roster-list">
         ${DIVISIONS.map(
           d => `
@@ -626,14 +1263,21 @@ function renderTeamsByDivision(div) {
     }
   });
 
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header"><div class="card-title">${div}</div></div>
+      <div class="card-header">
+  <button onclick="renderTeams()" style="margin-right:8px;">← Back</button>
+  <div class="card-title">${div}</div>
+</div>
       <ul class="roster-list">
         ${[...teamSet]
           .map(
             t => `
-            <li onclick="renderTeamSchedule('${div}','${t}')">
+            <li onclick="renderTeamSchedule(&quot;${div}&quot;,&quot;${t}&quot;)">
+
               <span>${t}</span>
               <span style="font-weight:700; color:#d32f2f;">Schedule</span>
             </li>
@@ -643,6 +1287,7 @@ function renderTeamsByDivision(div) {
       </ul>
     </section>
   `;
+
   applyPageTransition();
 }
 
@@ -654,12 +1299,21 @@ function renderTeamSchedule(div, team) {
       g => g.division === div && (g.home === team || g.away === team)
     );
 
+    const pageRoot = getPageRoot();
+    if (!pageRoot) {
+      hideSpinner();
+      return;
+    }
+
     pageRoot.innerHTML = `
       <section class="card">
         <div class="card-header">
-          <div class="card-title">${team}</div>
-          <div class="card-subtitle">${div}</div>
-        </div>
+  <button onclick="renderTeamsByDivision('${div}')" style="margin-right:8px;">← Back</button>
+  <div>
+    <div class="card-title">${team}</div>
+    <div class="card-subtitle">${div}</div>
+  </div>
+</div>
 
         <ul class="schedule-list">
           ${
@@ -667,13 +1321,10 @@ function renderTeamSchedule(div, team) {
               ? `<li>No games found.</li>`
               : entries
                   .map(g => {
-                    // NEW: Only scoring divisions have a score value
                     const score = SCORING_DIVISIONS.includes(g.division)
-                      ? (
-                          g.homeScore == null && g.awayScore == null
-                            ? "No score yet"
-                            : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
-                        )
+                      ? g.homeScore == null && g.awayScore == null
+                        ? "No score yet"
+                        : `${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}`
                       : "";
 
                     const fieldName = g.field || g.Field || g.FIELD || "";
@@ -683,7 +1334,7 @@ function renderTeamSchedule(div, team) {
                         <span><strong>${g.date}</strong></span>
                         <span>${g.time}</span>
                         <span><em>Field: ${fieldName}</em></span>
-                        <span>${g.home} vs ${g.away}</span>
+                        <span>${g.away} at ${g.home}</span>
                         <span>${score}</span>
                       </li>`;
                   })
@@ -707,18 +1358,28 @@ function renderSchedule() {
   setTimeout(() => {
     const list = games
       .filter(g => g.division === selectedScheduleDivision)
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort((a, b) => {
+  const da = parseMMDDYYYY(a.date);
+  const db = parseMMDDYYYY(b.date);
+  if (!da || !db) return 0;
+  return da - db;
+});
 
-    // Group games by date
     const gamesByDate = {};
     list.forEach(g => {
       if (!gamesByDate[g.date]) gamesByDate[g.date] = [];
       gamesByDate[g.date].push(g);
     });
 
+    const pageRoot = getPageRoot();
+    if (!pageRoot) {
+      hideSpinner();
+      return;
+    }
+
     pageRoot.innerHTML = `
       <section class="card">
-        <div class="card-header"><div class="card-title">Schedule</div></div>
+        <div class="card-header"><div class="card-title">Schedules</div></div>
 
         <div style="padding:16px;">
           <label><strong>Division:</strong>
@@ -736,30 +1397,34 @@ function renderSchedule() {
         <div class="schedule-container">
           ${
             list.length === 0
-              ? `<p style="padding:16px;">No games loaded.</p>`
+              ? `<p style="padding:16px;">🍂 Fall Ball Schedule Coming Soon ⏳.</p>`
               : Object.keys(gamesByDate)
                   .map(date => {
                     return `
-                      <div class="schedule-date-block">
-                        <h3 class="schedule-date-header">📅 ${date}</h3>
-                        <ul class="schedule-list">
+                      <div class="schedule-date-block" data-date="${date}">
+  <h3 class="schedule-date-header">📅 ${date}</h3>
+  <ul class="schedule-list">
                           ${gamesByDate[date]
                             .map(g => {
-                              const score = SCORING_DIVISIONS.includes(g.division)
-                                ? (
-                                    g.homeScore == null && g.awayScore == null
-                                      ? "No score yet"
-                                      : `${g.homeScore ?? "-"} - ${g.awayScore ?? "-"}`
-                                  )
+                              const score = SCORING_DIVISIONS.includes(
+                                g.division
+                              )
+                                ? g.homeScore == null && g.awayScore == null
+                                  ? "No score yet"
+                                  : `${g.awayScore ?? "-"} - ${
+    g.homeScore ?? "-"
+  }`
                                 : "";
 
                               return `
                                 <li class="schedule-item">
                                   <div class="schedule-time-field">
                                     <span class="schedule-time">${g.time}</span>
-                                    <span class="schedule-field">Field: ${g.field || ""}</span>
+                                    <span class="schedule-field">Field: ${
+                                      g.field || ""
+                                    }</span>
                                   </div>
-                                  <div class="schedule-teams">${g.home} vs ${g.away}</div>
+                                  <div class="schedule-teams">${g.away} at ${g.home}</div>
                                   ${
                                     score
                                       ? `<div class="schedule-score">${score}</div>`
@@ -776,93 +1441,898 @@ function renderSchedule() {
           }
         </div>
       </section>
-      <button id="scrollTodayBtn" class="scroll-today-btn" onclick="scrollToToday()">📅 Today</button>
+      <div
+  id="scheduleFloatingButtons"
+  style="position:fixed; right:16px; bottom:90px; display:flex; flex-direction:column; gap:10px; z-index:1000; align-items:flex-end;"
+>
+  <button
+    id="scrollTopBtn"
+    onclick="scrollToTop()"
+    style="
+      background:#0b2a52;
+      color:#fff;
+      border:none;
+      border-radius:999px;
+      padding:12px 18px;
+      font-weight:700;
+      box-shadow:0 4px 12px rgba(0,0,0,0.25);
+      cursor:pointer;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 0.25s ease;
+    "
+  >
+    ⬆️ Top
+  </button>
 
+  <button
+    id="scrollTodayBtn"
+    onclick="scrollToToday()"
+    style="
+      background:#0b2a52;
+      color:#fff;
+      border:none;
+      border-radius:999px;
+      padding:12px 18px;
+      font-weight:700;
+      box-shadow:0 4px 12px rgba(0,0,0,0.25);
+      cursor:pointer;
+    "
+  >
+    📅 Today
+  </button>
+</div>
+    `;
+
+    applyPageTransition();
+hideSpinner();
+updateScheduleFloatingButtons();
+  }, 120);
+}
+function renderTournaments() {
+  showSpinner();
+
+  setTimeout(() => {
+    const list = [...tournamentGames].sort((a, b) => {
+      const da = parseMMDDYYYY(a.date);
+      const db = parseMMDDYYYY(b.date);
+      if (!da || !db) return 0;
+      return da - db;
+    });
+
+    const gamesByDate = {};
+    list.forEach(g => {
+      if (!gamesByDate[g.date]) gamesByDate[g.date] = [];
+      gamesByDate[g.date].push(g);
+    });
+
+    const pageRoot = getPageRoot();
+    if (!pageRoot) {
+      hideSpinner();
+      return;
+    }
+
+    pageRoot.innerHTML = `
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">VPLL Playoffs</div>
+        </div>
+
+        <div class="schedule-container">
+          ${
+            list.length === 0
+              ? `<p style="padding:16px;">No tournament games loaded.</p>`
+              : Object.keys(gamesByDate)
+                  .map(date => {
+                    return `
+                      <div class="schedule-date-block" data-date="${date}">
+                        <h3 class="schedule-date-header">🏆 ${date}</h3>
+                        <ul class="schedule-list">
+                          ${gamesByDate[date]
+                            .map(g => {
+                              let scoreText = "";
+
+                              if ((g.status || "").trim() === "LIVE") {
+                                const awayScore = g.awayScore ?? "-";
+                                const homeScore = g.homeScore ?? "-";
+                                scoreText = `<div class="schedule-score">LIVE${g.inning ? ` ${g.inning}` : ""} • ${awayScore} - ${homeScore}</div>`;
+                              } else if (g.homeScore != null || g.awayScore != null) {
+                                scoreText = `<div class="schedule-score">${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}</div>`;
+                              }
+
+                              return `
+                                <li class="schedule-item">
+                                  <div class="schedule-time-field">
+                                    <span class="schedule-time">${g.time}</span>
+                                    <span class="schedule-field">Field: ${g.field || ""}</span>
+                                  </div>
+                                  <div class="schedule-teams">${g.away} at ${g.home}</div>
+                                  ${
+                                    g.pool
+                                      ? `<div style="font-size:13px; color:#666; margin-top:4px;">${g.pool}</div>`
+                                      : ""
+                                  }
+                                  ${scoreText}
+                                </li>
+                              `;
+                            })
+                            .join("")}
+                        </ul>
+                      </div>
+                    `;
+                  })
+                  .join("")
+          }
+        </div>
+      </section>
+
+      <div
+        id="tournamentFloatingButtons"
+        style="position:fixed; right:16px; bottom:90px; display:flex; flex-direction:column; gap:10px; z-index:1000; align-items:flex-end;"
+      >
+        <button
+          id="scrollTopBtn"
+          onclick="scrollToTop()"
+          style="
+            background:#0b2a52;
+            color:#fff;
+            border:none;
+            border-radius:999px;
+            padding:12px 18px;
+            font-weight:700;
+            box-shadow:0 4px 12px rgba(0,0,0,0.25);
+            cursor:pointer;
+            opacity:0;
+            pointer-events:none;
+            transition:opacity 0.25s ease;
+          "
+        >
+          ⬆️ Top
+        </button>
+
+        <button
+          id="scrollTodayBtn"
+          onclick="scrollToToday()"
+          style="
+            background:#0b2a52;
+            color:#fff;
+            border:none;
+            border-radius:999px;
+            padding:12px 18px;
+            font-weight:700;
+            box-shadow:0 4px 12px rgba(0,0,0,0.25);
+            cursor:pointer;
+          "
+        >
+          📅 Today
+        </button>
+      </div>
+    `;
+
+    applyPageTransition();
+    hideSpinner();
+    updateScheduleFloatingButtons();
+  }, 120);
+}
+
+function renderTOC() {
+  showSpinner();
+
+  setTimeout(() => {
+    const list = [...tocGames].sort((a, b) => {
+      const da = parseMMDDYYYY(a.date);
+      const db = parseMMDDYYYY(b.date);
+      if (!da || !db) return 0;
+      return da - db;
+    });
+
+    const gamesByDate = {};
+    list.forEach(g => {
+      if (!gamesByDate[g.date]) gamesByDate[g.date] = [];
+      gamesByDate[g.date].push(g);
+    });
+
+    const pageRoot = getPageRoot();
+    if (!pageRoot) {
+      hideSpinner();
+      return;
+    }
+
+    pageRoot.innerHTML = `
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">TOC</div>
+        </div>
+
+        <div class="schedule-container">
+          ${
+            list.length === 0
+              ? `<p style="padding:16px;">No TOC games loaded.</p>`
+              : Object.keys(gamesByDate)
+                  .map(date => {
+                    return `
+                      <div class="schedule-date-block" data-date="${date}">
+                        <h3 class="schedule-date-header">🏅 ${date}</h3>
+                        <ul class="schedule-list">
+                          ${gamesByDate[date]
+                            .map(g => {
+                              let scoreText = "";
+
+                              if ((g.status || "").trim() === "LIVE") {
+                                const awayScore = g.awayScore ?? "-";
+                                const homeScore = g.homeScore ?? "-";
+                                scoreText = `<div class="schedule-score">LIVE${g.inning ? ` ${g.inning}` : ""} • ${awayScore} - ${homeScore}</div>`;
+                              } else if (g.homeScore != null || g.awayScore != null) {
+                                scoreText = `<div class="schedule-score">${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}</div>`;
+                              }
+
+                              return `
+                                <li class="schedule-item">
+                                  <div class="schedule-time-field">
+                                    <span class="schedule-time">${g.time}</span>
+                                    <span class="schedule-field">Field: ${g.field || ""}</span>
+                                  </div>
+                                  <div class="schedule-teams">${g.away} vs ${g.home}</div>
+                                  ${scoreText}
+                                </li>
+                              `;
+                            })
+                            .join("")}
+                        </ul>
+                      </div>
+                    `;
+                  })
+                  .join("")
+          }
+        </div>
+      </section>
     `;
 
     applyPageTransition();
     hideSpinner();
   }, 120);
 }
+function renderAllStars() {
+  showSpinner();
 
-function renderTicker() {
+  setTimeout(() => {
+    const list = allStarsGames
+  .filter(g =>
+    g.round === selectedAllStarsRound
+  )
+  .filter(g =>
+    selectedAllStarsDivision === "All Teams" ||
+    g.division === selectedAllStarsDivision
+  )
+  .filter(g =>
+    VPLL_ALL_STARS_TEAMS.includes(g.home) ||
+    VPLL_ALL_STARS_TEAMS.includes(g.away)
+  )
+      .sort((a, b) => {
+        const da = parseMMDDYYYY(a.date);
+        const db = parseMMDDYYYY(b.date);
+        if (!da || !db) return 0;
+        return da - db;
+      });
+
+    const gamesByDate = {};
+
+    list.forEach(g => {
+      if (!gamesByDate[g.date]) gamesByDate[g.date] = [];
+      gamesByDate[g.date].push(g);
+    });
+
+    const pageRoot = getPageRoot();
+
+    if (!pageRoot) {
+      hideSpinner();
+      return;
+    }
+
+    pageRoot.innerHTML = `
+      <section class="card">
+
+        <div class="card-header">
+          <div class="card-title">All Stars</div>
+        </div>
+        <div style="padding:16px 16px 0 16px;">
+  <button
+    onclick="
+      selectedAllStarsView='schedule';
+      renderAllStars();
+    "
+    style="
+      margin-right:8px;
+      font-weight:${selectedAllStarsView === "schedule" ? "700" : "400"};
+    "
+  >
+    Schedule
+  </button>
+
+  <button
+    onclick="
+      selectedAllStarsView='standings';
+      renderAllStars();
+    "
+    style="
+      font-weight:${selectedAllStarsView === "standings" ? "700" : "400"};
+    "
+  >
+    Standings
+  </button>
+</div>
+        <div style="padding:16px;">
+
+  <label>
+    <strong>Round:</strong>
+
+    <select onchange="
+      selectedAllStarsRound=this.value;
+      renderAllStars();
+    ">
+      ${ALL_STARS_ROUNDS.map(
+        r => `
+          <option value="${r}"
+            ${r === selectedAllStarsRound ? "selected" : ""}
+          >
+            ${r}
+          </option>
+        `
+      ).join("")}
+    </select>
+  </label>
+
+  <br><br>
+
+  <label>
+    <strong>Division:</strong>
+
+    <select onchange="
+      selectedAllStarsDivision=this.value;
+      renderAllStars();
+    ">
+              ${ALL_STARS_DIVISIONS.map(
+                d => `
+                  <option value="${d}"
+                    ${d === selectedAllStarsDivision ? "selected" : ""}
+                  >
+                    ${d}
+                  </option>
+                `
+              ).join("")}
+            </select>
+          </label>
+        </div>
+
+        ${
+  selectedAllStarsView === "standings"
+    ? renderAllStarsStandings()
+    : `
+      <div class="schedule-container">
+        ${
+          list.length === 0
+            ? `<p style="padding:16px;">No All Stars games loaded.</p>`
+            : Object.keys(gamesByDate)
+                .map(date => `
+                  <div class="schedule-date-block" data-date="${date}">
+                    <h3 class="schedule-date-header">⭐ ${date}</h3>
+
+                    <ul class="schedule-list">
+                      ${gamesByDate[date]
+                        .map(g => {
+                          let scoreText = "";
+
+                          if ((g.status || "").trim() === "LIVE") {
+                            scoreText = `
+                              <div class="schedule-score live-score">
+                                🔴 LIVE ${g.inning ? `• ${g.inning}` : ""}
+                                <br>
+                                ${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}
+                              </div>
+                            `;
+                          } else if (
+                            g.homeScore != null ||
+                            g.awayScore != null
+                          ) {
+                            scoreText = `
+                              <div class="schedule-score">
+                                ${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}
+                              </div>
+                            `;
+                          }
+
+                          return `
+                            <li class="schedule-item">
+                              <div class="schedule-time-field">
+                                <span class="schedule-time">${g.time}</span>
+                                <span class="schedule-field">Field: ${g.field || ""}</span>
+                              </div>
+
+                              ${
+  g.pool
+    ? `<div style="font-size:13px; color:#d32f2f; font-weight:800; margin-bottom:4px;">
+        ${g.pool}
+      </div>`
+    : ""
+}
+
+<div class="schedule-teams">
+  ${g.away} vs ${g.home}
+</div>
+
+                              ${scoreText}
+                            </li>
+                          `;
+                        })
+                        .join("")}
+                    </ul>
+                  </div>
+                `)
+                .join("")
+        }
+      </div>
+    `
+}
+
+      </section>
+    `;
+
+    applyPageTransition();
+    hideSpinner();
+  }, 120);
+}
+function renderAllStarsStandings() {
+    if (selectedAllStarsDivision === "Juniors") {
+  return `
+    <div style="padding:0 16px 16px 16px;">
+      <div style="
+        background:#f7f9fc;
+        border:1px solid #dbe3ef;
+        border-radius:12px;
+        padding:16px;
+        text-align:center;
+      ">
+        <h3 style="margin-top:0; color:#0b2a52;">
+          🏆 Juniors Double-Elimination Brackets
+        </h3>
+
+        <p style="margin-bottom:16px;">
+          Standings are not used for this division.
+        </p>
+
+        <button
+          onclick="renderPdfPage('resources/juniors_bracket.pdf','Juniors Bracket')"
+          style="background:#0b2a52;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-weight:700;font-size:15px;margin:6px;"
+        >
+          View Juniors District Bracket
+        </button>
+
+        <button
+          onclick="renderPdfPage('resources/juniors_sectionals_bracket.pdf','Juniors Sectionals Bracket')"
+          style="background:#d32f2f;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-weight:700;font-size:15px;margin:6px;"
+        >
+          View Juniors Sectionals Bracket
+        </button>
+      </div>
+    </div>
+  `;
+}
+if (
+  selectedAllStarsDivision === "12U" ||
+  selectedAllStarsDivision === "11U" ||
+  selectedAllStarsDivision === "8/9 Section 10"
+) {
+  const bracketMap = {
+  "12U": {
+    title: "Section 5 Majors Bracket",
+    file: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTldb_YdOdt9VxKl96n2qS9N0xnFPF8VwBYPUrsGGnNituw1xtYQ4SbSsGPFkmmvFsUHuhkK5LdD5XT/pubhtml?gid=907799207&single=true"
+  },
+  "11U": {
+    title: "Section 5 9-10-11 Bracket",
+    file: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTldb_YdOdt9VxKl96n2qS9N0xnFPF8VwBYPUrsGGnNituw1xtYQ4SbSsGPFkmmvFsUHuhkK5LdD5XT/pubhtml?gid=1648528606&single=true"
+  },
+  "8/9 Section 10": {
+    title: "Section 10 Bracket",
+    file: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTldb_YdOdt9VxKl96n2qS9N0xnFPF8VwBYPUrsGGnNituw1xtYQ4SbSsGPFkmmvFsUHuhkK5LdD5XT/pubhtml?gid=2081750134&single=true"
+  }
+};
+
+  const bracket = bracketMap[selectedAllStarsDivision];
+
+  return `
+    <div style="padding:0 16px 16px 16px;">
+      <div style="
+        background:#f7f9fc;
+        border:1px solid #dbe3ef;
+        border-radius:12px;
+        padding:16px;
+        text-align:center;
+      ">
+        <h3 style="margin-top:0; color:#0b2a52;">
+          🏆 ${bracket.title}
+        </h3>
+
+        <p style="margin-bottom:16px;">
+          Tap below to view the bracket.
+        </p>
+
+        <button
+          onclick="renderWebBracketPage('${bracket.file}', '${bracket.title}')"
+          style="background:#0b2a52;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-weight:700;font-size:15px;margin:6px;"
+        >
+          View ${bracket.title}
+        </button>
+      </div>
+    </div>
+  `;
+}
+  const filteredGames = allStarsGames
+    .filter(g =>
+      g.round === selectedAllStarsRound
+    )
+    .filter(g =>
+      selectedAllStarsDivision === "All Teams" ||
+      g.division === selectedAllStarsDivision
+    );
+
+  const pools = {};
+
+  filteredGames.forEach(g => {
+
+  const poolName = (g.pool || "").trim();
+
+  // Only count pool play games
+  if (poolName !== "Pool 1" && poolName !== "Pool 2") {
+    return;
+  }
+    if ((g.status || "").trim() === "LIVE") return;
+    if (g.homeScore == null || g.awayScore == null) return;
+
+    if (!pools[poolName]) pools[poolName] = {};
+
+    const table = pools[poolName];
+
+    const home = g.home;
+    const away = g.away;
+
+    if (!table[home]) {
+      table[home] = {
+        team: home,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        runsFor: 0,
+        runsAgainst: 0
+      };
+    }
+
+    if (!table[away]) {
+      table[away] = {
+        team: away,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        runsFor: 0,
+        runsAgainst: 0
+      };
+    }
+
+    table[home].runsFor += g.homeScore;
+    table[home].runsAgainst += g.awayScore;
+    table[away].runsFor += g.awayScore;
+    table[away].runsAgainst += g.homeScore;
+
+    if (g.homeScore > g.awayScore) {
+      table[home].wins++;
+      table[away].losses++;
+    } else if (g.homeScore < g.awayScore) {
+      table[away].wins++;
+      table[home].losses++;
+    } else {
+      table[home].ties++;
+      table[away].ties++;
+    }
+  });
+
+  const poolNames = Object.keys(pools).sort();
+
+  if (poolNames.length === 0) {
+    return `<div style="padding:0 16px 16px 16px;"><p>No standings yet.</p></div>`;
+  }
+
+  return `
+    <div style="padding:0 16px 16px 16px; overflow-x:auto;">
+      ${poolNames.map(poolName => {
+        const standingsArray = Object.values(pools[poolName])
+          .map(s => {
+            const totalGames = s.wins + s.losses + s.ties || 1;
+            const winPct = (s.wins + 0.5 * s.ties) / totalGames;
+            const runDiff = s.runsFor - s.runsAgainst;
+
+            return {
+              ...s,
+              winPct,
+              runDiff
+            };
+          })
+          .sort((a, b) => {
+  // 1st: most wins
+  if (b.wins !== a.wins) return b.wins - a.wins;
+
+  // 2nd: fewest losses
+  if (a.losses !== b.losses) return a.losses - b.losses;
+
+  // 3rd: fewest runs against
+  if (a.runsAgainst !== b.runsAgainst) {
+    return a.runsAgainst - b.runsAgainst;
+  }
+
+  // 4th: most runs scored
+  if (b.runsFor !== a.runsFor) {
+    return b.runsFor - a.runsFor;
+  }
+
+  return a.team.localeCompare(b.team);
+});
+
+        return `
+          <h3 style="margin:16px 0 8px 0; color:#0b2a52;">
+            ${poolName}
+          </h3>
+
+          <table style="
+            width:100%;
+            min-width:520px;
+            border-collapse:collapse;
+            font-size:16px;
+            text-align:center;
+            margin-bottom:20px;
+          ">
+            <thead>
+              <tr style="background:#0b2a52;color:#fff;">
+                <th style="padding:10px;text-align:left;">TEAM</th>
+                <th style="padding:10px;">W</th>
+                <th style="padding:10px;">L</th>
+                <th style="padding:10px;">T</th>
+                <th style="padding:10px;">RS</th>
+                <th style="padding:10px;">RA</th>
+                <th style="padding:10px;">DIFF</th>
+                <th style="padding:10px;">PCT</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${standingsArray.map(s => `
+                <tr style="border-bottom:1px solid #ddd;">
+                  <td style="padding:10px;text-align:left;font-weight:700;">${s.team}</td>
+                  <td style="padding:10px;">${s.wins}</td>
+                  <td style="padding:10px;">${s.losses}</td>
+                  <td style="padding:10px;">${s.ties}</td>
+                  <td style="padding:10px;">${s.runsFor}</td>
+                  <td style="padding:10px;">${s.runsAgainst}</td>
+                  <td style="padding:10px;">${s.runDiff > 0 ? "+" : ""}${s.runDiff}</td>
+                  <td style="padding:10px;">${s.winPct.toFixed(3)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+function renderTicker(forceRestart = false) {
   const el = document.getElementById("tickerContent");
   if (!el) return;
 
-  // Build ticker content
+  // Build HTML
+  let html = "";
   if (!tickerData || tickerData.length === 0) {
-    el.innerHTML = `<span class="ticker-text">⚾ No score submissions yet.</span>`;
+    html = `
+      <div class="ticker-item">
+        🍂 <span class="no-scores">Click Fall Ball Practices to see your practice slots. Schedules almost ready.</span>
+    </div>
+    `;
   } else {
-    el.innerHTML = `<span class="ticker-text">${tickerData.join(" • ")}</span>`;
+    html = tickerData
+      .map(entry => {
+        const [division, rest] = entry.split(":");
+        return `
+          <div class="ticker-item">
+            <span class="badge badge-${division.replace(/\s+/g, "").toLowerCase()}">${division}</span>
+            <span class="ticker-text-score">⚾ ${rest.trim()}</span>
+          </div>
+        `;
+      })
+      .join("");
   }
 
-  // iPhone Safari animation fix (force reflow)
-  const span = el.querySelector(".ticker-text");
-  if (span) {
-    span.style.animation = "none";
-    span.offsetHeight;   // <— forces browser to recalc layout
-    span.style.animation = "";  // <— restart animation cleanly
-  }
+  const changed = html !== lastTickerHTML;
+
+  // If nothing changed, do NOT reset animation (prevents the “restart” feel)
+  if (!changed && !forceRestart) return;
+
+  lastTickerHTML = html;
+  el.innerHTML = html + html;
+// Restart animation when content changes
+requestAnimationFrame(() => {
+  const ticker = document.getElementById("tickerContent");
+  if (!ticker) return;
+
+  ticker.style.animation = "none";
+  void ticker.offsetWidth; // Safari reflow trick
+  ticker.style.animation = "";
+});
+  
 }
 
 function scrollToToday() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const dateHeaders = document.querySelectorAll(".schedule-date-header");
+  const blocks = document.querySelectorAll(".schedule-date-block");
+  let exactTodayBlock = null;
+  let nextFutureBlock = null;
 
-  for (const header of dateHeaders) {
-    const dateText = header.textContent.replace("📅 ", "").trim();
-    const parsed = new Date(dateText);
+  for (const block of blocks) {
+    const dateText = block.getAttribute("data-date") || "";
+    const parsed = parseMMDDYYYY(dateText);
+    if (!parsed) continue;
 
-    if (!isNaN(parsed) && parsed >= today) {
-      header.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
+    if (parsed.getTime() === today.getTime()) {
+      exactTodayBlock = block;
+      break;
+    }
+
+    if (!nextFutureBlock && parsed > today) {
+      nextFutureBlock = block;
     }
   }
 
-  // If no future games found, scroll to top
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
+  const targetBlock = exactTodayBlock || nextFutureBlock;
 
+  if (!targetBlock) {
+    scrollToTop();
+    return;
+  }
+
+  // First, get the block near the top the normal way
+  targetBlock.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+  // Then force the real scroll containers to the exact position
+  setTimeout(() => {
+    const pageRoot = document.getElementById("page-root");
+    const main = getMainScrollEl();
+    const blockRect = targetBlock.getBoundingClientRect();
+
+    if (pageRoot) {
+      const rootRect = pageRoot.getBoundingClientRect();
+      const rootOffset = blockRect.top - rootRect.top + pageRoot.scrollTop - 12;
+      pageRoot.scrollTop = Math.max(0, rootOffset);
+    }
+
+    if (main && typeof main.scrollTop === "number") {
+      const mainRect = main.getBoundingClientRect();
+      const mainOffset = blockRect.top - mainRect.top + main.scrollTop - 12;
+      main.scrollTop = Math.max(0, mainOffset);
+    }
+
+    const absoluteTop =
+      window.scrollY + targetBlock.getBoundingClientRect().top - 12;
+
+    window.scrollTo({
+      top: Math.max(0, absoluteTop),
+      behavior: "smooth"
+    });
+  }, 250);
+}
+function scrollToTop() {
+  const main = getMainScrollEl();
+
+  if (main) {
+    main.scrollTop = 0;
+  }
+
+  const pageRoot = document.getElementById("page-root");
+  if (pageRoot) {
+    pageRoot.scrollTop = 0;
+  }
+
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  window.scrollTo(0, 0);
+}
+function updateScheduleFloatingButtons() {
+  const topBtn = document.getElementById("scrollTopBtn");
+  if (!topBtn) return;
+
+  if (currentPage !== "schedule" && currentPage !== "tournaments") {
+    topBtn.style.opacity = "0";
+    topBtn.style.pointerEvents = "none";
+    return;
+  }
+
+  const main = getMainScrollEl();
+  const pageRoot = document.getElementById("page-root");
+
+  const scrollTop = Math.max(
+    main && typeof main.scrollTop === "number" ? main.scrollTop : 0,
+    pageRoot && typeof pageRoot.scrollTop === "number" ? pageRoot.scrollTop : 0,
+    window.scrollY || 0,
+    document.documentElement.scrollTop || 0,
+    document.body.scrollTop || 0
+  );
+
+  if (scrollTop > 220) {
+    topBtn.style.opacity = "1";
+    topBtn.style.pointerEvents = "auto";
+  } else {
+    topBtn.style.opacity = "0";
+    topBtn.style.pointerEvents = "none";
+  }
+}
+  
+
+// ========================
+// STANDINGS
+// ========================
 function renderStandings() {
   showSpinner();
 
-  // Ensure data exists
   if (!standingsData || Object.keys(standingsData).length === 0) {
     hideSpinner();
+    const pageRoot = getPageRoot();
+    if (!pageRoot) return;
+
     pageRoot.innerHTML = `
       <section class="card">
         <div class="card-header"><div class="card-title">Standings</div></div>
-        <p style="padding:16px;">No standings available yet.</p>
+        <p style="padding:16px;">No standings during the fall ball season.</p>
       </section>
     `;
+    applyPageTransition();
     return;
   }
 
   const division = selectedStandingsDivision;
   const divStandings = standingsData[division] || {};
 
-  // Convert object → array
-  const standingsArray = Object.keys(divStandings).map(team => ({
-    team,
-    ...divStandings[team],
-    runDiff: divStandings[team].runsFor - divStandings[team].runsAgainst,
-    winPct:
-      (divStandings[team].wins +
-        0.5 * divStandings[team].ties) /
-      (divStandings[team].wins +
-        divStandings[team].losses +
-        divStandings[team].ties || 1)
-  }));
+  const allowedTeams = (DIVISION_STANDINGS_TEAMS[division] || []).map(t => t.trim());
 
-  // Sort by win%, then run diff, then runs for, then team name
+const standingsArray = Object.keys(divStandings)
+  .map(team => {
+    const s = divStandings[team];
+    const runDiff = s.runsFor - s.runsAgainst;
+    const totalGames = s.wins + s.losses + s.ties || 1;
+    const winPct = (s.wins + 0.5 * s.ties) / totalGames;
+
+    return {
+      team,
+      wins: s.wins,
+      losses: s.losses,
+      ties: s.ties,
+      runsFor: s.runsFor,
+      runsAgainst: s.runsAgainst,
+      runDiff,
+      winPct
+    };
+  })
+  .filter(row => allowedTeams.includes((row.team || "").trim()));
+
   standingsArray.sort((a, b) => {
-    if (b.winPct !== a.winPct) return b.winPct - a.winPct;
-    if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
-    if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
-    return a.team.localeCompare(b.team);
-  });
+  if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+  if (b.runDiff !== a.runDiff) return b.runDiff - a.runDiff;
+  if (b.runsFor !== a.runsFor) return b.runsFor - a.runsFor;
+  return a.team.localeCompare(b.team);
+});
+
+  const pageRoot = getPageRoot();
+  if (!pageRoot) {
+    hideSpinner();
+    return;
+  }
 
   pageRoot.innerHTML = `
     <section class="card">
@@ -881,21 +2351,52 @@ function renderStandings() {
         </label>
       </div>
 
-      <ul class="standings-list">
-        ${
-          standingsArray.length === 0
-            ? `<li>No standings yet.</li>`
-            : standingsArray
-                .map(
-                  s => `
-          <li>
-            <span>${s.team}</span>
-            <span class="record">${s.wins}-${s.losses}</span>
-          </li>`
-                )
-                .join("")
-        }
-      </ul>
+            <div style="padding:0 16px 16px 16px; overflow-x:auto;">
+${
+  standingsArray.length === 0
+    ? `<p>No standings yet.</p>`
+    : `
+    <table style="
+      width:100%;
+      min-width:520px;
+      border-collapse:collapse;
+      font-size:16px;
+      text-align:center;
+    ">
+      <thead>
+        <tr style="background:#0b2a52;color:#fff;">
+          <th style="padding:10px;text-align:left;">TEAM</th>
+          <th style="padding:10px;">W</th>
+          <th style="padding:10px;">L</th>
+          <th style="padding:10px;">T</th>
+          <th style="padding:10px;">RS</th>
+          <th style="padding:10px;">RA</th>
+          <th style="padding:10px;">DIFF</th>
+          <th style="padding:10px;">PCT</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${standingsArray
+          .map(
+            s => `
+            <tr style="border-bottom:1px solid #ddd;">
+              <td style="padding:10px;text-align:left;font-weight:700;">${s.team}</td>
+              <td style="padding:10px;">${s.wins}</td>
+              <td style="padding:10px;">${s.losses}</td>
+              <td style="padding:10px;">${s.ties}</td>
+              <td style="padding:10px;">${s.runsFor}</td>
+              <td style="padding:10px;">${s.runsAgainst}</td>
+              <td style="padding:10px;">${s.runDiff > 0 ? "+" : ""}${s.runDiff}</td>
+              <td style="padding:10px;">${s.winPct.toFixed(3)}</td>
+            </tr>
+          `
+          )
+          .join("")}
+      </tbody>
+    </table>
+    `
+}
+</div>
     </section>
   `;
 
@@ -903,11 +2404,15 @@ function renderStandings() {
   hideSpinner();
 }
 
+// ========================
+// LOGIN
+// ========================
 function loginCoach() {
-  const name = document.getElementById("coach-name").value.trim();
-  const pin = document.getElementById("coach-pin").value.trim();
+  const nameInput = document.getElementById("coach-name");
+  const pinInput = document.getElementById("coach-pin");
+  const name = (nameInput?.value || "").trim();
+  const pin = (pinInput?.value || "").trim();
 
-  // FIRST: Admin login
   if (name === "Admin" && pin === ADMIN_PIN) {
     loggedInCoach = "Admin";
     isAdmin = true;
@@ -915,7 +2420,6 @@ function loginCoach() {
     return;
   }
 
-  // Division login
   if (!coachPins[name]) {
     alert("Unknown division.");
     return;
@@ -928,54 +2432,423 @@ function loginCoach() {
 
   loggedInCoach = name;
   isAdmin = false;
-
-  // GO STRAIGHT TO SCORE FORM
   renderCoachScoreForm();
 }
+function openDistrict30App() {
+  // Try to open the District 30 app
+  window.location.href = "districtbaseballapp://";
 
+  // If it isn't installed, open the App Store
+  setTimeout(() => {
+    window.location.href =
+      "https://apps.apple.com/us/app/district-30-little-league/id6769469029";
+  }, 1500);
+}
 // ========================
-// RESOURCES
+// PDF VIEWER PAGE (in-app)
 // ========================
-function renderResources() {
+async function renderPdfPage(pdfUrl, title) {
+  pdfDoc = null;
+  pdfPageNum = 1;
+  pdfTotalPages = 0;
+
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
   pageRoot.innerHTML = `
     <section class="card">
-      <div class="card-header"><div class="card-title">Resources</div></div>
+      <div class="card-header">
+        <button onclick="
+  if (currentPage === 'allstars') {
+    renderAllStars();
+  } else {
+    renderResources();
+  }
+" style="margin-right:8px;">← Back</button>
+        <div class="card-title">${title}</div>
+      </div>
 
-      <ul class="roster-list">
-        <li><a href="/viewer.html?file=/resources/local_rules.pdf">⚙️ Local League Rules (PDF)</a></li>
-        <li><a href="/viewer.html?file=/resources/home_run_club.pdf">💥 Home Run Club (PDF)</a></li>
-        <li><a href="/viewer.html?file=/resources/volunteer_list.pdf">🙋‍♂️ Volunteer List (PDF)</a></li>
-        <li><a href="https://www.littleleague.org/playing-rules/rulebook/" target="_blank">🧾 Rulebook</a></li>
-        <li><a href="/viewer.html?file=/resources/aa_rules.pdf">🧢 AA Special Rules (PDF)</a></li>
-      </ul>
+      <div style="text-align:center; padding:8px;">
+        <button onclick="prevPdfPage()">◀ Prev</button>
+        <span id="pdfPageInfo" style="margin:0 12px;">Page 1</span>
+        <button onclick="nextPdfPage()">Next ▶</button>
+      </div>
 
+      <canvas id="pdfCanvas" style="width:100%; margin:12px 0;"></canvas>
     </section>
   `;
+
+  applyPageTransition();
+
+  const loadingTask = pdfjsLib.getDocument(pdfUrl);
+  pdfDoc = await loadingTask.promise;
+  pdfTotalPages = pdfDoc.numPages;
+
+  renderPdfCanvas();
+}
+function renderWebBracketPage(url, title) {
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <button onclick="renderAllStars()" style="margin-right:8px;">← Back</button>
+        <div class="card-title">${title}</div>
+      </div>
+
+      <iframe
+        src="${url}"
+        style="
+          width:100%;
+          height:calc(100vh - 120px);
+          border:0;
+          background:white;
+        "
+      ></iframe>
+    </section>
+  `;
+
   applyPageTransition();
 }
+async function renderPdfCanvas() {
+  if (!pdfDoc) return;
 
+  const canvas = document.getElementById("pdfCanvas");
+  if (!canvas) return;
+
+  const context = canvas.getContext("2d");
+  const page = await pdfDoc.getPage(pdfPageNum);
+
+  const viewport = page.getViewport({ scale: 1 });
+  const containerWidth =
+    canvas.parentElement?.clientWidth ||
+    document.getElementById("page-root")?.clientWidth ||
+    document.body.clientWidth;
+
+  const scale = (containerWidth / viewport.width) * 1.6;
+  const scaledViewport = page.getViewport({ scale });
+
+  canvas.width = scaledViewport.width;
+  canvas.height = scaledViewport.height;
+
+  await page.render({
+    canvasContext: context,
+    viewport: scaledViewport
+  }).promise;
+
+  const infoEl = document.getElementById("pdfPageInfo");
+  if (infoEl) {
+    infoEl.textContent = `Page ${pdfPageNum} of ${pdfTotalPages}`;
+  }
+}
+
+function prevPdfPage() {
+  if (pdfPageNum <= 1) return;
+  pdfPageNum--;
+  renderPdfCanvas();
+}
+
+function nextPdfPage() {
+  if (pdfPageNum >= pdfTotalPages) return;
+  pdfPageNum++;
+  renderPdfCanvas();
+}
+
+// ========================
+// RESOURCES PAGE
+// ========================
+function renderResources() {
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+  <button onclick="renderMore()" style="margin-right:8px;">← Back</button>
+  <div class="card-title">Resources</div>
+</div>
+
+      <ul class="roster-list">
+      <li>
+  <a href="#" onclick="renderBoardDirectory(); return false;">
+    👥 VPLL Board Directory
+  </a>
+</li>
+<li>
+  <a href="#" onclick="renderPdfPage('resources/volunteer_list.pdf','Volunteer List'); return false;">
+    🙋 Volunteer List
+  </a>
+</li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/local_rules.pdf','Local League Rules'); return false;">
+            📜 Local League Rules 
+          </a>
+        </li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/home_run_club.pdf','Home Run Club'); return false;">
+            💥 Home Run Club 
+          </a>
+        </li>
+        
+     <li>
+  <a
+    href="https://apps.apple.com/us/app/district-30-little-league/id6769469029"
+    target="_blank"
+    rel="noopener"
+  >
+    📱 Download / Open District 30 Little League App
+  </a>
+</li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/aa_rules.pdf','AA Special Rules'); return false;">
+            💡 AA Special Rules 
+          </a>
+        </li>
+         <li>
+          <a href="#" onclick="renderPdfPage('resources/VPLL-field_prep.pdf','VPLL Field Prep'); return false;">
+            VPLL Field Prep
+          </a>
+        </li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/majors_playoffs.pdf','Majors Playoff Schedule'); return false;">
+            ⚡🏆 Majors Playoff Schedule 
+          </a>
+        </li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/aaa_playoffs.pdf','AAA Playoff Schedule'); return false;">
+            ⚡🏆 AAA Playoff Schedule 
+          </a>
+        </li>
+        <li>
+          <a href="#" onclick="renderPdfPage('resources/aa_playoffs.pdf','AA Playoff Schedule'); return false;">
+            ⚡🏆 AA Playoff Schedule 
+          </a>
+        </li>
+      </ul>
+    </section>
+  `;
+
+  applyPageTransition();
+}
+function renderBoardDirectory() {
+  const boardMembers = [
+    {
+      name: "Jon Whiddon",
+      position: "President",
+      email: "vpllpresident@yahoo.com"
+    },
+    {
+      name: "Sean Pullin",
+      position: "President Elect",
+      email: ""
+    },
+    {
+      name: "Brian Cole",
+      position: "Vice President",
+      email: ""
+    },
+    {
+      name: "Jake Monson",
+      position: "Player Agent Upper Div",
+      email: "vpllplayersagent@gmail.com"
+    },
+    {
+      name: "Graham Ferguson",
+      position: "Player Agent Lower Div",
+      email: "vpllplayersagent@gmail.com"
+    },
+    {
+      name: "Jason Coleman",
+      position: "Player Agent Lower Div",
+      email: "vpllplayersagent@gmail.com"
+    },
+    {
+      name: "Zach Smothermon",
+      position: "Umpire Coordinator UIC",
+      email: ""
+    },
+    {
+      name: "Bryan Arguello",
+      position: "Treasurer",
+      email: ""
+    },
+    {
+      name: "Jessica Dossey",
+      position: "Secretary",
+      email: ""
+    },
+    {
+      name: "Dave White",
+      position: "Information Officer/Website",
+      email: "vpllwebmaster@gmail.com"
+    },
+    {
+      name: "Matt Williams",
+      position: "Snack Bar Coordinator",
+      email: ""
+    },
+    {
+      name: "Christina Evelo",
+      position: "Snack Bar Coordinator",
+      email: ""
+    },
+    {
+      name: "Todd Thergesen",
+      position: "Practice Coordinator",
+      email: ""
+    },
+    {
+      name: "Chris Bragg",
+      position: "Practice Coordinator lowers",
+      email: ""
+    },
+    {
+      name: "Scott Belcher",
+      position: "Low Division Coordinator",
+      email: ""
+    },
+    {
+      name: "Anthony Mazza",
+      position: "Safety Officer",
+      email: ""
+    },
+    {
+      name: "Matt Cairney",
+      position: "Equipment",
+      email: ""
+    },
+    {
+      name: "Justin Meyers",
+      position: "Field Coordinator",
+      email: ""
+    },
+    {
+      name: "Anthony Decker",
+      position: "Assistant Field Coordinator",
+      email: ""
+    },
+    {
+      name: "Tracy Paul",
+      position: "Team Parent Coordinator/Events Coordinator",
+      email: ""
+    },
+    {
+      name: "Kristin Ridenour",
+      position: "Sponsorship Coordinator",
+      email: ""
+    },
+    {
+      name: "Katie Tassos",
+      position: "Fundraiser Coordinator",
+      email: ""
+    },
+    {
+      name: "Lee Tousignant",
+      position: "Uniforms",
+      email: ""
+    },
+    {
+      name: "Jon Brucher",
+      position: "Merchandise",
+      email: ""
+    }
+  ];
+
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <button onclick="renderResources()" style="margin-right:8px;">
+          ← Back
+        </button>
+
+        <div class="card-title">VPLL Board Directory</div>
+      </div>
+
+      <div style="padding:16px;">
+        ${boardMembers.map(member => `
+          <div style="
+            background:#fff;
+            border:1px solid #e1e5ea;
+            border-radius:12px;
+            padding:14px 16px;
+            margin-bottom:12px;
+            box-shadow:0 2px 6px rgba(0,0,0,0.06);
+          ">
+            <div style="
+              font-size:17px;
+              font-weight:800;
+              color:#0b2a52;
+            ">
+              ${member.name}
+            </div>
+
+            <div style="
+              font-size:14px;
+              color:#666;
+              margin-top:3px;
+            ">
+              ${member.position}
+            </div>
+
+            ${
+              member.email
+                ? `
+                  <a
+  href="mailto:${member.email}"
+  style="
+    display:block;
+    margin-top:10px;
+    padding:10px 12px;
+    border-radius:8px;
+    background:#f4f7fb;
+    color:#0b2a52;
+    font-weight:700;
+    text-decoration:none;
+  "
+>
+  ✉️ ${member.email}
+</a>
+                `
+                : ""
+            }
+          </div>
+        `).join("")}
+      </div>
+    </section>
+  `;
+
+  applyPageTransition();
+}
+// ========================
+// COACH SCORE FORM
+// ========================
 function renderCoachScoreForm() {
-  const root = document.getElementById("page-root");
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
 
-  root.innerHTML = `
-<section class="card">
-  <div class="card-header">
-    <div class="card-title">Enter Final Score</div>
-  </div>
+  pageRoot.innerHTML = `
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">Enter Final Score</div>
+      </div>
 
-  <div style="padding:16px;">
-    <p>You are logged in as <strong>${loggedInCoach}</strong>.</p>
+      <div style="padding:16px;">
+        <p>You are logged in as <strong>${loggedInCoach}</strong>.</p>
 
-    <p>Tap below to open the score submission form:</p>
+        <p>Tap below to open the score submission form:</p>
 
-    <a class="form-button"
-       href="https://docs.google.com/forms/d/e/1FAIpQLSdCWC1qhvh3YHTqbHZTFbl6Wkfpwr3_1WWk5-3skq8Oh6UxhA/viewform?usp=header"
-       target="_blank">
-      Open Score Submission Form
-    </a>
-  </div>
-</section>
-`;
+        <a class="form-button"
+           href="https://docs.google.com/forms/d/e/1FAIpQLSdCWC1qhvh3YHTqbHZTFbl6Wkfpwr3_1WWk5-3skq8Oh6UxhA/viewform?usp=header"
+           target="_blank">
+          Open Score Submission Form
+        </a>
+      </div>
+    </section>
+  `;
 
   applyPageTransition();
 }
@@ -984,6 +2857,9 @@ function renderCoachScoreForm() {
 // ADMIN
 // ========================
 function renderAdmin() {
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
   if (!isAdmin) {
     pageRoot.innerHTML = `
       <section class="card">
@@ -991,7 +2867,8 @@ function renderAdmin() {
         <p style="padding:16px;">Admin only. Log in as Admin on Messages tab.</p>
       </section>
     `;
-    return applyPageTransition();
+    applyPageTransition();
+    return;
   }
 
   pageRoot.innerHTML = `
@@ -1006,6 +2883,7 @@ function renderAdmin() {
       </p>
     </section>
   `;
+
   applyPageTransition();
 }
 
@@ -1013,87 +2891,153 @@ function renderAdmin() {
 // MORE
 // ========================
 function renderMore() {
-  const root = document.getElementById("page-root");
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
 
-  root.innerHTML = `
-      <div class="more-grid">
+  pageRoot.innerHTML = `
+  <div class="more-grid">
 
-        <div class="more-card" data-target="teams">
-          <div class="more-icon">⚾</div>
-          <div class="more-label">Teams</div>
-        </div>
+    <div class="more-card" data-target="teams">
+      <div class="more-icon">⚾</div>
+      <div class="more-label">Teams</div>
+    </div>
 
-        <div class="more-card" data-target="resources">
-          <div class="more-icon">📘</div>
-          <div class="more-label">Resources</div>
-        </div>
+    <div class="more-card" data-target="resources">
+      <div class="more-icon">📘</div>
+      <div class="more-label">Resources</div>
+    </div>
 
-        <div class="more-card more-card-wide" data-target="enter-score">
-          <div class="more-icon">🧾</div>
-          <div class="more-label">Enter Final Score</div>
-        </div>
-
+    <!-- FIELD MAP -->
+    <div class="more-card" data-target="field-map">
+      <div class="more-icon">📍</div>
+      <div class="more-label">Field Map</div>
       </div>
-    `;
+  
+    <div class="more-card more-card-wide" data-target="enter-score">
+      <div class="more-icon">📋✅</div>
+      <div class="more-label">Enter Final Score</div>
+    </div>
 
-  // Add click handlers
+  </div>
+`;
+
   document.querySelectorAll(".more-card").forEach(card => {
     card.addEventListener("click", () => {
       const target = card.getAttribute("data-target");
 
       if (target === "teams") renderTeams();
       if (target === "resources") renderResources();
+      if (target === "field-map") renderFieldMap();
+      if (target === "tournaments") renderPage("tournaments");
+      if (target === "toc-majors") {
+  renderPdfPage("resources/toc_majors.pdf", "TOC Majors Bracket");
+}
+
+if (target === "toc-minors") {
+  renderPdfPage("resources/toc_minors.pdf", "TOC Minors Bracket");
+}
+if (target === "allstars-majors") {
+  renderPdfPage("resources/allstars_majors.pdf", "All Stars Majors Bracket");
+}
+
+if (target === "allstars-11u") {
+  renderPdfPage("resources/allstars_11u.pdf", "All Stars 11U Bracket");
+}
+
+if (target === "allstars-10u") {
+  renderPdfPage("resources/allstars_10u.pdf", "All Stars 10U Bracket");
+}
+
+if (target === "allstars-poolplay") {
+  renderPdfPage("resources/allstars_poolplay.pdf", "All Stars Pool Play Bracket");
+}
+
+if (target === "allstars-8/9section10") {
+  renderPdfPage("resources/allstars_89_section10.pdf", "All Stars 8/9 Section 10 Bracket");
+}
       if (target === "enter-score") renderLogin();
 
       applyPageTransition();
     });
   });
+
+  applyPageTransition();
+}
+function renderFieldMap() {
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
+  pageRoot.innerHTML = `
+    <div class="page">
+      <h2>Field Map</h2>
+
+      <img
+        src="resources/field-map.png"
+        style="width:100%; border-radius:12px;"
+      />
+
+      <div style="height:20px;"></div>
+
+      <button onclick="renderMore()">Back</button>
+    </div>
+  `;
+
+  applyPageTransition();
 }
 
+// ========================
+// LOGIN PAGE (FROM MORE)
+// ========================
 function renderLogin() {
   const isLoggedIn = !!loggedInCoach;
 
+  const pageRoot = getPageRoot();
+  if (!pageRoot) return;
+
   pageRoot.innerHTML = `
-        <section class="card">
-            <div class="card-header">
-                <div class="card-title">Division Login</div>
-            </div>
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">Division Login</div>
+      </div>
 
-            <div style="padding:16px;">
+      <div style="padding:16px;">
+        ${
+          isLoggedIn
+            ? `
+          <p>
+            Logged in as
+            <strong>${loggedInCoach}</strong>
+            ${isAdmin ? "(Admin)" : ""}
+          </p>
 
-                ${
-                  isLoggedIn
-                    ? `
-                        <p>
-                            Logged in as
-                            <strong>${loggedInCoach}</strong>
-                            ${isAdmin ? "(Admin)" : ""}
-                        </p>
+          <button onclick="logoutCoach()">Logout</button>
+        `
+            : `
+          <p>Enter your division name and PIN to enter final scores.</p>
 
-                        <button onclick="logoutCoach()">Logout</button>
-                    `
-                    : `
-                        <p>Enter your division name and PIN to enter final scores.</p>
+          <label><strong>Division:</strong></label><br>
+          <input id="coach-name" placeholder="Majors, AAA, or AA"><br><br>
 
-                        <label><strong>Division:</strong></label><br>
-                        <input id="coach-name" placeholder="Majors, AAA, or AA"><br><br>
+          <label><strong>PIN:</strong></label><br>          <input id="coach-pin" type="password" placeholder="PIN"><br><br>
 
-                        <label><strong>PIN:</strong></label><br>
-                        <input id="coach-pin" type="password" placeholder="PIN"><br><br>
+          <button onclick="loginCoach()">Login</button>
 
-                        <button onclick="loginCoach()">Login</button>
-
-                        <p style="margin-top:12px; font-size:0.85rem; color:#666;">
-                            Admin login: name <strong>Admin</strong>
-                        </p>
-                    `
-                }
-
-            </div>
-        </section>
-    `;
+          <p style="margin-top:12px; font-size:0.85rem; color:#666;">
+            Admin login: name <strong>Admin</strong>
+          </p>
+        `
+        }
+      </div>
+    </section>
+  `;
 
   applyPageTransition();
+}
+
+function logoutCoach() {
+  loggedInCoach = null;
+  isAdmin = false;
+  renderLogin();
 }
 
 // ========================
@@ -1112,13 +3056,62 @@ function openScoreForm() {
     "_blank"
   );
 }
-
 function renderPage(page) {
   currentPage = page;
-  if (page === "home") renderHome();
-  else if (page === "schedule") renderSchedule();
-  else if (page === "standings") renderStandings();
-  else if (page === "more") renderMore();
+
+  const STALE_MS = 60 * 1000; // 1 minute (adjust if you want)
+
+  if (page === "home") {
+    renderHome();
+    // ✅ only refresh if stale
+    if (!lastScoresFetchMs || Date.now() - lastScoresFetchMs > STALE_MS) {
+      loadScoresAndStandings();
+    } else {
+      renderTicker(false);
+    }
+      } else if (page === "tournaments") {
+    loadTournamentGames();
+    renderTournaments();
+    } else if (page === "toc") {
+  loadTOCGames();
+  renderTOC();
+  } else if (page === "allstars") {
+  loadAllStarsGames();
+  renderAllStars();
+  } else if (page === "schedule") {
+    renderSchedule();
+    loadScheduleFromApi();
+  } else if (page === "standings") {
+    renderStandings();
+    // ✅ only refresh if stale OR standings empty
+    if (
+      !lastScoresFetchMs ||
+      Date.now() - lastScoresFetchMs > STALE_MS ||
+      !standingsData ||
+      Object.keys(standingsData).length === 0
+    ) {
+      loadScoresAndStandings();
+    } else {
+      renderTicker(false);
+    }
+  } else if (page === "more") {
+    renderMore();
+  }
+
+  setActiveNav(page);
+}
+
+// refresh scores if stale (and refresh UI when returning to app)
+function refreshIfStale() {
+  const STALE_MS = 60 * 1000;
+
+  if (!lastScoresFetchMs || (Date.now() - lastScoresFetchMs > STALE_MS)) {
+    loadScoresAndStandings(); // fetch + rebuild data + ticker
+  } else {
+    // data is fresh — re-render current page so UI updates on iOS PWA
+    renderPage(currentPage || "home");
+    ensureTickerRunning();
+  }
 }
 
 function setupNav() {
@@ -1126,11 +3119,47 @@ function setupNav() {
   buttons.forEach(btn => {
     btn.addEventListener("click", () => {
       const page = btn.dataset.page;
-      setActiveNav(page);
       renderPage(page);
+      ensureTickerRunning();
     });
   });
   setActiveNav("home");
+}
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    ensureTickerRunning();
+    refreshIfStale();
+  }
+});
+// Fires when returning to the app (iOS PWA friendly)
+
+window.addEventListener("focus", refreshIfStale);
+window.addEventListener("pageshow", refreshIfStale);
+window.addEventListener("scroll", updateScheduleFloatingButtons, { passive: true });
+document.addEventListener("scroll", updateScheduleFloatingButtons, { passive: true });
+// Also fires when the app is foregrounded / resumed (especially iOS)
+
+// ========================
+// HOME SLIDESHOW
+// ========================
+let homeSlideIndex = 0;
+let homeSlideInterval = null;
+
+function startHomeSlideshow() {
+  const slides = document.querySelectorAll(".home-slideshow .slide");
+  if (!slides.length) return;
+
+  clearInterval(homeSlideInterval);
+
+  slides.forEach(s => s.classList.remove("active"));
+  slides[0].classList.add("active");
+  homeSlideIndex = 0;
+
+  homeSlideInterval = setInterval(() => {
+    slides[homeSlideIndex].classList.remove("active");
+    homeSlideIndex = (homeSlideIndex + 1) % slides.length;
+    slides[homeSlideIndex].classList.add("active");
+  }, 4000);
 }
 
 // ========================
@@ -1139,39 +3168,77 @@ function setupNav() {
 function initApp() {
   setupNav();
   renderHome();
+  renderTicker();
   loadScheduleFromApi();
-  loadScoresAndStandings();
+  loadTournamentGames();      // load first
+  loadTOCGames();
+  loadAllStarsGames();
+  loadScoresAndStandings();   // then combine
 }
 
 // ========================
-// PULL DOWN TO REFRESH (Home Only)
+// ========================
+// PULL DOWN TO REFRESH (Home Only) - iOS PWA FRIENDLY
 // ========================
 let touchStartY = 0;
 let touchCurrentY = 0;
 let isPulling = false;
 
-const PULL_THRESHOLD = 60; // how far to pull before triggering
+const PULL_THRESHOLD = 60;
 
-document.addEventListener("touchstart", (e) => {
-  if (currentPage !== "home") return; // Home page only
-  if (window.scrollY > 0) return;     // only when scrolled to top
+function getMainScrollEl() {
+  return document.querySelector("main") || document.scrollingElement || document.documentElement;
+}
 
-  touchStartY = e.touches[0].clientY;
-  isPulling = true;
-});
+function onPullRefresh() {
+  return Promise.all([
+    loadScheduleFromApi(),
+    loadScoresAndStandings(),
+    loadTournamentGames(),
+    loadTOCGames()
+  ])
+    .then(() => {
+      renderHome();
+      renderTicker(false);
+      ensureTickerRunning();
+    })
+    .catch(err => console.error("Pull refresh error:", err));
+}
 
-document.addEventListener("touchmove", (e) => {
-  if (!isPulling) return;
-  if (currentPage !== "home") return;
+document.addEventListener(
+  "touchstart",
+  (e) => {
+    if (currentPage !== "home") return;
 
-  touchCurrentY = e.touches[0].clientY;
+    const main = getMainScrollEl();
+    if (!main) return;
 
-  // If user scrolls upward (negative), cancel
-  if (touchCurrentY < touchStartY) {
-    isPulling = false;
-    return;
-  }
-});
+    // Only start pull if we're at the very top of the scroll container
+    const scrollTop = typeof main.scrollTop === "number" ? main.scrollTop : window.scrollY;
+if (scrollTop > 0) return;
+
+    touchStartY = e.touches[0].clientY;
+    touchCurrentY = touchStartY;
+    isPulling = true;
+  },
+  { passive: true }
+);
+
+document.addEventListener(
+  "touchmove",
+  (e) => {
+    if (!isPulling) return;
+    if (currentPage !== "home") return;
+
+    touchCurrentY = e.touches[0].clientY;
+
+    // If user scrolls up instead of pulling down, cancel
+    if (touchCurrentY < touchStartY) {
+      isPulling = false;
+    }
+  },
+  { passive: true }
+);
 
 document.addEventListener("touchend", async () => {
   if (!isPulling) return;
@@ -1180,23 +3247,21 @@ document.addEventListener("touchend", async () => {
   const pullDistance = touchCurrentY - touchStartY;
 
   if (pullDistance > PULL_THRESHOLD) {
-    // Trigger refresh
-    showSpinner();
-
-    // Reload schedule, home content, etc.
-    await loadScheduleFromApi();
-
-    // Re-render home page after data reload
-    renderHome();
-
-    hideSpinner();
+    await onPullRefresh();
   }
 
   isPulling = false;
 });
 
-// IMPORTANT: use auth gate instead of calling initApp() directly
-initAuthAndApp();
+document.addEventListener("touchcancel", () => {
+  isPulling = false;
+});
+
+// Ensure DOM is ready (fixes blank first load on PWA)
+document.addEventListener("DOMContentLoaded", () => {
+  initApp();
+  updateScheduleFloatingButtons();
+});
 
 /* --------------------------------------------------
    END OF FILE

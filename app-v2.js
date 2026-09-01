@@ -3190,19 +3190,25 @@ function getMainScrollEl() {
   return document.querySelector("main") || document.scrollingElement || document.documentElement;
 }
 
-function onPullRefresh() {
-  return Promise.all([
-    loadScheduleFromApi(),
-    loadScoresAndStandings(),
-    loadTournamentGames(),
-    loadTOCGames()
-  ])
-    .then(() => {
-      renderHome();
-      renderTicker(false);
-      ensureTickerRunning();
-    })
-    .catch(err => console.error("Pull refresh error:", err));
+async function onPullRefresh() {
+  showSpinner();
+
+  try {
+    // Ask the service worker to check for a newer version
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration();
+
+      if (registration) {
+        await registration.update();
+      }
+    }
+
+    // Reload the complete app instead of refreshing only sheet data
+    window.location.reload();
+  } catch (error) {
+    console.error("Pull refresh error:", error);
+    window.location.reload();
+  }
 }
 
 document.addEventListener(

@@ -1263,13 +1263,7 @@ function renderTeams() {
 }
 
 function renderTeamsByDivision(div) {
-  const teamSet = new Set();
-  games.forEach(g => {
-    if (g.division === div) {
-      if (g.home) teamSet.add(g.home);
-      if (g.away) teamSet.add(g.away);
-    }
-  });
+  const teams = VPLL_TEAMS[div] || [];
 
   const pageRoot = getPageRoot();
   if (!pageRoot) return;
@@ -1277,21 +1271,25 @@ function renderTeamsByDivision(div) {
   pageRoot.innerHTML = `
     <section class="card">
       <div class="card-header">
-  <button onclick="renderTeams()" style="margin-right:8px;">← Back</button>
-  <div class="card-title">${div}</div>
-</div>
-      <ul class="roster-list">
-        ${[...teamSet]
-          .map(
-            t => `
-            <li onclick="renderTeamSchedule(&quot;${div}&quot;,&quot;${t}&quot;)">
+        <button onclick="renderTeams()" style="margin-right:8px;">← Back</button>
+        <div class="card-title">${div}</div>
+      </div>
 
-              <span>${t}</span>
-              <span style="font-weight:700; color:#d32f2f;">Schedule</span>
-            </li>
-          `
-          )
-          .join("")}
+      <ul class="roster-list">
+        ${
+          teams.length
+            ? teams
+                .map(
+                  t => `
+                    <li onclick="renderTeamSchedule(&quot;${div}&quot;,&quot;${t}&quot;)">
+                      <span>${t}</span>
+                      <span style="font-weight:700; color:#d32f2f;">Schedule</span>
+                    </li>
+                  `
+                )
+                .join("")
+            : `<li>No VPLL teams found.</li>`
+        }
       </ul>
     </section>
   `;

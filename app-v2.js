@@ -26,6 +26,14 @@ function hideSpinner() {
 const API_BASE_URL = "/schedule.json";
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
+const VPLL_TEAMS = {
+  "Majors": ["Navy", "Red"],
+  "AAA": ["Navy", "Red", "Grey", "Black", "Royal", "Gold"],
+  "AA": ["Navy", "Red", "Black", "Gold"],
+  "Single A": ["Royal", "Red", "Grey", "Black"],
+  "Coach Pitch": ["Gold", "Navy"],
+  "T-Ball": ["Royal", "Red", "Black", "Carolina"]
+};
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 const DIVISION_STANDINGS_TEAMS = {
   Majors: [

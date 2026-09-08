@@ -1329,7 +1329,7 @@ function renderTeamSchedule(div, team) {
                   .map(g => {
                     const score = SCORING_DIVISIONS.includes(g.division)
                       ? g.homeScore == null && g.awayScore == null
-                        ? "No score yet"
+                        ? ""
                         : `${g.awayScore ?? "-"} - ${g.homeScore ?? "-"}`
                       : "";
 
@@ -1416,7 +1416,7 @@ function renderSchedule() {
                                 g.division
                               )
                                 ? g.homeScore == null && g.awayScore == null
-                                  ? "No score yet"
+                                  ? ""
                                   : `${g.awayScore ?? "-"} - ${
     g.homeScore ?? "-"
   }`

@@ -2135,7 +2135,7 @@ function renderTicker(forceRestart = false) {
   if (!tickerData || tickerData.length === 0) {
     html = `
       <div class="ticker-item">
-        🍂 <span class="no-scores">Schedules will be released this week. Click Fall Ball Practices to see your practice slots.</span>
+        🍂 <span class="no-scores">Fields closed Sept 8 & 9. Schedules will be released this week. Click Fall Ball Practices to see your practice slots.</span>
     </div>
     `;
   } else {

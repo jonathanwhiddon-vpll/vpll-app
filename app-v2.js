@@ -41,7 +41,7 @@ const VPLL_TEAMS = {
   "Intermediate": ["Villa Park"],
   "Majors": ["Navy Bombers", "Red"],
   "AAA": ["Blue Bombers", "Hot Cheetos", "Chaos", "Bruisers", "Blue Sox", "Gold Knights"],
-  "AA": ["Navy", "Red", "Black", "Gold Rush"],
+  "AA": ["Navy", "Red Rascals", "Black", "Gold Rush"],
   "Single A": ["Royal", "Red", "Grey", "Black Iron Sharks"],
   "Coach Pitch": ["Bananas", "Yankees"],
   "T-Ball": ["Little Swingers", "Red", "Black", "Blue Bandits"]

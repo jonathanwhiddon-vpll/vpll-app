@@ -28,11 +28,11 @@ const API_BASE_URL = "/schedule.json";
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const VPLL_TEAMS = {
   "Majors": ["Navy", "Red"],
-  "AAA": ["Navy Blue Bombers", "Red Hot Cheetos", "Grey Chaos", "Black Bruisers", "Blue Sox", "Gold Knights"],
-  "AA": ["Navy", "Red", "Black", "Gold"],
+  "AAA": ["Blue Bombers", "Hot Cheetos", "Chaos", "Bruisers", "Blue Sox", "Gold Knights"],
+  "AA": ["Navy", "Red", "Black", "Gold Rush"],
   "Single A": ["Royal", "Red", "Grey", "Black"],
-  "Coach Pitch": ["Gold", "Navy"],
-  "T-Ball": ["Royal", "Red", "Black", "Carolina"]
+  "Coach Pitch": ["Gold", "Yankees"],
+  "T-Ball": ["Little Swingers", "Red", "Black", "Blue Bandits"]
 };
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 const DIVISION_STANDINGS_TEAMS = {

@@ -27,7 +27,7 @@ const API_BASE_URL = "/schedule.json";
 
 const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
 const VPLL_TEAMS = {
-  "Majors": ["Navy", "Red"],
+  "Majors": ["Navy Bombers", "Red"],
   "AAA": ["Blue Bombers", "Hot Cheetos", "Chaos", "Bruisers", "Blue Sox", "Gold Knights"],
   "AA": ["Navy", "Red", "Black", "Gold Rush"],
   "Single A": ["Royal", "Red", "Grey", "Black Iron Sharks"],

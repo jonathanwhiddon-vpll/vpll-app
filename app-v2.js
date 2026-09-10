@@ -25,8 +25,20 @@ function hideSpinner() {
 // (Kept for future use, not used with CSV)
 const API_BASE_URL = "/schedule.json";
 
-const DIVISIONS = ["Majors", "AAA", "AA", "Single A", "Coach Pitch", "T-Ball"];
+const DIVISIONS = [
+  "Juniors",
+  "Intermediate",
+  "Majors",
+  "AAA",
+  "AA",
+  "Single A",
+  "Coach Pitch",
+  "T-Ball"
+];
+
 const VPLL_TEAMS = {
+  "Juniors": ["Villa Park"],
+  "Intermediate": ["Villa Park"],
   "Majors": ["Navy Bombers", "Red"],
   "AAA": ["Blue Bombers", "Hot Cheetos", "Chaos", "Bruisers", "Blue Sox", "Gold Knights"],
   "AA": ["Navy", "Red", "Black", "Gold Rush"],

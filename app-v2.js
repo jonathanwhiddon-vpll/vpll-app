@@ -39,12 +39,12 @@ const DIVISIONS = [
 const VPLL_TEAMS = {
   "Juniors": ["Villa Park"],
   "Intermediate": ["Villa Park"],
-  "Majors": ["Navy Bombers", "Red"],
+  "Majors": ["Navy Bombers", "Fireballs"],
   "AAA": ["Blue Bombers", "Hot Cheetos", "Chaos", "Bruisers", "Blue Sox", "Gold Knights"],
-  "AA": ["Navy", "Red Rascals", "Black", "Gold Rush"],
+  "AA": ["Blue Bombers", "Red Rascals", "Black", "Gold Rush"],
   "Single A": ["Royal", "Red", "Grey", "Black Iron Sharks"],
   "Coach Pitch": ["Bananas", "Yankees"],
-  "T-Ball": ["Little Swingers", "Red", "Black", "Blue Bandits"]
+  "T-Ball": ["Little Swingers", "Red Hots", "VP Dragons", "Blue Bandits"]
 };
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 const DIVISION_STANDINGS_TEAMS = {

@@ -42,7 +42,7 @@ const VPLL_TEAMS = {
   "Majors": ["Navy Bombers", "Fireballs"],
   "AAA": ["Blue Bombers", "Hot Cheetos", "Chaos", "Bruisers", "Blue Sox", "Gold Knights"],
   "AA": ["Blue Bombers", "Red Rascals", "Black", "Gold Rush"],
-  "Single A": ["Royal", "Red", "Grey", "Black Iron Sharks"],
+  "Single A": ["VP Royal", "VP Red", "VP Grey", "Black Iron Sharks"],
   "Coach Pitch": ["Bananas", "Yankees"],
   "T-Ball": ["Little Swingers", "Red Hots", "VP Dragons", "Blue Bandits"]
 };

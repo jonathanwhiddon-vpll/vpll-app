@@ -361,6 +361,7 @@ async function loadScheduleFromApi() {
         const division = div;
 
         const date = item.date || item.Date || "";
+         console.log("RAW TIME:", item.time, item.Time);
         let time = (item.time || item.Time || "").toString().trim();
 
 // Google Sheets CSV may return time as a decimal fraction of a day

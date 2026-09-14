@@ -361,7 +361,20 @@ async function loadScheduleFromApi() {
         const division = div;
 
         const date = item.date || item.Date || "";
-        const time = item.time || item.Time || "";
+        let time = (item.time || item.Time || "").toString().trim();
+
+// Google Sheets CSV may return time as a decimal fraction of a day
+if (/^0?\.\d+$/.test(time)) {
+  const totalMinutes = Math.round(parseFloat(time) * 24 * 60);
+  let hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+
+  time = `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+}
         const field = item.field || item.Field || "";
         const home = item.home || item.Home || "";
         const away = item.away || item.Away || "";
@@ -755,12 +768,18 @@ function buildTicker() {
       sortDate: parseGameDateTime(g.date, g.time)
     }))
     .sort((a, b) => {
-      if (!a.sortDate && !b.sortDate) return 0;
-      if (!a.sortDate) return 1;
-      if (!b.sortDate) return -1;
+  const divisionOrder = DIVISIONS.indexOf(a.division) - DIVISIONS.indexOf(b.division);
 
-      return a.sortDate - b.sortDate;
-    })
+  // First sort by division
+  if (divisionOrder !== 0) return divisionOrder;
+
+  // Then sort games within that division by date/time
+  if (!a.sortDate && !b.sortDate) return 0;
+  if (!a.sortDate) return 1;
+  if (!b.sortDate) return -1;
+
+  return a.sortDate - b.sortDate;
+})
     .slice(0, TICKER_MAX_ITEMS);
 
   return weeklyGames.map(g => {

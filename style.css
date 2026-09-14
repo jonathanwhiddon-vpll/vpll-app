@@ -495,7 +495,7 @@ main {
 }
 :root{
   /* 👇 change this anytime (60s, 80s, 120s...) */
-  --ticker-duration: 180s;
+  --ticker-duration: 210s;
 }
 
 /* -------- PREMIUM TICKER STYLE (C1-A) -------- */

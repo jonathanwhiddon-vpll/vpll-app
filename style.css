@@ -512,13 +512,8 @@ main {
 #tickerContent {
   display: inline-block;
   white-space: nowrap;
-  /* ✅ one single source of truth for speed */
-  animation: tickerScroll 30s linear infinite;
-
-  /* ✅ makes it “already in motion” (no long wait at the start) */
+  animation: tickerScroll var(--ticker-duration) linear infinite;
   animation-delay: -6s;
-
-  /* ✅ helps mobile Safari */
   will-change: transform;
 }
 

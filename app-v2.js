@@ -392,11 +392,15 @@ async function loadScheduleFromApi() {
     }
 
        games = combined;
-    applyScoreOverrides();
+applyScoreOverrides();
 
-    if (currentPage === "schedule") renderSchedule();
-    if (currentPage === "standings") renderStandings();
-    if (currentPage === "home") renderHome();
+// Build Fall Ball ticker from the loaded schedule
+tickerData = buildTicker();
+renderTicker(true);
+
+if (currentPage === "schedule") renderSchedule();
+if (currentPage === "standings") renderStandings();
+if (currentPage === "home") renderHome();
   } catch (err) {
     console.error("Error loading schedule CSV:", err);
   } finally {
@@ -708,151 +712,62 @@ function parseGameDateTime(dateStr, timeStr) {
   );
 }
 
-function buildTicker(
-  formGames,
-  tournamentList = [],
-  tocList = [],
-  allStarsList = []
-) {
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
+function buildTicker() {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
-  const cutoff = new Date();
-  cutoff.setHours(0, 0, 0, 0);
-  cutoff.setDate(cutoff.getDate() - TICKER_LOOKBACK_DAYS);
+  // Monday of the current week
+  const day = now.getDay(); // Sun=0, Mon=1, etc.
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
 
-  const leagueEntries = (formGames || [])
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - daysSinceMonday);
+  weekStart.setHours(0, 0, 0, 0);
+
+  // Sunday of the current week
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const weeklyGames = (games || [])
     .filter(g => {
       const gameDate = parseMMDDYYYY(g.date);
       if (!gameDate) return false;
-      if (gameDate < cutoff || gameDate > today) return false;
 
-      const isLive = g.status === "LIVE";
-      const isFinal = g.homeScore != null && g.awayScore != null;
+      // Only games during this Monday-Sunday week
+      if (gameDate < weekStart || gameDate > weekEnd) return false;
 
-      return isLive || isFinal;
+      // Only games involving a VPLL team
+      const vpllTeams = VPLL_TEAMS[g.division] || [];
+
+      return (
+        vpllTeams.includes(g.home) ||
+        vpllTeams.includes(g.away)
+      );
     })
     .map(g => ({
-      source: "league",
       division: g.division,
       date: g.date,
       time: g.time,
-      awayTeam: g.awayTeam,
-      homeTeam: g.homeTeam,
-      awayScore: g.awayScore != null ? g.awayScore : "-",
-      homeScore: g.homeScore != null ? g.homeScore : "-",
-      status: g.status,
-      inning: g.inning || "",
+      field: g.field || "",
+      away: g.away,
+      home: g.home,
       sortDate: parseGameDateTime(g.date, g.time)
-    }));
-
-  const tournamentEntries = (tournamentList || [])
-    .filter(g => {
-      const gameDate = parseMMDDYYYY(g.date);
-      if (!gameDate) return false;
-      if (gameDate < cutoff || gameDate > today) return false;
-
-      const isLive = g.status === "LIVE";
-      const isFinal = g.homeScore != null && g.awayScore != null;
-
-      return isLive || isFinal;
-    })
-    .map(g => ({
-      source: "tournament",
-      division: "Tournament",
-      date: g.date,
-      time: g.time,
-      awayTeam: g.away,
-      homeTeam: g.home,
-      awayScore: g.awayScore != null ? g.awayScore : "-",
-      homeScore: g.homeScore != null ? g.homeScore : "-",
-      status: g.status,
-      inning: g.inning || "",
-      pool: g.pool || "",
-      sortDate: parseGameDateTime(g.date, g.time)
-    }));
-const tocEntries = (tocList || [])
-  .filter(g => {
-    const gameDate = parseMMDDYYYY(g.date);
-    if (!gameDate) return false;
-    if (gameDate < cutoff || gameDate > today) return false;
-
-    const isLive = g.status === "LIVE";
-    const isFinal = g.homeScore != null && g.awayScore != null;
-
-    return isLive || isFinal;
-  })
-  .map(g => ({
-    source: "toc",
-    division: "TOC",
-    date: g.date,
-    time: g.time,
-    awayTeam: g.away,
-    homeTeam: g.home,
-    awayScore: g.awayScore != null ? g.awayScore : "-",
-    homeScore: g.homeScore != null ? g.homeScore : "-",
-    status: g.status,
-    inning: g.inning || "",
-    sortDate: parseGameDateTime(g.date, g.time)
-  }));
-  const allStarsEntries = (allStarsList || [])
-  .filter(g => {
-    const gameDate = parseMMDDYYYY(g.date);
-    if (!gameDate) return false;
-    if (gameDate < cutoff || gameDate > today) return false;
-
-    const isLive = g.status === "LIVE";
-    const isFinal = g.homeScore != null && g.awayScore != null;
-
-    if (!(isLive || isFinal)) return false;
-
-    return (
-      VPLL_ALL_STARS_TEAMS.includes(g.home) ||
-      VPLL_ALL_STARS_TEAMS.includes(g.away)
-    );
-  })
-  .map(g => ({
-    source: "allstars",
-    division: "All Stars",
-    date: g.date,
-    time: g.time,
-    awayTeam: g.away,
-    homeTeam: g.home,
-    awayScore: g.awayScore != null ? g.awayScore : "-",
-    homeScore: g.homeScore != null ? g.homeScore : "-",
-    status: g.status,
-    inning: g.inning || "",
-    sortDate: parseGameDateTime(g.date, g.time)
-  }));
-  return [
-  ...leagueEntries,
-  ...tournamentEntries,
-  ...tocEntries,
-  ...allStarsEntries
-]
+    }))
     .sort((a, b) => {
-      const aLive = a.status === "LIVE" ? 1 : 0;
-      const bLive = b.status === "LIVE" ? 1 : 0;
-
-      if (bLive !== aLive) return bLive - aLive;
-
       if (!a.sortDate && !b.sortDate) return 0;
       if (!a.sortDate) return 1;
       if (!b.sortDate) return -1;
 
-      return b.sortDate - a.sortDate;
+      return a.sortDate - b.sortDate;
     })
-    .slice(0, TICKER_MAX_ITEMS)
-    .map(g => {
-      const prefix = g.source === "tournament" ? "Playoffs" : g.division;
+    .slice(0, TICKER_MAX_ITEMS);
 
-      if ((g.status || "").trim() === "LIVE") {
-        const inningText = g.inning ? ` • LIVE ${g.inning}` : " • LIVE";
-        return `${prefix}: ${g.date}${inningText} • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`;
-      }
+  return weeklyGames.map(g => {
+    const fieldText = g.field ? ` • ${g.field}` : "";
 
-      return `${prefix}: ${g.date} • FINAL • ${g.awayTeam} ${g.awayScore} - ${g.homeScore} ${g.homeTeam}`;
-    });
+    return `${g.division}: ${g.date} • ${g.time} • ${g.away} at ${g.home}${fieldText}`;
+  });
 }
 
 async function loadScoresAndStandings() {

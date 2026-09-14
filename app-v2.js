@@ -766,7 +766,7 @@ function buildTicker() {
   return weeklyGames.map(g => {
     const fieldText = g.field ? ` • ${g.field}` : "";
 
-    return `${g.division}: ${g.date} • ${g.time} • ${g.away} at ${g.home}${fieldText}`;
+    return `${g.division}: ${g.away} at ${g.home} • ${g.date} • ${g.time}${fieldText}`;
   });
 }
 

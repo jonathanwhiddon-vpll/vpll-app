@@ -936,7 +936,7 @@ async function renderHome() {
     ${announcementHTML} 
 <div style="padding: 0 16px 18px 16px;">
   <button
-    onclick="window.open('https://www.vplittleleague.net/Default.aspx?tabid=1352759', '_blank')"
+    onclick="window.open('https://www.vplittleleague.net/Default.aspx?tabid=2752970', '_blank')"
     style="
       display:block;
       width:100%;

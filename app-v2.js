@@ -936,22 +936,30 @@ async function renderHome() {
     ${announcementHTML} 
 <div style="padding: 0 16px 18px 16px;">
   <button
-    onclick="currentPage='practices'; renderPractices();"
+    onclick="window.open('https://www.vplittleleague.net/Default.aspx?tabid=1352759', '_blank')"
     style="
       display:block;
       width:100%;
       text-align:center;
-      padding:14px 12px;
+      padding:16px 12px;
       border-radius:12px;
       font-weight:800;
-      font-size:16px;
-      border:1px solid #b8cbe3;
-      background:#eef4fb;
-      color:#0b2a52;
+      font-size:17px;
+      border:1px solid #0b2a52;
+      background:#0b2a52;
+      color:#ffffff;
       cursor:pointer;
+      box-shadow:0 3px 8px rgba(0,0,0,0.18);
     "
   >
-    ⚾ Fall Ball Practices 🍂
+    ⚾ 2027 SPRING REGISTRATION
+    <div style="
+      font-size:13px;
+      font-weight:600;
+      margin-top:5px;
+    ">
+      Registration is NOW OPEN — Register Here
+    </div>
   </button>
 </div>
 <!-- 

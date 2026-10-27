@@ -39,7 +39,7 @@ const DIVISIONS = [
 const VPLL_TEAMS = {
   "Juniors": ["Villa Park"],
   "Intermediate": ["Villa Park"],
-  "Majors": ["Navy Bombers", "Fireballs"],
+  "Majors": ["Navy Bombers", "Fireballs", "Team 1", "Team 2"],
   "AAA": ["Blue Bombers", "Hot Cheetos", "Chaos", "Bruisers", "Blue Sox", "Gold Knights"],
   "AA": ["Blue Bombers", "Red Rascals", "Black Widows", "Gold Rush"],
   "Single A": ["VP Royal", "VP Red", "VP Grey", "Black Iron Sharks"],

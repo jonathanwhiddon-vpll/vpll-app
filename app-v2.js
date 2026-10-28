@@ -2576,6 +2576,11 @@ function renderResources() {
     📱 Download / Open District 30 Little League App
   </a>
 </li>
+<li>
+  <a href="#" onclick="renderPdfPage('resources/2027-Baseball-Age-Chart.pdf','2027 Baseball Age Chart'); return false;">
+    📅 2027 Baseball Age Chart
+  </a>
+</li>
         <li>
           <a href="#" onclick="renderPdfPage('resources/aa_rules.pdf','AA Special Rules'); return false;">
             💡 AA Special Rules 

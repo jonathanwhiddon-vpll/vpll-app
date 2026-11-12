@@ -2681,7 +2681,7 @@ function renderBoardDirectory() {
     },
     {
       name: "Chris Bragg",
-      position: "Practice Coordinator lowers",
+      position: "Player Agent Lower Div",
       email: ""
     },
     {
@@ -2706,7 +2706,7 @@ function renderBoardDirectory() {
     },
     {
       name: "Anthony Decker",
-      position: "Assistant Field Coordinator",
+      position: "Practice Coordinator Lowers",
       email: ""
     },
     {

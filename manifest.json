@@ -3,7 +3,6 @@
   "short_name": "VPLL",
   "description": "Villa Park Little League schedules, standings, and team info.",
   "start_url": "/",
-
   "display": "standalone",
   "background_color": "#0a192f",
   "theme_color": "#0a192f",
@@ -15,10 +14,10 @@
       "type": "image/png"
     },
     {
-      "src": "/60thlogo.png",
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
   ]
-}
 
+}

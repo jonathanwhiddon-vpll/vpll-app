@@ -1369,7 +1369,7 @@ function renderSchedule() {
         <div class="schedule-container">
           ${
             list.length === 0
-              ? `<p style="padding:16px;">🍂 Fall Ball Schedule Coming Soon ⏳.</p>`
+              ? `<p style="padding:16px;">Stay Tuned ⏳.</p>`
               : Object.keys(gamesByDate)
                   .map(date => {
                     return `

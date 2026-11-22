@@ -39,12 +39,12 @@ const DIVISIONS = [
 const VPLL_TEAMS = {
   "Juniors": ["Villa Park"],
   "Intermediate": ["Villa Park"],
-  "Majors": ["Navy Bombers", "Fireballs"],
-  "AAA": ["Blue Bombers", "Hot Cheetos", "Chaos", "Bruisers", "Blue Sox", "Gold Knights"],
-  "AA": ["Blue Bombers", "Red Rascals", "Black Widows", "Gold Rush"],
-  "Single A": ["VP Royal", "VP Red", "VP Grey", "Black Iron Sharks"],
-  "Coach Pitch": ["Bananas", "Yankees"],
-  "T-Ball": ["Little Swingers", "Red Hots", "VP Dragons", "Blue Bandits"]
+  "Majors": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
+  "AAA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
+  "AA": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
+  "Single A": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8", "Team 9", "Team 10"],
+  "Coach Pitch": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
+  "T-Ball": ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5", "Team 6", "Team 7", "Team 8"],
 };
 const SCORING_DIVISIONS = ["Majors", "AAA", "AA"];
 const DIVISION_STANDINGS_TEAMS = {
